@@ -1,0 +1,9 @@
+# DM-002 — committed profile, relative path, no credentials.
+# Run dbt from the dbt/ directory (DBT_PROFILES_DIR defaults to cwd there).
+epra:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../data/warehouse/epra.duckdb
+      threads: 4

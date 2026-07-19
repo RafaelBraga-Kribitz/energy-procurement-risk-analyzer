@@ -1,0 +1,30 @@
+# EN-091 — canonical ignore list (SPEC-07 §9)
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.egg-info/
+dist/
+build/
+
+.env
+
+# bulk data is never versioned (ING-010); repo stays reproducible via code + re-pull
+data/raw/*
+!data/raw/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/warehouse/*
+!data/warehouse/.gitkeep
+
+exports/*.csv
+
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/

@@ -1,0 +1,30 @@
+# SPEC-02 (DM-002/003). Models arrive at M3; this skeleton fixes layers and
+# materializations so staging/marts land in the right schemas from day one.
+name: epra
+version: "1.0.0"
+profile: epra
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  epra:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  epra:
+    dim_strategy:
+      +schema: marts
+      +column_types:
+        strategy_id: varchar
+        strategy_name: varchar
+        description: varchar

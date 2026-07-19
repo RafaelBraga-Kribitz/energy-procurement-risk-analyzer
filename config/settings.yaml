@@ -1,0 +1,42 @@
+# config/settings.yaml — ALL non-secret settings (EN-040).
+# Loaded once by epra.common.config.load_settings() into a pydantic Settings model;
+# modules receive the object and never re-read YAML ad hoc.
+# The only secret (ENTSOE_API_TOKEN) lives in env/.env — never here (EN-041).
+
+timezone_local: Europe/Vienna
+
+zones:
+  at:
+    code: AT
+    eic: 10YAT-APG------L      # SPEC-01 Appendix A
+  delu:
+    code: DE_LU
+    eic: 10Y1001A1001A82H      # SPEC-01 Appendix A
+
+window:
+  start_date: 2019-01-01       # Charter §4.3 — first clean year after AT-DE split.
+  # The window END is always "latest complete month", COMPUTED per ING-042
+  # (epra.ingest.entsoe.latest_complete_month) — deliberately not configurable.
+
+geosphere:
+  base_url: https://dataset.api.hub.geosphere.at/v1   # ING-090
+  dataset_id: klima-v2-1d      # verify at build time via discovery (ING-091)
+  station_id: null             # filled by ING-091 discovery + ADR (prefer "Graz Universität")
+  station_name: null
+  parameter: tl_mittel         # daily mean air temperature, °C (ING-092)
+
+paths:
+  data_raw: data/raw
+  data_cache: data/cache
+  data_manual: data/manual
+  data_processed: data/processed
+  warehouse: data/warehouse/epra.duckdb
+  reports: reports
+  exports: exports
+
+ingest:
+  chunk_days: 90               # ING-030 — max request window
+  entsoe_sleep_s: 0.5          # ING-007 — politeness
+  geosphere_sleep_s: 0.2       # ING-007
+  cache_min_age_days: 7        # ING-009 — cache used when window ended > 7 days ago
+  incremental_lookback_days: 45  # ING-041 — ENTSO-E restates recent data

@@ -1,0 +1,21 @@
+# EN-003 — pre-commit hooks: ruff, ruff-format, end-of-file-fixer, check-yaml,
+# detect-private-key, and the custom token guard (scripts/check_no_token_in_code.py).
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.5
+    hooks:
+      - id: ruff
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: detect-private-key
+  - repo: local
+    hooks:
+      - id: no-entsoe-token-in-code
+        name: no ENTSO-E token literal in code (A-7)
+        entry: python scripts/check_no_token_in_code.py
+        language: system
+        types: [text]

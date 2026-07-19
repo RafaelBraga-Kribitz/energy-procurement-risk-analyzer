@@ -1,0 +1,37 @@
+# EN-080 — CI. Jobs 1 (lint) and 2 (test) are live from M0.
+# Job 3 (dbt fixture build) arrives with M3; job 4 (ssot-check) with M6.
+# All four become required for merge as they land.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv venv && uv pip install -e ".[dev]"
+      - run: uv run ruff check src tests scripts
+      - run: uv run ruff format --check src tests scripts
+      - run: uv run mypy
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv venv && uv pip install -e ".[dev]"
+      # EN-070: no network in CI tests; live suite excluded by marker.
+      - run: uv run pytest -m "not live"
+
+  # dbt-check:   # M3 — dbt build against tests/fixtures mini-warehouse (EN-080 job 3)
+  # ssot-check:  # M6 — scripts/check_ssot_consistency.py (EN-080 job 4, GV-303)

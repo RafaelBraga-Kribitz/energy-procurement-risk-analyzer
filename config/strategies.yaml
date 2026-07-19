@@ -1,0 +1,11 @@
+# SPEC-05 §8 — authoritative copy, created verbatim. All simulator tunables live here (ST-003).
+retrospective_years: [2021, 2022, 2023, 2024, 2025]
+reference_year: 2019
+lock_window_months: [7, 8, 9, 10, 11, 12]   # of year Y-1
+fixed_premium_eur_mwh: 5.0
+hybrid_ratios: [0.30, 0.50, 0.70]
+forward:
+  n_paths: 2000
+  seed: 42
+  horizon_months: 12
+peak_available: true

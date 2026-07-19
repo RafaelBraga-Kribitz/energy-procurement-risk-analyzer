@@ -1,0 +1,7 @@
+strategy_id,strategy_name,description
+S1,FULL_SPOT,All volume at AT day-ahead hourly price
+S2,OESPI_INDEXED,Monthly price indexed to OESPI (base/peak blended)
+S3,FIXED_ANNUAL,Single annual price locked pre-year via OESPI proxy
+S4_30,HYBRID_30,30% hedged at S3 price + 70% spot
+S4_50,HYBRID_50,50% hedged + 50% spot
+S4_70,HYBRID_70,70% hedged + 30% spot

@@ -1,0 +1,88 @@
+# SPEC-07 §1 (toolchain), §3 (pinned dependencies — upgrades require ADR, GV-203).
+[project]
+name = "epra"
+version = "0.1.0"
+description = "Energy Procurement Risk Analyzer — Austrian day-ahead market, 50 GWh Styrian industrial consumer"
+authors = [{ name = "Rafael Braga-Kribitz" }]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pandas>=2.2,<3",
+    "numpy>=1.26,<3",
+    "duckdb>=1.0",
+    "dbt-core>=1.8,<2",
+    "dbt-duckdb>=1.8,<2",
+    "entsoe-py>=0.6",
+    "requests>=2.32",
+    "tenacity>=8.3",
+    "holidays>=0.50",
+    "arch>=7",
+    "hmmlearn>=0.3",
+    "statsmodels>=0.14",
+    "matplotlib>=3.8",
+    "pydantic>=2.7",
+    "PyYAML>=6",
+    "python-dotenv>=1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "pre-commit",
+    # Typing stubs (dev-only) so `mypy --strict` (EN-002) can check our code — see ADR-002.
+    "pandas-stubs",
+    "types-PyYAML",
+    "types-requests",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/epra"]
+
+# ---------------------------------------------------------------- lint / format (EN-002)
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+# Spec math notation quoted verbatim in docstrings (SPEC-04/05 formulas).
+allowed-confusables = ["×", "−", "α", "β"]
+
+# ---------------------------------------------------------------------- typing (EN-002)
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/epra"]
+mypy_path = "src"
+
+[[tool.mypy.overrides]]
+# EN-002 allows ignore_missing_imports for these untyped libraries.
+module = ["entsoe.*", "hmmlearn.*", "arch.*", "statsmodels.*"]
+ignore_missing_imports = true
+
+# --------------------------------------------------------------- tests (EN-070, EN-071)
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=epra --cov-fail-under=80 --cov-report=term-missing"
+markers = [
+    "live: hits real external APIs; excluded in CI (EN-070)",
+]
+
+[tool.coverage.run]
+source = ["epra"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]

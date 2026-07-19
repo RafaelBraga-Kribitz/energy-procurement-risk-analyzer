@@ -1,0 +1,20 @@
+# SPEC-03 §6 — authoritative copy, created verbatim. YAML wins if spec prose diverges.
+# Hard rule (Charter §2): these parameters live ONLY here, never hardcoded elsewhere (LP-002).
+profile_name: styriametal_v1
+annual_consumption_mwh: 50000.0
+timezone: Europe/Vienna
+day_shapes:
+  weekday: [0.65,0.65,0.65,0.65,0.65,0.75,0.95,1.00,1.00,1.00,1.00,1.00,
+            0.95,1.00,1.00,1.00,1.00,0.95,0.85,0.80,0.75,0.70,0.65,0.65]
+  weekend: [0.30,0.30,0.30,0.30,0.30,0.30,0.32,0.35,0.35,0.35,0.35,0.35,
+            0.35,0.35,0.35,0.35,0.35,0.33,0.32,0.30,0.30,0.30,0.30,0.30]
+  shutdown: [0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,
+             0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18,0.18]
+seasonal_factors: {1: 1.06, 2: 1.05, 3: 1.02, 4: 1.00, 5: 0.98, 6: 0.96,
+                   7: 0.95, 8: 0.95, 9: 0.98, 10: 1.01, 11: 1.04, 12: 1.05}
+maintenance:
+  rule: first_full_week_august   # first Monday of August .. following Sunday
+  factor: 0.60
+christmas_shutdown:
+  start: "12-24"
+  end: "01-01"
