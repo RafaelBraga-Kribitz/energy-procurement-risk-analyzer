@@ -33,7 +33,8 @@ rules in [SPEC-03](docs/SPEC-03_consumer_load_profile.md).
 Foundation stage. Charter + eight SPECs are final; M0 (bootstrap) is complete;
 M1–M7 are pending. Build order, gates, and per-milestone status:
 [`PROJECT_CHARTER.md`](PROJECT_CHARTER.md) §7, [`AGENTS.md`](AGENTS.md),
-[`docs/BUILD_LOG.md`](docs/BUILD_LOG.md).
+[`docs/BUILD_LOG.md`](docs/BUILD_LOG.md). Implementers start at
+[`docs/EXECUTION_BLUEPRINT/00_MASTER_PLAN.md`](docs/EXECUTION_BLUEPRINT/00_MASTER_PLAN.md).
 
 ## How to reproduce (once M1+ lands)
 

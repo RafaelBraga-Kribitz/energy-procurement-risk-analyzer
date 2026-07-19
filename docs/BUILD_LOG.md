@@ -45,6 +45,9 @@ One entry per milestone: date, what shipped, gate evidence, open questions.
 
 **Open questions / next steps (in build order)**
 
+> Superseded in detail by `docs/EXECUTION_BLUEPRINT/` (2026-07-19, second
+> entry below) — items remain valid; the blueprint decomposes them into tasks.
+
 1. **Human, day-0 (R-1):** request the ENTSO-E API token now (SPEC-01 §2) —
    M1 blocks on it; M2 (GeoSphere/ÖSPI/calendar, no auth) can proceed meanwhile.
 2. **Human/M2:** transcribe ÖSPI twice (entry1/entry2), run
@@ -60,3 +63,28 @@ One entry per milestone: date, what shipped, gate evidence, open questions.
 6. No remote configured yet — when the GitHub repo exists, push `main`, protect
    it with CI, and add the `ENTSOE_API_TOKEN` secret (EN-041); `refresh.yml`
    (EN-081..083) lands with M7.
+
+---
+
+## 2026-07-19 — Execution Blueprint (planning deliverable, owner-requested)
+
+**Shipped:** `docs/EXECUTION_BLUEPRINT/00..14` — the repository's execution
+operating manual: master plan with authority hierarchy + global DoR/DoD +
+agent session protocol; phase roadmap with entry/exit/rollback; full WBS
+(TP.01–TP.02, T1.01–T7.07, ~47 session-sized tasks with objectives, deps,
+validation, acceptance criteria); module/class/function contracts; dependency
+graphs + critical path + token-window parallel plan; per-milestone
+implementation guides (client strategy, TZ recipes, investigation protocols,
+bootstrap vectorization equivalence, SSOT/checker designs); checklists;
+measurable quality + coding standards; pattern/anti-pattern catalogs (AP-01..22);
+consolidated gate matrix; runnable DL-1..10 release script; extended risk
+register (RB-9..18); traceability matrix; and 18 registered specification gaps
+(SG-01..18) each with a proposed decision pending ADR adoption.
+
+**Governance note:** the blueprint is a planning artifact subordinate to
+Charter > SPEC > ADR (declared in 00_MASTER_PLAN §0.1); it introduces no new
+gates, CI jobs, or ceremony (Charter O-5 respected).
+
+**Open questions:** SG-01..SG-18 proposals await ADR adoption at their
+scheduled tasks; token ETA ~2026-07-22 (TP.01); ÖSPI transcription (T2.05)
+can start any time.
