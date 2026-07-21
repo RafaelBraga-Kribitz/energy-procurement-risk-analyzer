@@ -35,13 +35,22 @@ from __future__ import annotations
 import logging
 import xml.etree.ElementTree as ET
 from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Literal, cast
 
 import pandas as pd
 
 from epra.common.config import Settings
-from epra.common.timeutil import iter_month_starts, next_month, to_utc
+from epra.common.timeutil import VIENNA, iter_month_starts, next_month, to_utc
+from epra.ingest._fetch import (
+    DocumentType,
+    EntsoeQuery,
+    TransportFn,
+    _cache_request_url,
+    fetch_entsoe,
+)
+from epra.ingest._io import request_hash, write_month
 from epra.ingest.exceptions import ContractError, NoDataError
 
 logger = logging.getLogger(__name__)
@@ -438,6 +447,124 @@ def iter_chunks(start: date, end: date) -> Iterator[tuple[date, date]]:
     for i in range(0, len(months), 3):
         chunk = months[i : i + 3]
         yield chunk[0], next_month(chunk[-1])
+
+
+@dataclass(frozen=True)
+class _DatasetSpec:
+    """Maps a §7 raw dataset name to the ENTSO-E document type + zone to fetch."""
+
+    document_type: DocumentType
+    zone_key: str  # key into settings.zones
+
+
+#: The four SPEC-01 §3/§7 datasets this module ingests (ING-001).
+_DATASET_SPECS: dict[str, _DatasetSpec] = {
+    "entsoe_prices_at": _DatasetSpec("day_ahead_prices", "at"),
+    "entsoe_prices_delu": _DatasetSpec("day_ahead_prices", "delu"),
+    "entsoe_load_at": _DatasetSpec("load", "at"),
+    "entsoe_gen_at": _DatasetSpec("generation", "at"),
+}
+
+#: Dataset keys in a fixed, deterministic iteration order (ING-040).
+_DATASET_KEYS: tuple[str, ...] = tuple(_DATASET_SPECS)
+
+
+def _parse_document(document_type: DocumentType, xml: str) -> pd.DataFrame:
+    """Dispatch to the right Appendix-A parser for `document_type`."""
+    if document_type == "day_ahead_prices":
+        return parse_publication_xml(xml)
+    kind: Literal["load", "generation"] = "load" if document_type == "load" else "generation"
+    return parse_gl_xml(xml, kind)
+
+
+def _write_by_month(
+    frame: pd.DataFrame, dataset_key: str, req_hash: str, settings: Settings
+) -> None:
+    """Split `frame` into calendar-month slices and `write_month` each (ING-003).
+
+    Grouping is by the UTC calendar month of `ts_utc` -- the same boundary
+    `write_month`'s own validation enforces (§7 path `<dataset>_<YYYY-MM>`).
+    A failure writing any one month raises immediately; `write_month`'s
+    atomic temp-file-then-rename means no partial file is ever left for that
+    month, and no later month in this frame gets written either (ING-003).
+    """
+    if frame.empty:
+        return
+    years = frame["ts_utc"].dt.year
+    months = frame["ts_utc"].dt.month
+    for year, month in sorted({(int(y), int(m)) for y, m in zip(years, months, strict=True)}):
+        mask = (years == year) & (months == month)
+        write_month(frame.loc[mask], dataset_key, date(year, month, 1), req_hash, settings)
+
+
+def ingest_dataset(
+    settings: Settings,
+    dataset_key: str,
+    start: date,
+    end: date,
+    transport: TransportFn | None = None,
+    *,
+    use_cache: bool = True,
+) -> None:
+    """Fetch, parse, and persist one §7 dataset over `[start, end]` (ING-001, ING-030).
+
+    Iterates `iter_chunks` (<=90-day request windows per ING-030), fetches
+    each chunk through `_fetch.fetch_entsoe` (the `transport` seam lets tests
+    inject fixture XML instead of hitting the network -- ADR-003), parses
+    with the parser matching `dataset_key`'s document type, and writes one
+    parquet per calendar month via `_io.write_month`.
+
+    A chunk with no data (`NoDataError` -- an `Acknowledgement_MarketDocument`
+    response) is logged and skipped, not raised (SPEC-01 Appendix A: "no data
+    for a future/edge window" is expected, not a failure). Any other parse or
+    write failure propagates immediately -- ingestion never continues past a
+    contract violation (A-2).
+
+    Args:
+        dataset_key: one of `entsoe_prices_at`, `entsoe_prices_delu`,
+            `entsoe_load_at`, `entsoe_gen_at`.
+        transport: forwarded to `fetch_entsoe`; `None` uses the real network.
+        use_cache: forwarded to `fetch_entsoe` (`--no-cache` semantics).
+    """
+    spec = _DATASET_SPECS[dataset_key]
+    zone_cfg = settings.zones[spec.zone_key]
+
+    for chunk_start, chunk_end in iter_chunks(start, end):
+        period_start = to_utc(
+            datetime(chunk_start.year, chunk_start.month, chunk_start.day, tzinfo=VIENNA)
+        )
+        period_end = to_utc(datetime(chunk_end.year, chunk_end.month, chunk_end.day, tzinfo=VIENNA))
+        query = EntsoeQuery(
+            document_type=spec.document_type,
+            domain=zone_cfg.eic,
+            period_start=period_start,
+            period_end=period_end,
+        )
+        # request_hash() strips the securityToken value regardless of what's
+        # passed, so a placeholder here yields the identical hash fetch_entsoe
+        # computes internally from the real token -- no second token read.
+        req_hash = request_hash(_cache_request_url(query, "x"))
+
+        try:
+            xml = fetch_entsoe(query, settings, use_cache=use_cache, transport=transport)
+            frame = _parse_document(spec.document_type, xml)
+        except NoDataError as exc:
+            logger.info(
+                "dataset=%s window=%s..%s no data: %s", dataset_key, chunk_start, chunk_end, exc
+            )
+            continue
+
+        fills = frame.attrs.get("a03_fills", 0)
+        if fills:
+            logger.info(
+                "dataset=%s window=%s..%s a03_fills=%d",
+                dataset_key,
+                chunk_start,
+                chunk_end,
+                fills,
+            )
+
+        _write_by_month(frame, dataset_key, req_hash, settings)
 
 
 def backfill(settings: Settings, start: date, end: date) -> None:

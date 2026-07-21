@@ -81,9 +81,7 @@ def test_ingest_dataset_writes_one_parquet_per_month(
     assert (frame["source"] == "entsoe").all()
 
 
-def test_ingest_dataset_maps_delu_zone(
-    tmp_settings: Settings, entsoe_fixtures_dir: Path
-) -> None:
+def test_ingest_dataset_maps_delu_zone(tmp_settings: Settings, entsoe_fixtures_dir: Path) -> None:
     xml = _read(entsoe_fixtures_dir, "prices_pt60m_at.xml")
     xml = xml.replace(
         '<in_Domain.mRID codingScheme="A01">10YAT-APG------L</in_Domain.mRID>',
@@ -109,9 +107,7 @@ def test_ingest_dataset_maps_delu_zone(
     assert (frame["zone"] == "DE_LU").all()
 
 
-def test_ingest_dataset_load_dataset_key(
-    tmp_settings: Settings, entsoe_fixtures_dir: Path
-) -> None:
+def test_ingest_dataset_load_dataset_key(tmp_settings: Settings, entsoe_fixtures_dir: Path) -> None:
     xml = _read(entsoe_fixtures_dir, "load_at.xml")
 
     def stub_transport(query: EntsoeQuery, api_key: str) -> str:
