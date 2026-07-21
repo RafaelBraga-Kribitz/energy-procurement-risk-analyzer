@@ -15,13 +15,17 @@ layout consumed by `tests/test_raw_contracts.py`).
 from __future__ import annotations
 
 import logging
+import os
 import re
-from datetime import date
+from datetime import UTC, date, datetime
 from hashlib import sha256
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
+import pandas as pd
+
 from epra.common.config import REPO_ROOT, Settings
+from epra.ingest.exceptions import ContractError
 
 logger = logging.getLogger(__name__)
 
@@ -83,3 +87,97 @@ def raw_month_path(dataset: str, month: date, settings: Settings) -> Path:
         )
     root = _data_raw_root(settings)
     return root / dataset / f"{month:%Y}" / f"{dataset}_{month:%Y-%m}.parquet"
+
+
+def _now_utc() -> datetime:
+    """Wall-clock accessor — a seam so tests can freeze `ingested_at_utc` (ING-003)."""
+    return datetime.now(UTC)
+
+
+def _validate_ts_utc(frame: pd.DataFrame, dataset: str, month: date) -> None:
+    """Enforce ING-005 (UTC, tz-aware) and the write-boundary month contract.
+
+    Raises:
+        ContractError: ``ts_utc`` column missing entirely — a schema
+            violation, not a value problem.
+        ValueError: ``ts_utc`` is naive/non-UTC, or any row falls outside
+            ``month`` (calendar-month bounds, per the monthly file layout).
+    """
+    if "ts_utc" not in frame.columns:
+        raise ContractError(
+            dataset,
+            expected="column 'ts_utc' (tz-aware UTC timestamp)",
+            actual=f"columns={list(frame.columns)}",
+        )
+    ts = frame["ts_utc"]
+    if not pd.api.types.is_datetime64_any_dtype(ts):
+        raise ValueError(
+            f"write_month({dataset}): ts_utc must be tz-aware UTC; "
+            f"got non-datetime dtype {ts.dtype}"
+        )
+    tz = ts.dt.tz
+    if tz is None:
+        raise ValueError(
+            f"write_month({dataset}): ts_utc must be tz-aware UTC; got naive datetime64 (no tzinfo)"
+        )
+    if str(tz) != "UTC":
+        raise ValueError(f"write_month({dataset}): ts_utc must be UTC, got tz={tz}")
+
+    month_start = pd.Timestamp(year=month.year, month=month.month, day=1, tz="UTC")
+    month_end = month_start + pd.offsets.MonthBegin(1)  # exclusive upper bound
+    out_of_month = ts[(ts < month_start) | (ts >= month_end)]
+    if not out_of_month.empty:
+        offenders = [str(t) for t in out_of_month.tolist()]
+        raise ValueError(
+            f"write_month({dataset}): {len(offenders)} row(s) fall outside target month "
+            f"{month:%Y-%m}: {offenders[:10]}"
+        )
+
+
+def write_month(
+    frame: pd.DataFrame,
+    dataset: str,
+    month: date,
+    request_hash: str,
+    settings: Settings,
+) -> Path:
+    """Persist one calendar-month slice of raw ``dataset`` rows, atomically.
+
+    Implements ING-003 (temp-file-then-``os.replace`` atomic overwrite — a
+    re-run with identical input and clock is byte-identical), ING-004
+    (appends ``ingested_at_utc``/``source``/``request_hash``; never unit-
+    converts or deduplicates the raw values), ING-005 (rejects any frame
+    whose ``ts_utc`` is not tz-aware UTC), and ING-070 (fixed column order —
+    the frame's own columns unchanged, then the three ING-004 columns — the
+    layout `tests/test_raw_contracts.py` asserts against).
+
+    ``source`` is derived from ``dataset``'s prefix before the first
+    underscore (``entsoe_prices_at`` -> ``entsoe``, ``geosphere_graz_daily``
+    -> ``geosphere``) so callers never pass a fourth provenance argument
+    that could drift out of sync with the dataset name.
+
+    Does NOT deduplicate rows or convert units — raw means raw (ING-004).
+
+    Raises:
+        ContractError: ``ts_utc`` column missing.
+        ValueError: ``ts_utc`` naive/non-UTC, a row falls outside ``month``,
+            or ``dataset`` is not a safe filesystem identifier (T-02-03).
+    """
+    _validate_ts_utc(frame, dataset, month)
+
+    out = frame.copy()
+    out["ingested_at_utc"] = _now_utc().isoformat()
+    out["source"] = dataset.split("_", 1)[0]
+    out["request_hash"] = request_hash
+    out = out[[*frame.columns, *_PROVENANCE_COLUMNS]]
+
+    path = raw_month_path(dataset, month, settings)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.parent / (path.name + ".tmp")
+    out.to_parquet(tmp_path, index=False, engine="pyarrow")
+    os.replace(tmp_path, path)
+
+    logger.info(
+        "wrote dataset=%s month=%s rows=%d path=%s", dataset, f"{month:%Y-%m}", len(out), path
+    )
+    return path
