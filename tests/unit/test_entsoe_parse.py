@@ -219,4 +219,5 @@ def test_psr_names_covers_appendix_b() -> None:
     assert PSR_NAMES["B16"] == "Solar"
     assert PSR_NAMES["B10"] == "Hydro Pumped Storage"
     assert PSR_NAMES["B04"] == "Fossil Gas"
-    assert len(PSR_NAMES) == 20
+    # Appendix B lists 18 codes (B01..B06, B09..B20 — B07/B08 are not defined).
+    assert len(PSR_NAMES) == 18
