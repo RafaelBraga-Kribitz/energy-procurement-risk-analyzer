@@ -1,12 +1,14 @@
-# Roadmap: Energy Procurement Risk Analyzer
+# Roadmap: Energy Procurement Risk Analyzer (EPRA)
 
 ## Overview
 
-Deliver a reproducible pipeline from real Austrian market data through dbt marts to strategy cost comparison and forward risk — aligned to Charter milestones M0–M7. M0 is shipped; execution begins at M1 ENTSO-E ingestion.
+Deliver a reproducible batch pipeline from real Austrian market data through dbt marts to strategy cost comparison and forward risk — aligned to Charter milestones M0–M7. M0 is shipped; execution begins at M1 ENTSO-E ingestion. Success is DL-1..DL-10 all green with README leading in euros traceable to `reports/NUMERIC_SSOT.md`.
 
 ## Phases
 
-- [x] **Phase 1: M0 Bootstrap** — Repo layout, tooling, CI, smoke tests
+**Phase Numbering:** Phases 1–8 map 1:1 to Charter milestones M0–M7.
+
+- [x] **Phase 1: M0 Bootstrap** — Repo layout, tooling, CI, smoke tests (shipped)
 - [ ] **Phase 2: M1 ENTSO-E Ingestion** — Prices, load, generation with validation
 - [ ] **Phase 3: M2 Auxiliary Data** — GeoSphere, ÖSPI, calendar
 - [ ] **Phase 4: M3 dbt Warehouse** — Staging + marts on DuckDB
@@ -18,90 +20,94 @@ Deliver a reproducible pipeline from real Austrian market data through dbt marts
 ## Phase Details
 
 ### Phase 1: M0 Bootstrap
-**Goal**: Runnable repo with quality gates and stub module layout  
-**Depends on**: Nothing  
-**Requirements**: ENG-01 (partial), ENG-02 (partial)  
-**Success Criteria**:
-  1. `make setup && make lint && make test` passes locally and in CI
-  2. Repo layout matches SPEC-07 §2
-  3. All Makefile targets exist (stubs fail loudly)
+**Goal**: A fresh clone can run quality gates and the Makefile pipeline skeleton fails loudly until domain milestones ship
+**Depends on**: Nothing (first phase)
+**Requirements**: REQ-ENG-01
+**Success Criteria** (what must be TRUE):
+  1. Operator runs `make setup && make lint && make test` and all three pass locally and in CI
+  2. Repository layout matches SPEC-07 §2 with `src/epra/` package and dbt skeleton present
+  3. Every Makefile pipeline target exists; unimplemented stages exit non-zero with a milestone message
 **Plans**: TBD
 
 ### Phase 2: M1 ENTSO-E Ingestion
-**Goal**: Real ENTSO-E data in `data/raw/` with validation report  
-**Depends on**: Phase 1  
-**Requirements**: DATA-01  
-**Success Criteria**:
-  1. ING-070..085 contract tests green on 2019→latest backfill
-  2. 15-min aggregation and DST fixtures pass
-  3. `make validate-ingest` produces committed validation report
+**Goal**: Real ENTSO-E market data lands in validated raw parquet for 2019→latest
+**Depends on**: Phase 1
+**Requirements**: (progress toward REQ-ING-01)
+**Success Criteria** (what must be TRUE):
+  1. Operator runs `make backfill` with a valid token and AT/DE-LU prices, AT load, and AT generation appear under `data/raw/`
+  2. ING-070 contract tests and 15-min aggregation + DST fixtures pass in CI
+  3. `make validate-ingest` produces a validation report with ING-080..085 gates green on real data
 **Plans**: TBD
 
 ### Phase 3: M2 Auxiliary Data
-**Goal**: Temperature, ÖSPI, and calendar pipelines operational  
-**Depends on**: Phase 2  
-**Requirements**: DATA-02  
-**Success Criteria**:
-  1. ING-094/101/103/111 gates green
-  2. `data/manual/oespi_monthly.csv` double-entry reconciled
-  3. GeoSphere station ADR'd if discovery differs
+**Goal**: All non-ENTSO-E sources ingested and ingestion layer complete
+**Depends on**: Phase 2
+**Requirements**: REQ-ING-01
+**Success Criteria** (what must be TRUE):
+  1. GeoSphere daily temperature, reconciled ÖSPI CSV, and calendar parquet are present and gate-clean
+  2. ING-094/101/103/111 gates pass; `data/manual/oespi_monthly.csv` is double-entry reconciled
+  3. Full ingestion validation suite passes for 2019→latest complete month
 **Plans**: TBD
 
 ### Phase 4: M3 dbt Warehouse
-**Goal**: Tested analytical warehouse with contract marts  
-**Depends on**: Phase 3  
-**Requirements**: DATA-03  
-**Success Criteria**:
-  1. `dbt build` green on real data and CI fixtures
-  2. Mart schemas byte-match SPEC-02 §5 contract YAML
-  3. Fixture bootstrap script enables CI without full data
+**Goal**: Analysts and simulators read contract-tested marts from DuckDB — no raw parquet in analytics code
+**Depends on**: Phase 3
+**Requirements**: REQ-DWH-01
+**Success Criteria** (what must be TRUE):
+  1. Operator runs `dbt build` on real data and all models + tests pass
+  2. Mart schemas byte-match the committed SPEC-02 §5 contract YAML
+  3. CI fixture bootstrap enables `dbt build` green without a full local backfill
 **Plans**: TBD
 
 ### Phase 5: M4 Consumer Profile
-**Goal**: Deterministic hourly load for all strategies  
-**Depends on**: Phase 4  
-**Requirements**: DATA-04  
-**Success Criteria**:
-  1. LP-040..042 golden + property tests pass
-  2. Annual sum = 50,000.00 MWh ± 0.01 per local year
-  3. `consumer_peak_share` in SSOT inputs
+**Goal**: Deterministic hourly load profile available for all strategy cost calculations
+**Depends on**: Phase 4
+**Requirements**: REQ-LP-01
+**Success Criteria** (what must be TRUE):
+  1. Golden and property tests (LP-040..042) pass with fixed seed/config
+  2. Each local calendar year sums to 50,000.00 MWh ± 0.01 after normalization
+  3. `consumer_peak_share` is computed and ready for SSOT inputs
 **Plans**: TBD
 
 ### Phase 6: M5 Analytics
-**Goal**: Descriptive market analytics answering Q2  
-**Depends on**: Phase 5  
-**Requirements**: Q2-01  
-**Success Criteria**:
-  1. AN-701..705 gates pass including crisis-regime sanity (AN-304)
-  2. Charts obey SPEC-06 §7 caption rules
-  3. Artifacts in `reports/analytics/` pass plausibility gates
+**Goal**: Reviewer can read market structure evidence answering Charter Q2
+**Depends on**: Phase 5
+**Requirements**: REQ-ANA-01, REQ-Q2
+**Success Criteria** (what must be TRUE):
+  1. Analytics artifacts in `reports/analytics/` match SPEC-04 §6 enumeration and pass plausibility gates
+  2. Crisis-regime sanity gate AN-304 passes on real 2021–2023 data
+  3. Charts carry epistemic tags and obey SPEC-06 §7 caption rules
 **Plans**: TBD
 
 ### Phase 7: M6 Strategy Simulator
-**Goal**: Retrospective + forward risk + NUMERIC_SSOT  
-**Depends on**: Phase 6  
-**Requirements**: Q1-01, Q3-01, GOV-01  
-**Success Criteria**:
-  1. ST-601..604 gates pass; ST-602 sanity relations hold
-  2. Golden metrics test green; bootstrap seeded and reproducible
-  3. `reports/NUMERIC_SSOT.md` generated with cost matrix + forward table
+**Goal**: Reviewer can read retrospective costs and forward risk distributions answering Charter Q1 and Q3
+**Depends on**: Phase 6
+**Requirements**: REQ-ST-01, REQ-Q1, REQ-Q3
+**Success Criteria** (what must be TRUE):
+  1. ST-601..604 gates pass; ST-602 sanity relations hold (calibration checked first if (a) fails)
+  2. Two consecutive runs with the same seed produce identical SSOT numeric values
+  3. `reports/NUMERIC_SSOT.md` contains the 5-year cost matrix and forward-risk table with correct epistemic tags
 **Plans**: TBD
 
 ### Phase 8: M7 Reporting & Refresh
-**Goal**: Ship all DL-1..DL-10 deliverables  
-**Depends on**: Phase 7  
-**Requirements**: Q4-01, RPT-01, OPS-01, ENG-01, ENG-02  
-**Success Criteria**:
-  1. README leads with euro answer traceable to SSOT
-  2. EXEC_SUMMARY, LIMITATIONS, exports complete
-  3. Monthly refresh workflow live; dashboard handoff docs ready
+**Goal**: Project meets full Definition of Done — DL-1..DL-10 green
+**Depends on**: Phase 7
+**Requirements**: REQ-RPT-01, REQ-Q4, REQ-GOV-01
+**Success Criteria** (what must be TRUE):
+  1. Fresh clone with token runs `make setup && make all` end-to-end without manual intervention
+  2. README leads with the euro answer; every quoted number passes `check_ssot_consistency.py`
+  3. EXEC_SUMMARY, LIMITATIONS, exports, dashboard handoff docs, and monthly refresh cron are live; test coverage ≥ 80%
 **Plans**: TBD
+**UI hint**: yes
 
 ## Progress
 
+**Execution Order:**
+Phases execute in numeric order: 1 → 2 → … → 8
+
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. M0 Bootstrap | — | Complete | 2026-07-19 |
+| 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
 | 2. M1 ENTSO-E | 0/TBD | Not started | - |
 | 3. M2 Auxiliary | 0/TBD | Not started | - |
 | 4. M3 dbt | 0/TBD | Not started | - |

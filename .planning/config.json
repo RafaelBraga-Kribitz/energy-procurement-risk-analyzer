@@ -1,5 +1,9 @@
 {
+  "project_name": "Energy Procurement Risk Analyzer",
+  "project_code": "EPRA",
   "project_type": "brownfield",
+  "granularity": "standard",
+  "phase_id_convention": "sequential",
   "workflow": {
     "subagent_timeout": 300000,
     "commit_docs": true
@@ -9,5 +13,20 @@
   },
   "intel": {
     "enabled": true
+  },
+  "stack": {
+    "language": "python",
+    "version": "3.12",
+    "package_manager": "uv",
+    "warehouse": "duckdb",
+    "transform": "dbt",
+    "test_runner": "pytest",
+    "linter": "ruff",
+    "type_checker": "mypy"
+  },
+  "milestones": {
+    "charter_alignment": "M0-M7",
+    "shipped": ["M0"],
+    "current": "M1"
   }
 }

@@ -15,15 +15,15 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-07-21)
 
-**Core value:** Quantify euro cost of wrong electricity procurement + forward P95 exposure  
+**Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
 **Current focus:** Phase 2 — M1 ENTSO-E Ingestion
 
 ## Current Position
 
-Phase: 2 of 8 (M1 ENTSO-E Ingestion)  
-Plan: Not yet planned  
-Status: Ready to plan  
-Last activity: 2026-07-21 — Docs ingest complete; onboarding in progress
+Phase: 2 of 8 (M1 ENTSO-E Ingestion)
+Plan: Not yet planned
+Status: Ready to plan
+Last activity: 2026-07-21 — Planning artifacts created from docs ingest
 
 Progress: [█░░░░░░░░░] 12%
 
@@ -35,8 +35,8 @@ Progress: [█░░░░░░░░░] 12%
 
 ### Decisions
 
-- ADR-001: Light governance only (locked)
-- ADR-002: Dev typing stubs for mypy strict (locked)
+- ADR-001: Light governance only — no external governance-bootstrap kit (locked)
+- ADR-002: Dev typing stubs for mypy --strict (locked)
 - SG-01, SG-14: Proposed gap resolutions — adopt ADRs before M1/M3 implementation
 
 ### Pending Todos
@@ -56,6 +56,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-21  
-Stopped at: Docs ingest + planning artifacts generated  
+Last session: 2026-07-21
+Stopped at: Roadmap and requirements initialized; M0 shipped
 Resume file: None
