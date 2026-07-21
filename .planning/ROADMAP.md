@@ -43,7 +43,7 @@ Deliver a reproducible batch pipeline from real Austrian market data through dbt
   2. ING-070 contract tests and 15-min aggregation + DST fixtures pass in CI
   3. `make validate-ingest` produces a validation report with ING-080..085 gates green on real data
 
-**Plans**: 6/7 plans executed
+**Plans**: 7/7 plans executed
 
 Plans:
 
@@ -53,7 +53,7 @@ Plans:
 - [x] 02-04-PLAN.md — XML parsers, fixtures, ING-062 hourly mean (TDD)
 - [x] 02-05-PLAN.md — Backfill/incremental orchestration, CLI, Makefile
 - [x] 02-06-PLAN.md — Validation gates ING-080..085 and validate-ingest
-- [ ] 02-07-PLAN.md — ING-070 contract tests, live backfill checkpoint, BUILD_LOG
+- [x] 02-07-PLAN.md — ING-070 contract tests, live backfill checkpoint, BUILD_LOG
 
 ### Phase 3: M2 Auxiliary Data
 
@@ -142,7 +142,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
-| 2. M1 ENTSO-E | 6/7 | In Progress|  |
+| 2. M1 ENTSO-E | 7/7 | In Progress|  |
 | 3. M2 Auxiliary | 0/TBD | Not started | - |
 | 4. M3 dbt | 0/TBD | Not started | - |
 | 5. M4 Profile | 0/TBD | Not started | - |

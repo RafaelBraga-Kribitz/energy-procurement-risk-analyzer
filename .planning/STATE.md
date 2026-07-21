@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 2
 current_phase_name: M1 ENTSO-E Ingestion
-status: executing
-stopped_at: Completed EPRA-02-06-PLAN.md
-last_updated: "2026-07-21T20:29:46.842Z"
+status: verifying
+stopped_at: Completed EPRA-02-07-PLAN.md (automated parts); live-backfill checkpoint deferred to operator
+last_updated: "2026-07-21T20:41:36.290Z"
 last_activity: 2026-07-21
 last_activity_desc: Phase 2 execution started
 progress:
   total_phases: 2
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 
 Phase: 2 (M1 ENTSO-E Ingestion) — EXECUTING
 Plan: 7 of 7
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-21 — Phase 2 execution started
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Progress: [█████████░] 88%
 | Phase EPRA-02 P04 | 35min | 3 tasks | 12 files |
 | Phase EPRA-02 P05 | 30min | 3 tasks | 4 files |
 | Phase EPRA-02 P06 | 45min | 3 tasks | 4 files |
+| Phase EPRA-02 P07 | 35min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,8 @@ Progress: [█████████░] 88%
 - [Phase ?]: ING-080 DST correctness check counts hourly-aggregated rows by local calendar date (not distinct hour-of-day labels) to match timeutil.local_hours_in_day semantics
 - [Phase ?]: Gates return passed=False with an explanatory summary on empty input rather than vacuously passing (A-2: no silent skip)
 - [Phase ?]: gate_ing_082 fails a year outside the SPEC-01 SS8 table entirely, not just out-of-range -- new years need an ADR-extended table
+- [Phase ?]: entsoe_prices_delu fixture hand-built directly in SPEC-01 §7 shape (no committed DE_LU-domain XML source yet) — accepted as threat T-02-15, low severity
+- [Phase ?]: Task 2 (live ENTSO-E backfill + validate-ingest) deferred to operator — no ENTSOE_API_TOKEN/live network in this execution; no data fabricated (A-2)
 
 ### Pending Todos
 
@@ -80,6 +83,7 @@ None yet.
 - ~~ENTSO-E API token required for M1 backfill (human-owned)~~ — RESOLVED 2026-07-21: `ENTSOE_API_TOKEN` present in `.env`
 - INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
 - Pre-existing (M0) test_config.py::test_entsoe_token_fails_fast_when_unset fails in this env (.env token repopulated by load_dotenv after monkeypatch.delenv) — logged in EPRA-02 deferred-items.md, not fixed (out of scope for 02-02)
+- M1 live-data gate (ROADMAP Phase 2 criteria 1 and 3) pending operator: run make backfill && make validate-ingest with real ENTSOE_API_TOKEN per docs/BUILD_LOG.md 2026-07-21 M1 entry
 
 ## Deferred Items
 
@@ -89,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-21T20:29:46.835Z
-Stopped at: Completed EPRA-02-06-PLAN.md
+Last session: 2026-07-21T20:41:36.282Z
+Stopped at: Completed EPRA-02-07-PLAN.md (automated parts); live-backfill checkpoint deferred to operator
 Resume file: None
