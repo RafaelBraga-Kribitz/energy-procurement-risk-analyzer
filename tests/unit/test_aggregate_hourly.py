@@ -80,9 +80,7 @@ def test_hourly_mean_pt60m_input_is_unchanged() -> None:
     # of a single value is that value, not a discarded/duplicated row.
     df = pd.DataFrame(
         {
-            "ts_utc": pd.to_datetime(
-                ["2024-01-01T00:00:00Z", "2024-01-01T01:00:00Z"], utc=True
-            ),
+            "ts_utc": pd.to_datetime(["2024-01-01T00:00:00Z", "2024-01-01T01:00:00Z"], utc=True),
             "price_eur_mwh": [45.0, 50.0],
         }
     )

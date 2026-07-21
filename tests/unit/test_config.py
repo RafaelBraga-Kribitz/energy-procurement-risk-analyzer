@@ -107,6 +107,10 @@ def test_seasonal_validator_requires_all_12_months() -> None:
 
 def test_entsoe_token_fails_fast_when_unset(monkeypatch: pytest.MonkeyPatch) -> None:
     # ING-021: fail fast with a clear message.
+    # Isolate from any real `.env` on the developer/CI machine: entsoe_token()
+    # calls load_dotenv(), which would otherwise repopulate the deleted env var
+    # from a committed-locally .env and defeat the fail-fast assertion.
+    monkeypatch.setattr("epra.common.config.load_dotenv", lambda *args, **kwargs: None)
     monkeypatch.delenv("ENTSOE_API_TOKEN", raising=False)
     with pytest.raises(RuntimeError, match="ENTSOE_API_TOKEN"):
         entsoe_token()
