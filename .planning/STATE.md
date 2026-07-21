@@ -45,7 +45,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- ENTSO-E API token required for M1 backfill (human-owned)
+- ~~ENTSO-E API token required for M1 backfill (human-owned)~~ — RESOLVED 2026-07-21: `ENTSOE_API_TOKEN` present in `.env`
 - INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
 
 ## Deferred Items

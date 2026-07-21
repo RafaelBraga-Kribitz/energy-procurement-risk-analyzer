@@ -1,32 +1,45 @@
 {
-  "project_name": "Energy Procurement Risk Analyzer",
   "project_code": "EPRA",
-  "project_type": "brownfield",
   "granularity": "standard",
   "phase_id_convention": "sequential",
   "workflow": {
     "subagent_timeout": 300000,
-    "commit_docs": true
+    "commit_docs": true,
+    "research": true,
+    "pattern_mapper": true,
+    "nyquist_validation": true,
+    "tdd_mode": true,
+    "code_review": true,
+    "code_review_depth": "deep",
+    "ui_phase": true,
+    "ui_safety_gate": true,
+    "ui_review": true,
+    "ai_integration_phase": true,
+    "plan_check": true,
+    "verifier": true,
+    "auto_advance": true,
+    "use_worktrees": true,
+    "skip_discuss": false,
+    "research_before_questions": true
   },
   "hooks": {
-    "workflow_guard": false
+    "workflow_guard": false,
+    "context_warnings": true
   },
   "intel": {
     "enabled": true
   },
-  "stack": {
-    "language": "python",
-    "version": "3.12",
-    "package_manager": "uv",
-    "warehouse": "duckdb",
-    "transform": "dbt",
-    "test_runner": "pytest",
-    "linter": "ruff",
-    "type_checker": "mypy"
+  "graphify": {
+    "enabled": true,
+    "auto_update": false
   },
-  "milestones": {
-    "charter_alignment": "M0-M7",
-    "shipped": ["M0"],
-    "current": "M1"
-  }
+  "model_profile": "adaptive",
+  "plan_review": {
+    "source_grounding": true
+  },
+  "git": {
+    "branching_strategy": "milestone",
+    "create_tag": true
+  },
+  "commit_docs": true
 }
