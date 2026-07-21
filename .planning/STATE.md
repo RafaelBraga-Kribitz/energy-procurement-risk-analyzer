@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 2
 current_phase_name: M1 ENTSO-E Ingestion
 status: executing
-stopped_at: Completed EPRA-02-03-PLAN.md
-last_updated: "2026-07-21T15:23:49.057Z"
+stopped_at: Completed EPRA-02-04-PLAN.md
+last_updated: "2026-07-21T19:48:25.572Z"
 last_activity: 2026-07-21
 last_activity_desc: Phase 2 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 8
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: 2 (M1 ENTSO-E Ingestion) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-07-21 — Phase 2 execution started
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 63%
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Progress: [█████░░░░░] 50%
 | Phase EPRA-02 P01 | 20min | 3 tasks | 9 files |
 | Phase EPRA-02 P02 | 20min | 3 tasks | 3 files |
 | Phase EPRA-02 P03 | 25min | 3 tasks | 2 files |
+| Phase EPRA-02 P04 | 35min | 3 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -59,6 +60,8 @@ Progress: [█████░░░░░] 50%
 - [Phase ?]: Missing ts_utc column raises ContractError; naive/non-UTC or out-of-month ts_utc raises ValueError, per 03_MODULES.md write_month failure semantics
 - [Phase ?]: Import EntsoeRawClient from entsoe.entsoe (not the package __init__) to satisfy mypy --strict no_implicit_reexport
 - [Phase ?]: Task 3 token fail-fast test patches _fetch.entsoe_token directly instead of monkeypatch.delenv, avoiding the known python-dotenv .env repopulation flake
+- [Phase ?]: No new XML-security dependency: xml.etree.ElementTree with a DOCTYPE/ENTITY guard instead of defusedxml/lxml (T-02-08/T-02-09)
+- [Phase ?]: Zone derived from XML domain EIC codes (static _EIC_TO_ZONE map), keeping parse_publication_xml/parse_gl_xml pure per pinned 03_MODULES.md signatures
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-21T15:23:49.037Z
-Stopped at: Completed EPRA-02-03-PLAN.md
+Last session: 2026-07-21T19:48:25.557Z
+Stopped at: Completed EPRA-02-04-PLAN.md
 Resume file: None
