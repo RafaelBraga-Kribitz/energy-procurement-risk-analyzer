@@ -37,7 +37,16 @@ Deliver a reproducible batch pipeline from real Austrian market data through dbt
   1. Operator runs `make backfill` with a valid token and AT/DE-LU prices, AT load, and AT generation appear under `data/raw/`
   2. ING-070 contract tests and 15-min aggregation + DST fixtures pass in CI
   3. `make validate-ingest` produces a validation report with ING-080..085 gates green on real data
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Wave 0 ADRs (SG-01, pyarrow, SG-02), exceptions, conftest
+- [ ] 02-02-PLAN.md — Raw parquet writer (_io) with atomic monthly writes
+- [ ] 02-03-PLAN.md — ENTSO-E fetch transport (_fetch) cache, retry, politeness
+- [ ] 02-04-PLAN.md — XML parsers, fixtures, ING-062 hourly mean (TDD)
+- [ ] 02-05-PLAN.md — Backfill/incremental orchestration, CLI, Makefile
+- [ ] 02-06-PLAN.md — Validation gates ING-080..085 and validate-ingest
+- [ ] 02-07-PLAN.md — ING-070 contract tests, live backfill checkpoint, BUILD_LOG
 
 ### Phase 3: M2 Auxiliary Data
 **Goal**: All non-ENTSO-E sources ingested and ingestion layer complete
@@ -108,7 +117,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
-| 2. M1 ENTSO-E | 0/TBD | Not started | - |
+| 2. M1 ENTSO-E | 0/7 | Not started | - |
 | 3. M2 Auxiliary | 0/TBD | Not started | - |
 | 4. M3 dbt | 0/TBD | Not started | - |
 | 5. M4 Profile | 0/TBD | Not started | - |
