@@ -15,15 +15,13 @@ from epra.analytics import descriptive, regimes, spread, weather
 from epra.common.config import load_consumer_profile, load_settings, load_strategy_config
 from epra.consumer import profile
 from epra.ingest import calendar as cal
-from epra.ingest import geosphere, oespi, validate
+from epra.ingest import geosphere, oespi
 from epra.report import charts
 from epra.strategies import calibration, forward_risk, retrospective
 
 SETTINGS = load_settings()
 
 STUBS: list[tuple[str, Callable[..., Any], tuple[Any, ...]]] = [
-    ("M1", validate.run_gates, (SETTINGS,)),
-    ("M1", validate.main, ([],)),
     ("M2", geosphere.discover_station, (SETTINGS,)),
     ("M2", geosphere.ingest, (SETTINGS, date(2019, 1, 1), date(2019, 2, 1))),
     ("M2", geosphere.main, ([],)),

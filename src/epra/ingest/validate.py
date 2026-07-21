@@ -18,12 +18,12 @@ Gate summary (fail-fast per EN-061 — a failed gate raises, never warns):
 A-2 applies verbatim: on failure, investigate the pipeline — never adjust data
 to pass, never widen a gate without an ADR.
 
-Implements: ING-080, ING-081, ING-082, ING-083, ING-084, ING-085 (gate
-functions, M1). ``run_gates``/``main`` land in later plan-06 tasks.
+Implements: ING-080, ING-081, ING-082, ING-083, ING-084, ING-085 (M1).
 """
 
 from __future__ import annotations
 
+import argparse
 import logging
 from calendar import isleap, monthrange
 from collections.abc import Sequence
@@ -33,14 +33,13 @@ from pathlib import Path
 
 import pandas as pd
 
-from epra.common.config import REPO_ROOT, Settings
+from epra.common import logging as common_logging
+from epra.common.config import REPO_ROOT, Settings, load_settings
 from epra.common.timeutil import VIENNA, local_hours_in_day
 from epra.ingest.entsoe import hourly_mean
 from epra.ingest.exceptions import GateFailure
 
 logger = logging.getLogger(__name__)
-
-_MSG = "M1 not implemented yet — build per SPEC-01 §§8-11 (see module docstring)"
 
 # ---------------------------------------------------------------------------
 # Gate framework (03_MODULES `epra.ingest.validate`)
@@ -461,8 +460,26 @@ def run_gates(settings: Settings) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: ``python -m epra.ingest.validate``."""
-    raise NotImplementedError(_MSG)
+    """CLI: ``python -m epra.ingest.validate`` -- run all M1 gates, write the report.
+
+    Returns 0 if every gate passed, 1 if any gate failed (``GateFailure``).
+    """
+    parser = argparse.ArgumentParser(
+        prog="python -m epra.ingest.validate",
+        description="Run all M1 ENTSO-E validation gates (ING-080..085) and write the report.",
+    )
+    parser.parse_args(argv)
+
+    settings = load_settings()
+    logfile = settings.paths.reports / "ingestion" / f"validate_{date.today():%Y-%m-%d}.log"
+    common_logging.setup(logfile=logfile)
+
+    try:
+        run_gates(settings)
+    except GateFailure as exc:
+        logger.error("validation failed: %s", exc)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

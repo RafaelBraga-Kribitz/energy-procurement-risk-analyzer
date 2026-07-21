@@ -26,10 +26,10 @@ backfill:            ## M1 — SPEC-01 §4: full 2019→latest ingestion (all so
 ingest:              ## M1 — SPEC-01 §4: incremental 45-day refresh (ING-041)
 	$(UV) run python -m epra.ingest.entsoe --incremental
 
-# ---------------------------------------------------------------- not yet implemented ----
 validate-ingest:     ## M1/M2 — SPEC-01 §§8-11 gates → reports/ingestion/
-	@echo "ERROR: 'make validate-ingest' not implemented yet (M1 — SPEC-01 §8)." >&2; exit 1
+	$(UV) run python -m epra.ingest.validate
 
+# ---------------------------------------------------------------- not yet implemented ----
 transform:           ## M3 — dbt build (models + tests)
 	@echo "ERROR: 'make transform' not implemented yet (M3 — SPEC-02)." >&2; exit 1
 
