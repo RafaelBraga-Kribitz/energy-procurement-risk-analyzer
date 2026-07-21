@@ -6,7 +6,7 @@ boundary.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pandas as pd
 import pytest
@@ -159,3 +159,52 @@ def test_write_month_replaces_via_tmp_file_and_os_replace(
     src, dst = replace_calls[0]
     assert src.endswith(".tmp")
     assert dst == str(path)
+
+
+# --------------------------------------------------------------- idempotency
+
+
+def test_write_month_idempotent_byte_stable(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ING-003: same input frame + frozen clock => byte-identical re-write.
+
+    `ingested_at_utc` is sourced from `_io._now_utc()`; freezing it via
+    monkeypatch is how a re-run with the exact same wall clock is proven
+    byte-for-byte identical (rather than treating `ingested_at_utc` as
+    excluded from the identity check).
+    """
+    frozen_now = datetime(2021, 4, 1, 12, 0, 0, tzinfo=UTC)
+    monkeypatch.setattr(_io, "_now_utc", lambda: frozen_now)
+
+    month = date(2021, 3, 1)
+    frame = _prices_frame(month)
+    req_hash = "h" * 64
+
+    path1 = _io.write_month(frame, "entsoe_prices_at", month, req_hash, tmp_settings)
+    bytes1 = path1.read_bytes()
+
+    path2 = _io.write_month(frame.copy(), "entsoe_prices_at", month, req_hash, tmp_settings)
+    bytes2 = path2.read_bytes()
+
+    assert path1 == path2
+    assert bytes1 == bytes2, "re-run with identical input + frozen clock must be byte-identical"
+
+
+def test_write_month_fixed_column_order_for_determinism(tmp_settings: Settings) -> None:
+    """ING-070: writer output column order never depends on kwarg/dict order."""
+    month = date(2021, 3, 1)
+    frame = _prices_frame(month)[["zone", "ts_utc", "resolution", "price_eur_mwh"]]
+
+    path = _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
+    out = pd.read_parquet(path)
+
+    assert list(out.columns) == [
+        "zone",
+        "ts_utc",
+        "resolution",
+        "price_eur_mwh",
+        "ingested_at_utc",
+        "source",
+        "request_hash",
+    ]
