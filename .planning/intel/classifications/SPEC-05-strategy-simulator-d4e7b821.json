@@ -1,0 +1,28 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/SPEC-05_strategy_simulator.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SPEC-05 — Procurement Strategy Simulator",
+  "summary": "Core strategy simulator for retrospective and forward-risk analysis; defines S1–S4 strategies, calibration, bootstrap, and ST-xxx requirements.",
+  "scope": [
+    "procurement strategy simulator",
+    "ST-xxx",
+    "retrospective",
+    "forward risk",
+    "S1 S2 S3 S4",
+    "config/strategies.yaml",
+    "strategy_costs_monthly.parquet",
+    "bootstrap",
+    "calibration"
+  ],
+  "cross_refs": [
+    "SPEC-03",
+    "SPEC-02",
+    "SPEC-04",
+    "PROJECT_CHARTER"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

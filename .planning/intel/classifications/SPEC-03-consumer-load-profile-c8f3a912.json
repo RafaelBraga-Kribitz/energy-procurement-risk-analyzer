@@ -1,0 +1,26 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/SPEC-03_consumer_load_profile.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SPEC-03 — Consumer Load Profile (\"StyriaMetal GmbH\")",
+  "summary": "Deterministic construction of the reference consumer hourly load profile with LP-xxx requirements, YAML-driven parameters, and annual normalization.",
+  "scope": [
+    "consumer load profile",
+    "StyriaMetal GmbH",
+    "LP-xxx",
+    "config/consumer_profile.yaml",
+    "consumer/profile.py",
+    "data/processed/consumer_load_hourly.parquet",
+    "annual normalization",
+    "forward-risk window"
+  ],
+  "cross_refs": [
+    "SPEC-05",
+    "SPEC-02",
+    "config/consumer_profile.yaml"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

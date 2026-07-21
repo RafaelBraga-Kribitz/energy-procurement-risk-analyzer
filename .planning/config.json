@@ -1,0 +1,13 @@
+{
+  "project_type": "brownfield",
+  "workflow": {
+    "subagent_timeout": 300000,
+    "commit_docs": true
+  },
+  "hooks": {
+    "workflow_guard": false
+  },
+  "intel": {
+    "enabled": true
+  }
+}

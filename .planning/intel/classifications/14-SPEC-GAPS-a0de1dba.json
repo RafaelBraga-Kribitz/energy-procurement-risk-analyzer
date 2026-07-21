@@ -1,0 +1,27 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "14 — SPECIFICATION GAPS & AMBIGUITY RESOLUTIONS",
+  "summary": "Tracks SPEC ambiguities and proposed resolutions; proposals become binding only via ADR adoption per GV-201..203.",
+  "scope": [
+    "specification gaps",
+    "ambiguity resolution",
+    "entsoe-py",
+    "EntsoeRawClient",
+    "dbt",
+    "fixture bootstrap",
+    "consumer_peak_share",
+    "fct_price_hourly",
+    "P95/CVaR",
+    "SSOT",
+    "peak hour definition",
+    "calendar build",
+    "refresh.yml"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,42 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/SPEC-06_reporting_dashboard.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SPEC-06 — Reporting, Dashboard, README",
+  "summary": "Technical specification for reporting artifacts: executive charts, Power BI dashboard, EXEC_SUMMARY and README structure, and chart standards.",
+  "scope": [
+    "reporting",
+    "executive charts",
+    "Power BI dashboard",
+    "NUMERIC_SSOT",
+    "EXEC_SUMMARY",
+    "README",
+    "BI exports",
+    "chart standards",
+    "matplotlib",
+    "epistemic tags"
+  ],
+  "cross_refs": [
+    "reports/EXEC_SUMMARY.md",
+    "reports/executive_charts/*.png",
+    "reports/NUMERIC_SSOT.md",
+    "exports/*.csv",
+    "dashboards/epra.pbix",
+    "docs/assets/dashboard_*.png",
+    "README.md",
+    "LIMITATIONS.md",
+    "SPEC-08 §6",
+    "SPEC-08 §4",
+    "dashboards/README.md",
+    "scripts/generate_ssot.py",
+    "scripts/export_marts.py",
+    "src/epra/report/format.py",
+    "src/epra/report/style.py",
+    "strategy_annual_summary.csv",
+    "forward_risk_summary.csv"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

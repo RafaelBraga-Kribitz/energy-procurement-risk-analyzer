@@ -1,0 +1,27 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/SPEC-04_analytics.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SPEC-04 — Market Analytics (modules A1–A4)",
+  "summary": "Technical spec for market analytics modules A1–A4: AN-xxx requirements, outputs, algorithms, and M5 exit gates.",
+  "scope": [
+    "market analytics",
+    "descriptive market structure",
+    "AT–DE-LU spread",
+    "volatility regimes",
+    "weather and load sensitivity",
+    "DuckDB marts",
+    "HMM",
+    "GARCH",
+    "degree-day definitions",
+    "M5 deliverables"
+  ],
+  "cross_refs": [
+    "SPEC-02",
+    "SPEC-06 §7"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/ADR/ADR-002_typing-stub-dev-dependencies.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-002: Dev-only typing-stub packages for mypy --strict",
+  "summary": "Adds dev-only typing stubs and extends statsmodels ignore override for mypy --strict compliance.",
+  "scope": ["mypy", "typing stubs", "pandas-stubs", "types-PyYAML", "types-requests", "statsmodels", "dev dependencies", "EN-002", "SPEC-07"],
+  "cross_refs": [],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}

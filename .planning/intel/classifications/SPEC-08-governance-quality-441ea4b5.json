@@ -1,0 +1,41 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/SPEC-08_governance_quality.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SPEC-08 — Governance & Quality (deliberately lightweight)",
+  "summary": "Defines lightweight governance contracts: epistemic tags, ADR rules, SSOT mechanism, CI gates, and LIMITATIONS.md requirements.",
+  "scope": [
+    "epistemic tags",
+    "ADRs",
+    "NUMERIC_SSOT.md",
+    "CI gates",
+    "data quality gates",
+    "LIMITATIONS.md",
+    "GV requirements"
+  ],
+  "cross_refs": [
+    "Charter §4.2",
+    "Charter §5",
+    "docs/ADR/",
+    "ADR-NNN_short-title.md",
+    "reports/NUMERIC_SSOT.md",
+    "scripts/generate_ssot.py",
+    "scripts/check_ssot_consistency.py",
+    "README.md",
+    "reports/EXEC_SUMMARY.md",
+    "scripts/ssot_whitelist.txt",
+    "SPEC-07 §8",
+    "SPEC-01 §8",
+    "SPEC-01 §9",
+    "SPEC-01 §10",
+    "SPEC-02 §6",
+    "SPEC-03 §7",
+    "SPEC-04 §7",
+    "SPEC-05 §9",
+    "LIMITATIONS.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

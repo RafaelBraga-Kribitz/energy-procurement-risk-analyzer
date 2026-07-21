@@ -1,0 +1,30 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/SPEC-02_data_model.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SPEC-02 — Data Model (DuckDB + dbt)",
+  "summary": "DuckDB and dbt warehouse specification covering staging models, dimensions, marts, tests, and BI export contracts.",
+  "scope": [
+    "DuckDB",
+    "dbt",
+    "staging models",
+    "dimensions",
+    "marts",
+    "dbt tests",
+    "BI exports",
+    "timezone doctrine"
+  ],
+  "cross_refs": [
+    "SPEC-03",
+    "SPEC-05",
+    "SPEC-06",
+    "ING-110",
+    "ING-070",
+    "data/processed/consumer_load_hourly.parquet",
+    "data/manual/oespi_monthly.csv"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

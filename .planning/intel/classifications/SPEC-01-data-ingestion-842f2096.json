@@ -1,0 +1,30 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/SPEC-01_data_ingestion.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "SPEC-01 — Data Ingestion",
+  "summary": "Technical specification for ingesting ENTSO-E, GeoSphere, ÖSPI, and calendar data into raw parquet with validation gates.",
+  "scope": [
+    "data ingestion",
+    "ENTSO-E",
+    "GeoSphere Austria",
+    "ÖSPI",
+    "calendar",
+    "raw parquet",
+    "validation gates",
+    "entsoe-py",
+    "data/raw"
+  ],
+  "cross_refs": [
+    "SPEC-02",
+    "SPEC-05",
+    "SPEC-07",
+    "config/settings.yaml",
+    "data/manual/oespi_monthly.csv",
+    "LIMITATIONS"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

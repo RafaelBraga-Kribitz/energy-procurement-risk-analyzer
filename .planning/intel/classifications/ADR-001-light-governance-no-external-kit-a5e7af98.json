@@ -1,0 +1,13 @@
+{
+  "source_path": "C:/Users/Benutzer1/Documents/_DOING/PROJECTS/PORTFOLIO_PROJECTS/IDEAS_YET_NOT_PLANNED/energy-procurement-risk-analyzer/docs/ADR/ADR-001_light-governance-no-external-kit.md",
+  "type": "ADR",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-001: Light governance per SPEC-08; governance-bootstrap kit NOT vendored",
+  "summary": "Do not vendor governance-bootstrap kit; governance is limited to SPEC-08 mechanisms only.",
+  "scope": ["governance-bootstrap kit", "SPEC-08", "epistemic tags", "ADRs", "SSOT", "CI gates", "SPEC-07"],
+  "cross_refs": ["SPEC-08", "SPEC-07", "README"],
+  "locked": true,
+  "precedence": null,
+  "notes": ""
+}
