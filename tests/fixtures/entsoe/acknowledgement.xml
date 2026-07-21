@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Acknowledgement_MarketDocument xmlns="urn:iec62325.351:tc57wg16:451-1:acknowledgementdocument:4:0">
+  <mRID>epra-fixture-acknowledgement</mRID>
+  <createdDateTime>2024-01-02T08:00:00Z</createdDateTime>
+  <sender_MarketParticipant.mRID codingScheme="A01">10X1001A1001A450</sender_MarketParticipant.mRID>
+  <sender_MarketParticipant.marketRole.type>A32</sender_MarketParticipant.marketRole.type>
+  <receiver_MarketParticipant.mRID codingScheme="A01">10X1001A1001A450</receiver_MarketParticipant.mRID>
+  <receiver_MarketParticipant.marketRole.type>A33</receiver_MarketParticipant.marketRole.type>
+  <received_MarketDocument.mRID>epra-fixture-prices-pt60m-at</received_MarketDocument.mRID>
+  <Reason>
+    <code>999</code>
+    <text>No matching data found for Data item Publication_MarketDocument, Time Interval 2024-01-01T00:00Z/2024-01-01T04:00Z</text>
+  </Reason>
+</Acknowledgement_MarketDocument>
