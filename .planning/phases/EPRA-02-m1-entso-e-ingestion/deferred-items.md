@@ -1,0 +1,21 @@
+# Deferred Items — EPRA-02 M1 ENTSO-E Ingestion
+
+Out-of-scope discoveries logged during plan execution. Not fixed per the
+executor's scope boundary (only auto-fix issues directly caused by the
+current task's changes).
+
+## From 02-02 (raw parquet writer `_io`)
+
+- **`tests/unit/test_config.py::test_entsoe_token_fails_fast_when_unset` fails
+  in this environment.** Pre-existing, unrelated to `_io.py`/`test_io.py`
+  (last touched in the M0 bootstrap commit `c043933`, before any Phase 2
+  plan). Root cause: a real `ENTSOE_API_TOKEN` is present in the repo's
+  `.env` file (per STATE.md, the token was added 2026-07-21 for M1
+  backfill); `monkeypatch.delenv("ENTSOE_API_TOKEN")` removes it from
+  `os.environ`, but `entsoe_token()` then calls `load_dotenv(REPO_ROOT /
+  ".env")`, which repopulates it from `.env` since the var is no longer
+  present in the environment — so `entsoe_token()` returns the real token
+  instead of raising `RuntimeError`. Needs either a `monkeypatch` of
+  `load_dotenv`/the `.env` path, or a `tmp_path`-redirected env file, in
+  `test_config.py` — out of scope for `02-02` (that file is not in this
+  plan's `files_modified`).
