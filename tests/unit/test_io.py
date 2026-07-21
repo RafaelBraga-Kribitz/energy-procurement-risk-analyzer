@@ -38,9 +38,7 @@ def _prices_frame(month: date, *, n: int = 3) -> pd.DataFrame:
 
 def test_request_hash_strips_securitytoken_case_insensitive() -> None:
     base = "https://web-api.tp.entsoe.eu/api?documentType=A44&securityToken=SECRET1"
-    other_case_and_token = (
-        "https://web-api.tp.entsoe.eu/api?documentType=A44&SecurityToken=SECRET2"
-    )
+    other_case_and_token = "https://web-api.tp.entsoe.eu/api?documentType=A44&SecurityToken=SECRET2"
     assert _io.request_hash(base) == _io.request_hash(other_case_and_token)
 
 
