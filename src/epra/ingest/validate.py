@@ -24,16 +24,21 @@ functions, M1). ``run_gates``/``main`` land in later plan-06 tasks.
 
 from __future__ import annotations
 
+import logging
 from calendar import isleap, monthrange
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
+from pathlib import Path
 
 import pandas as pd
 
-from epra.common.config import Settings
+from epra.common.config import REPO_ROOT, Settings
 from epra.common.timeutil import VIENNA, local_hours_in_day
+from epra.ingest.entsoe import hourly_mean
 from epra.ingest.exceptions import GateFailure
+
+logger = logging.getLogger(__name__)
 
 _MSG = "M1 not implemented yet — build per SPEC-01 §§8-11 (see module docstring)"
 
@@ -369,13 +374,90 @@ def gate_ing_085(prices_hourly: pd.DataFrame, load_hourly: pd.DataFrame) -> Gate
 
 
 # ---------------------------------------------------------------------------
-# run_gates / CLI -- implemented in plan-06 tasks 2-3.
+# run_gates -- loads raw parquet, aggregates to hourly mean, runs all M1 gates
 # ---------------------------------------------------------------------------
+
+#: (dataset dir name, value column) for the three ENTSO-E hourly inputs the M1
+#: gates need. Generation (`entsoe_gen_at`) has no §8 gate defined -- excluded.
+_HOURLY_DATASETS: tuple[tuple[str, str], ...] = (
+    ("entsoe_prices_at", "price_eur_mwh"),
+    ("entsoe_prices_delu", "price_eur_mwh"),
+    ("entsoe_load_at", "load_mw"),
+)
+
+
+def _dataset_root(dataset: str, settings: Settings) -> Path:
+    root = settings.paths.data_raw
+    root = root if root.is_absolute() else REPO_ROOT / root
+    return root / dataset
+
+
+def _load_hourly(dataset: str, value_col: str, settings: Settings) -> pd.DataFrame:
+    """Glob-read every monthly raw parquet for ``dataset``, aggregate to hourly mean.
+
+    Aggregating BEFORE gating (via ``entsoe.hourly_mean``) avoids ING-080
+    false-missing-hours on PT15M-resolution months (RESEARCH pitfall 6).
+    """
+    root = _dataset_root(dataset, settings)
+    # Typed-empty (not bare `columns=[...]`) so `.dt`/numeric comparisons in
+    # the gate functions work even when a dataset has no ingested data yet.
+    empty = pd.DataFrame(
+        {
+            "ts_utc": pd.Series([], dtype="datetime64[ns, UTC]"),
+            value_col: pd.Series([], dtype="float64"),
+        }
+    )
+    if not root.exists():
+        return empty
+    paths = sorted(root.glob("*/*.parquet"))
+    if not paths:
+        return empty
+    frames = [pd.read_parquet(path, columns=["ts_utc", value_col]) for path in paths]
+    raw = pd.concat(frames, ignore_index=True)
+    return hourly_mean(raw, value_col)
+
+
+def _write_report(report: ValidationReport, settings: Settings) -> Path:
+    reports_root = settings.paths.reports
+    reports_root = reports_root if reports_root.is_absolute() else REPO_ROOT / reports_root
+    ingestion_dir = reports_root / "ingestion"
+    ingestion_dir.mkdir(parents=True, exist_ok=True)
+    report_path = ingestion_dir / f"validation_{date.today():%Y-%m-%d}.md"
+    report_path.write_text(report.render_markdown(), encoding="utf-8")
+    return report_path
 
 
 def run_gates(settings: Settings) -> None:
-    """Run all applicable gates; raise on first hard failure (EN-061)."""
-    raise NotImplementedError(_MSG)
+    """Run all M1 ENTSO-E gates (ING-080..085); write report; raise on failure (EN-061).
+
+    Loads every monthly raw parquet for the three hourly ENTSO-E datasets
+    under ``settings.paths.data_raw``, aggregates each to hourly mean, runs
+    ING-080..085 in order, writes ``reports/ingestion/validation_<date>.md``
+    listing every registered gate exactly once (T-02-13), then raises
+    ``GateFailure`` if any gate failed (A-2 -- never warn-and-continue).
+    """
+    hourly = {
+        dataset: _load_hourly(dataset, value_col, settings)
+        for dataset, value_col in _HOURLY_DATASETS
+    }
+    at_prices = hourly["entsoe_prices_at"]
+    at_load = hourly["entsoe_load_at"]
+
+    report = ValidationReport()
+    report.add(gate_ing_080(hourly))
+    report.add(gate_ing_081(at_prices))
+    report.add(gate_ing_082(at_prices))
+    report.add(gate_ing_083(at_prices))
+    report.add(gate_ing_084(at_load))
+    report.add(gate_ing_085(at_prices, at_load))
+
+    for result in report.results:
+        logger.info("gate=%s passed=%s summary=%s", result.gate_id, result.passed, result.summary)
+
+    report_path = _write_report(report, settings)
+    logger.info("validation report written to %s", report_path)
+
+    report.raise_if_failed()
 
 
 def main(argv: Sequence[str] | None = None) -> int:

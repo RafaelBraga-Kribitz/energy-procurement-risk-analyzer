@@ -9,10 +9,13 @@ a bad pipeline (A-2).
 from __future__ import annotations
 
 from calendar import isleap
+from datetime import date
 
 import pandas as pd
 import pytest
 
+from epra.common.config import Settings
+from epra.ingest._io import write_month
 from epra.ingest.exceptions import GateFailure
 from epra.ingest.validate import (
     GateResult,
@@ -23,6 +26,7 @@ from epra.ingest.validate import (
     gate_ing_083,
     gate_ing_084,
     gate_ing_085,
+    run_gates,
 )
 
 _ALL_GATE_IDS = ("ING-080", "ING-081", "ING-082", "ING-083", "ING-084", "ING-085")
@@ -209,3 +213,80 @@ def test_gate_ing_085_fails_when_join_coverage_below_threshold() -> None:
     at_load = _year_hourly(2023, "load_mw", value=7000.0).iloc[:-100]  # drop ~1.1% of hours
     result = gate_ing_085(at_prices, at_load)
     assert result.passed is False
+
+
+# ---------------------------------------------------------------------------
+# run_gates -- loader + report writer integration (task 2)
+# ---------------------------------------------------------------------------
+
+
+def _write_year(settings: Settings, dataset: str, value_col: str, year: int, value: float) -> None:
+    """Write a full-year hourly frame to `data_raw/<dataset>/` split by calendar month."""
+    frame = _year_hourly(year, value_col, value)
+    months = frame["ts_utc"].dt.month
+    for month in sorted(months.unique()):
+        write_month(
+            frame.loc[months == month], dataset, date(year, int(month), 1), "testhash", settings
+        )
+
+
+def test_run_gates_passes_and_writes_report_on_good_synthetic_data(
+    tmp_settings: Settings,
+) -> None:
+    for year in (2023, 2024, 2025):
+        _write_year(tmp_settings, "entsoe_prices_at", "price_eur_mwh", year, value=100.0)
+        _write_year(tmp_settings, "entsoe_prices_delu", "price_eur_mwh", year, value=40.0)
+        _write_year(tmp_settings, "entsoe_load_at", "load_mw", year, value=7000.0)
+
+    # Inject one negative AT price per year (ING-083) without moving the
+    # annual mean (100.0) meaningfully out of any year's [70,140] band.
+    at_prices_root = tmp_settings.paths.data_raw / "entsoe_prices_at"
+    for year in (2023, 2024, 2025):
+        jan_path = at_prices_root / str(year) / f"entsoe_prices_at_{year}-01.parquet"
+        frame = pd.read_parquet(jan_path)
+        frame.loc[0, "price_eur_mwh"] = -5.0
+        write_month(
+            frame.drop(columns=["ingested_at_utc", "source", "request_hash"]),
+            "entsoe_prices_at",
+            date(year, 1, 1),
+            "testhash",
+            tmp_settings,
+        )
+
+    run_gates(tmp_settings)  # must not raise
+
+    report_path = (
+        tmp_settings.paths.reports / "ingestion" / f"validation_{date.today():%Y-%m-%d}.md"
+    )
+    assert report_path.exists()
+    content = report_path.read_text(encoding="utf-8")
+    assert "ALL GATES PASSED" in content
+    for gate_id in _ALL_GATE_IDS:
+        assert gate_id in content
+
+
+def test_run_gates_raises_and_still_writes_report_on_incomplete_data(
+    tmp_settings: Settings,
+) -> None:
+    # Only January 2023 -- massively short of full-year coverage, and 2024/2025
+    # have no data at all (ING-083 also fails).
+    frame = _year_hourly(2023, "price_eur_mwh", value=100.0)
+    jan_only = frame.loc[frame["ts_utc"].dt.month == 1]
+    write_month(jan_only, "entsoe_prices_at", date(2023, 1, 1), "testhash", tmp_settings)
+
+    with pytest.raises(GateFailure):
+        run_gates(tmp_settings)
+
+    report_path = (
+        tmp_settings.paths.reports / "ingestion" / f"validation_{date.today():%Y-%m-%d}.md"
+    )
+    assert report_path.exists()
+    content = report_path.read_text(encoding="utf-8")
+    assert "GATE FAILURE" in content
+
+
+def test_run_gates_creates_reports_ingestion_dir_if_missing(tmp_settings: Settings) -> None:
+    assert not (tmp_settings.paths.reports / "ingestion").exists()
+    with pytest.raises(GateFailure):
+        run_gates(tmp_settings)  # no data at all -> every gate fails, but dir must be created
+    assert (tmp_settings.paths.reports / "ingestion").exists()
