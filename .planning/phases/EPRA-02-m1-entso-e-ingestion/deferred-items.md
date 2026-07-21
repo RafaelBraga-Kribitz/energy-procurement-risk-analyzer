@@ -19,3 +19,13 @@ current task's changes).
   `load_dotenv`/the `.env` path, or a `tmp_path`-redirected env file, in
   `test_config.py` — out of scope for `02-02` (that file is not in this
   plan's `files_modified`).
+
+## From 02-05 (ingest orchestration, CLI, Makefile)
+
+- **`make lint` fails on `ruff format --check tests/unit/test_aggregate_hourly.py`.**
+  Pre-existing, last touched in the `02-04` commit `b05024c` (this plan's
+  `files_modified` never lists it and no diff was made to it here). `ruff
+  format` would reformat it; not fixed — out of scope for `02-05`.
+- **`tests/unit/test_config.py::test_entsoe_token_fails_fast_when_unset` still
+  fails** in this environment for the same `02-02`-logged reason above;
+  reconfirmed unaffected by `02-05`'s changes.
