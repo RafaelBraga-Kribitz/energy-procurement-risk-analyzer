@@ -1,12 +1,11 @@
 """ENTSO-E ingestion — AT/DE-LU day-ahead prices, AT load, AT generation (M1).
 
 Appendix-A XML parsers (``parse_publication_xml``, ``parse_gl_xml``),
-``infer_resolution``, ``hourly_mean``, ``PSR_NAMES``, ``iter_chunks``, and the
+``infer_resolution``, ``hourly_mean``, ``PSR_NAMES``, ``iter_chunks``, the
 full orchestration layer (``ingest_dataset``, ``backfill``,
-``ingest_incremental``, ``latest_complete_month``) are implemented per
-ADR-003 (``EntsoeRawClient`` transport + own first-party parsers, never
-``EntsoePandasClient``). The CLI entrypoint (``main``) is still a
-``NotImplementedError`` stub — built in the remainder of plan 02-05.
+``ingest_incremental``, ``latest_complete_month``), and the CLI entrypoint
+(``main``) are all implemented per ADR-003 (``EntsoeRawClient`` transport +
+own first-party parsers, never ``EntsoePandasClient``).
 
 Key points:
 
@@ -29,13 +28,15 @@ Key points:
   and DE-LU's own latest complete price month, so downstream spread analysis
   never assumes a month either zone is still missing.
 
-Implements: ING-001, ING-030, ING-031, ING-032, ING-040, ING-041, ING-042,
-ING-050, ING-060, ING-061, ING-062, ING-063.
-Implements (when built): ING-002, ING-010, ING-070.
+Implements: ING-001, ING-002, ING-030, ING-031, ING-032, ING-040, ING-041,
+ING-042, ING-050, ING-060, ING-061, ING-062, ING-063.
+Implements (elsewhere): ING-010 (data/raw|cache gitignored, not code), ING-070
+(``tests/test_raw_contracts.py``, plan 02-06).
 """
 
 from __future__ import annotations
 
+import argparse
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -48,7 +49,8 @@ from typing import Literal, cast
 
 import pandas as pd
 
-from epra.common.config import REPO_ROOT, Settings
+from epra.common import logging as common_logging
+from epra.common.config import REPO_ROOT, Settings, load_settings
 from epra.common.timeutil import VIENNA, iter_month_starts, month_start, next_month, to_utc
 from epra.ingest._fetch import (
     DocumentType,
@@ -58,7 +60,7 @@ from epra.ingest._fetch import (
     fetch_entsoe,
 )
 from epra.ingest._io import request_hash, write_month
-from epra.ingest.exceptions import ContractError, NoDataError
+from epra.ingest.exceptions import ContractError, IngestError, NoDataError
 
 logger = logging.getLogger(__name__)
 
@@ -681,9 +683,108 @@ def latest_complete_month(settings: Settings) -> date:
     return month_start(min(max(at_months), max(delu_months)))
 
 
+def _parse_cli_date(text: str) -> date:
+    """`argparse` `type=` callback (T-02-10): reject anything not YYYY-MM-DD."""
+    try:
+        return date.fromisoformat(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid date {text!r}; expected YYYY-MM-DD") from exc
+
+
+def _conservative_backfill_end() -> date:
+    """First day of the previous calendar month.
+
+    A safe default backfill end when no data has been ingested yet to
+    compute `latest_complete_month` from -- ENTSO-E always has the prior
+    month settled by the time a fresh backfill runs.
+    """
+    today = date.today()
+    day_in_prior_month = month_start(today) - timedelta(days=1)
+    return month_start(day_in_prior_month)
+
+
+def _resolve_backfill_end(settings: Settings, override: date | None) -> date:
+    if override is not None:
+        return override
+    try:
+        return latest_complete_month(settings)
+    except NoDataError:
+        return _conservative_backfill_end()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: ``python -m epra.ingest.entsoe --start YYYY-MM-DD --end YYYY-MM-DD`` (ING-002)."""
-    raise NotImplementedError(_MSG)
+    """CLI: full backfill or 45-day incremental refresh (ING-002).
+
+    ``python -m epra.ingest.entsoe --backfill [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--no-cache]``
+    ``python -m epra.ingest.entsoe --incremental [--no-cache]``
+
+    Returns 0 on success, 1 on a user/validation error -- a strictly-parsed,
+    non-inverted date window (T-02-10) and mode-specific argument checks.
+    Malformed dates or missing/conflicting mode flags are argparse usage
+    errors (`SystemExit(2)`), not part of this 0/1 contract.
+
+    Logs to stdout and ``reports/ingestion/ingest_<date>.log`` (T-02-11:
+    logging.setup is called before any token can ever reach a log line).
+    """
+    parser = argparse.ArgumentParser(
+        prog="python -m epra.ingest.entsoe",
+        description=(
+            "ENTSO-E ingestion: full backfill (ING-040) or 45-day incremental refresh (ING-041)."
+        ),
+    )
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument(
+        "--backfill",
+        action="store_true",
+        help="2019-01-01 -> latest complete month, all four datasets (ING-040).",
+    )
+    mode.add_argument(
+        "--incremental",
+        action="store_true",
+        help="45-day lookback re-ingestion of all four datasets (ING-041).",
+    )
+    parser.add_argument(
+        "--start",
+        type=_parse_cli_date,
+        default=None,
+        help="Override backfill start date (YYYY-MM-DD). Not valid with --incremental.",
+    )
+    parser.add_argument(
+        "--end",
+        type=_parse_cli_date,
+        default=None,
+        help="Override backfill end date (YYYY-MM-DD). Not valid with --incremental.",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Bypass the response cache; always hit the network (ING-009).",
+    )
+    args = parser.parse_args(argv)
+
+    settings = load_settings()
+    logfile = settings.paths.reports / "ingestion" / f"ingest_{date.today():%Y-%m-%d}.log"
+    common_logging.setup(logfile=logfile)
+
+    try:
+        if args.incremental:
+            if args.start is not None or args.end is not None:
+                raise ValueError(
+                    "--start/--end are not valid with --incremental "
+                    "(ING-041 is a fixed 45-day lookback)"
+                )
+            ingest_incremental(settings, use_cache=not args.no_cache)
+        else:
+            start = args.start if args.start is not None else settings.window.start_date
+            end = _resolve_backfill_end(settings, args.end)
+            if end <= start:
+                raise ValueError(f"invalid window: end ({end}) must be after start ({start})")
+            backfill(settings, start, end, use_cache=not args.no_cache)
+    except (ValueError, IngestError) as exc:
+        logger.error("ingest failed: %s", exc)
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":

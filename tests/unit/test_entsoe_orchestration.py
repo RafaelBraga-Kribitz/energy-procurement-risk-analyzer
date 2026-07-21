@@ -383,3 +383,167 @@ def test_latest_complete_month_excludes_incomplete_month(tmp_settings: Settings)
 def test_latest_complete_month_raises_when_no_data_ingested(tmp_settings: Settings) -> None:
     with pytest.raises(NoDataError):
         entsoe.latest_complete_month(tmp_settings)
+
+
+# --------------------------------------------------------------------------
+# Task 3: CLI main()
+# --------------------------------------------------------------------------
+
+
+def test_main_requires_backfill_or_incremental() -> None:
+    with pytest.raises(SystemExit):
+        entsoe.main([])
+
+
+def test_main_backfill_and_incremental_are_mutually_exclusive() -> None:
+    with pytest.raises(SystemExit):
+        entsoe.main(["--backfill", "--incremental"])
+
+
+def test_main_backfill_rejects_malformed_date() -> None:
+    with pytest.raises(SystemExit):
+        entsoe.main(["--backfill", "--start", "not-a-date"])
+
+
+def test_main_backfill_invokes_backfill_with_explicit_window(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
+    captured: dict[str, object] = {}
+
+    def fake_backfill(
+        settings: Settings,
+        start: date,
+        end: date,
+        transport: object = None,
+        *,
+        use_cache: bool = True,
+    ) -> None:
+        captured["start"] = start
+        captured["end"] = end
+        captured["use_cache"] = use_cache
+
+    monkeypatch.setattr(entsoe, "backfill", fake_backfill)
+
+    code = entsoe.main(["--backfill", "--start", "2024-01-01", "--end", "2024-02-01"])
+
+    assert code == 0
+    assert captured == {"start": date(2024, 1, 1), "end": date(2024, 2, 1), "use_cache": True}
+
+
+def test_main_backfill_no_cache_flag_forwarded(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
+    captured: dict[str, object] = {}
+
+    def fake_backfill(
+        settings: Settings,
+        start: date,
+        end: date,
+        transport: object = None,
+        *,
+        use_cache: bool = True,
+    ) -> None:
+        captured["use_cache"] = use_cache
+
+    monkeypatch.setattr(entsoe, "backfill", fake_backfill)
+
+    entsoe.main(["--backfill", "--start", "2024-01-01", "--end", "2024-02-01", "--no-cache"])
+
+    assert captured["use_cache"] is False
+
+
+def test_main_backfill_defaults_start_and_uses_latest_complete_month(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
+    monkeypatch.setattr(entsoe, "latest_complete_month", lambda settings: date(2024, 3, 1))
+    captured: dict[str, object] = {}
+
+    def fake_backfill(
+        settings: Settings,
+        start: date,
+        end: date,
+        transport: object = None,
+        *,
+        use_cache: bool = True,
+    ) -> None:
+        captured["start"] = start
+        captured["end"] = end
+
+    monkeypatch.setattr(entsoe, "backfill", fake_backfill)
+
+    code = entsoe.main(["--backfill"])
+
+    assert code == 0
+    assert captured["start"] == tmp_settings.window.start_date
+    assert captured["end"] == date(2024, 3, 1)
+
+
+def test_main_backfill_falls_back_to_conservative_end_when_no_data(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # No monkeypatch of latest_complete_month -- it runs for real against the
+    # empty tmp_settings raw dir, raises NoDataError, and main() falls back.
+    monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
+    captured: dict[str, object] = {}
+
+    def fake_backfill(
+        settings: Settings,
+        start: date,
+        end: date,
+        transport: object = None,
+        *,
+        use_cache: bool = True,
+    ) -> None:
+        captured["end"] = end
+
+    monkeypatch.setattr(entsoe, "backfill", fake_backfill)
+
+    code = entsoe.main(["--backfill"])
+
+    assert code == 0
+    end = captured["end"]
+    assert isinstance(end, date)
+    assert end < date.today()
+    assert end.day == 1
+
+
+def test_main_backfill_rejects_inverted_window(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
+
+    code = entsoe.main(["--backfill", "--start", "2024-02-01", "--end", "2024-01-01"])
+
+    assert code == 1
+
+
+def test_main_incremental_invokes_ingest_incremental(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
+    calls: list[bool] = []
+
+    def fake_incremental(
+        settings: Settings, transport: object = None, *, use_cache: bool = True
+    ) -> None:
+        calls.append(use_cache)
+
+    monkeypatch.setattr(entsoe, "ingest_incremental", fake_incremental)
+
+    code = entsoe.main(["--incremental"])
+
+    assert code == 0
+    assert calls == [True]
+
+
+def test_main_incremental_rejects_start_override(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
+
+    code = entsoe.main(["--incremental", "--start", "2024-01-01"])
+
+    assert code == 1

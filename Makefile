@@ -20,13 +20,13 @@ lint:
 test:
 	$(UV) run pytest
 
-# ---------------------------------------------------------------- not yet implemented ----
 backfill:            ## M1 — SPEC-01 §4: full 2019→latest ingestion (all sources)
-	@echo "ERROR: 'make backfill' not implemented yet (M1 — SPEC-01 ING-040)." >&2; exit 1
+	$(UV) run python -m epra.ingest.entsoe --backfill
 
 ingest:              ## M1 — SPEC-01 §4: incremental 45-day refresh (ING-041)
-	@echo "ERROR: 'make ingest' not implemented yet (M1 — SPEC-01 ING-041)." >&2; exit 1
+	$(UV) run python -m epra.ingest.entsoe --incremental
 
+# ---------------------------------------------------------------- not yet implemented ----
 validate-ingest:     ## M1/M2 — SPEC-01 §§8-11 gates → reports/ingestion/
 	@echo "ERROR: 'make validate-ingest' not implemented yet (M1 — SPEC-01 §8)." >&2; exit 1
 
