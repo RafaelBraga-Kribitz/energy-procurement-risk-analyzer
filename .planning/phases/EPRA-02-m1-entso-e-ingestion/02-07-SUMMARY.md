@@ -1,0 +1,176 @@
+---
+phase: EPRA-02-m1-entso-e-ingestion
+plan: 07
+subsystem: testing
+tags: [pytest, parquet, pyarrow, entsoe, contract-testing, spec01]
+
+# Dependency graph
+requires:
+  - phase: EPRA-02-05
+    provides: parse_publication_xml/parse_gl_xml parsers, ingest_dataset/backfill orchestration
+  - phase: EPRA-02-06
+    provides: epra.ingest.validate ING-080..085 gate framework, make validate-ingest CLI
+provides:
+  - tests/test_raw_contracts.py — 24 parametrized ING-070 drift-guard tests over all 4 SPEC-01 §7 raw datasets
+  - tests/fixtures/entsoe/entsoe_{prices_at,prices_delu,load_at,gen_at}_2024-01.parquet — committed CI fixtures
+  - docs/BUILD_LOG.md M1 entry with automated gate evidence + explicit deferred live-backfill checkpoint
+affects: [EPRA-03-m2-auxiliary-data, ci-pipeline]
+
+# Tech tracking
+tech-stack:
+  added: []
+  patterns:
+    - "Fixture parquets generated once via real parsers + real _io.write_month, then flattened into tests/fixtures/ layout — never hand-typed raw values for parseable datasets"
+    - "Drift-guard contract tests parametrized over a dataset->contract dict (own columns, allowed zones), mirroring test_config.py's committed-value assertion style"
+
+key-files:
+  created:
+    - tests/test_raw_contracts.py
+    - tests/fixtures/entsoe/entsoe_prices_at_2024-01.parquet
+    - tests/fixtures/entsoe/entsoe_prices_delu_2024-01.parquet
+    - tests/fixtures/entsoe/entsoe_load_at_2024-01.parquet
+    - tests/fixtures/entsoe/entsoe_gen_at_2024-01.parquet
+  modified:
+    - docs/BUILD_LOG.md
+
+key-decisions:
+  - "entsoe_prices_delu fixture hand-built directly in SPEC-01 §7 shape (not run through parse_publication_xml) because no committed DE_LU-domain XML source fixture exists yet — logged as threat T-02-15 (accepted) in the plan's threat register"
+  - "Task 2 (live ENTSO-E backfill + make validate-ingest, human checkpoint) deferred to the operator — this execution had no ENTSOE_API_TOKEN and no live network access; no data was fabricated under data/raw/ per A-2"
+
+patterns-established:
+  - "ING-070 contract test dataset registry: _CONTRACTS dict maps dataset name -> (own column list, allowed zone set), single source of truth for all parametrized assertions"
+
+requirements-completed: [ING-070]
+
+coverage:
+  - id: D1
+    description: "ING-070 contract tests pass in CI against committed fixture parquets, no network"
+    requirement: "ING-070"
+    verification:
+      - kind: unit
+        ref: "tests/test_raw_contracts.py (24 tests, pytest -m \"not live\")"
+        status: pass
+    human_judgment: false
+  - id: D2
+    description: "Full offline suite + lint + typecheck remain green after adding contract tests and fixtures"
+    verification:
+      - kind: unit
+        ref: "uv run pytest -m \"not live\" (169 passed); uv run ruff check .; uv run mypy"
+        status: pass
+    human_judgment: false
+  - id: D3
+    description: "BUILD_LOG documents M1 gate evidence and ADR-003/004/005 as merged"
+    verification:
+      - kind: other
+        ref: "docs/BUILD_LOG.md 2026-07-21 M1 entry (grep -q \"M1\" docs/BUILD_LOG.md)"
+        status: pass
+    human_judgment: false
+  - id: D4
+    description: "Human confirms make backfill produced four dataset trees under data/raw/ and make validate-ingest reports ING-080..085 PASS on real 2019->latest ENTSO-E data"
+    requirement: "REQ-ING-01"
+    verification: []
+    human_judgment: true
+    rationale: "Requires the operator's real ENTSOE_API_TOKEN and live network access to transparency.entsoe.eu, neither available to this automated executor (AGENTS.md §2.1: human owns ENTSO-E account/token issues). Per A-2 (no invented data), this execution did not fabricate a backfill run or validation report. The exact verification steps are recorded in docs/BUILD_LOG.md's 2026-07-21 M1 entry and in this plan's Task 2 how-to-verify."
+
+# Metrics
+duration: 35min
+completed: 2026-07-21
+status: complete
+---
+
+# Phase EPRA-02 Plan 07: M1 Close-Out (Contract Tests, Fixtures, BUILD_LOG) Summary
+
+**ING-070 contract test suite (24 tests) + four committed fixture parquets generated via the real parsers/write_month, plus a BUILD_LOG entry recording M1's automated gate evidence and the one remaining human-owned live-backfill checkpoint.**
+
+## Performance
+
+- **Duration:** ~35 min
+- **Started:** 2026-07-21T20:30:00Z (approx.)
+- **Completed:** 2026-07-21T21:05:00Z (approx.)
+- **Tasks:** 2 of 3 executed automatically (Task 1, Task 3); Task 2 recorded as a deferred human checkpoint, not executed
+- **Files modified:** 6 (1 test file, 4 fixture parquets, 1 doc)
+
+## Accomplishments
+
+- `tests/test_raw_contracts.py`: 24 parametrized tests asserting exact SPEC-01 §7 column layout, dtypes, UTC `ts_utc`, zone values, and ING-004 provenance columns for all four raw datasets (`entsoe_prices_at`, `entsoe_prices_delu`, `entsoe_load_at`, `entsoe_gen_at`). All green under `pytest -m "not live"`, zero network access.
+- Four committed fixture parquets (`≤200 rows` each, 4 rows each in practice) generated by running the real `parse_publication_xml`/`parse_gl_xml` parsers against the already-committed XML fixtures (`prices_pt60m_at.xml`, `load_at.xml`, `gen_at.xml`) through the real `_io.write_month` (frozen clock for a stable `ingested_at_utc`), then copying the resulting monthly parquet into the flat `tests/fixtures/entsoe/<dataset>_2024-01.parquet` layout ING-070 expects.
+- `docs/BUILD_LOG.md` M1 entry: automated gate evidence (ruff/mypy clean, 169 tests passed offline at 95.87% coverage, ADR-003/004/005 merged), plus an explicit "PENDING OPERATOR ACTION" section reproducing the exact live-backfill + `make validate-ingest` verification steps for the human.
+- Confirmed the full offline verification loop (`make lint && make test`, i.e. `ruff check`, `mypy --strict`, `pytest -m "not live"`) remains green after all changes.
+
+## Task Commits
+
+Each task was committed atomically:
+
+1. **Task 1: ING-070 raw contract tests and fixture parquets** - `b8bd421` (test)
+2. **Task 2: Human verify live backfill and validate-ingest** - NOT EXECUTED (deferred human checkpoint, see below)
+3. **Task 3: BUILD_LOG and phase verification snippet** - `40e13d7` (docs)
+
+**Plan metadata:** (this SUMMARY commit, following this file)
+
+## Files Created/Modified
+
+- `tests/test_raw_contracts.py` - ING-070 drift-guard contract tests (24 tests, 4 test functions parametrized over 4 datasets + 4 dataset-specific dtype tests)
+- `tests/fixtures/entsoe/entsoe_prices_at_2024-01.parquet` - AT day-ahead prices fixture, parsed from `prices_pt60m_at.xml`
+- `tests/fixtures/entsoe/entsoe_prices_delu_2024-01.parquet` - DE-LU day-ahead prices fixture, hand-built (no committed DE_LU XML source yet)
+- `tests/fixtures/entsoe/entsoe_load_at_2024-01.parquet` - AT actual load fixture, parsed from `load_at.xml`
+- `tests/fixtures/entsoe/entsoe_gen_at_2024-01.parquet` - AT generation-per-type fixture (long format), parsed from `gen_at.xml`
+- `docs/BUILD_LOG.md` - M1 milestone entry with gate evidence and deferred-checkpoint documentation
+
+## Decisions Made
+
+- **entsoe_prices_delu fixture generation:** No committed XML fixture uses the DE_LU EIC domain code (`10Y1001A1001A82H`); all existing price fixtures are AT-only. Rather than fabricate a new XML source file, the DE_LU frame was hand-built directly in the exact SPEC-01 §7 shape (`ts_utc, price_eur_mwh, resolution, zone`) with plausible EUR/MWh values, then run through the same real `_io.write_month` as every other dataset. This follows the plan's explicit alternative ("or hand-trim to ≤200 rows") and matches the existing precedent that every committed ENTSO-E XML fixture in this repo (e.g. `prices_pt60m_at.xml`, mRID `epra-fixture-prices-pt60m-at`) is itself a synthetic-but-plausible sample, not a literal live-API capture. Logged as threat T-02-15 (accepted) in the plan's own threat register.
+- **Task 2 deferred, not executed:** Per explicit operator instruction, this execution has no `ENTSOE_API_TOKEN` and no live network access to ENTSO-E. Running a real `make backfill`/`make validate-ingest` was neither attempted nor simulated with fabricated data (A-2). The checkpoint is recorded as pending operator action in both `docs/BUILD_LOG.md` and this SUMMARY, with the exact verification steps copied verbatim from the plan so the operator can execute them without re-deriving anything.
+
+## Deviations from Plan
+
+### Auto-fixed Issues
+
+**1. [Rule 2 - Missing Critical] Added request_hash format assertions to contract tests**
+- **Found during:** Task 1 (writing `tests/test_raw_contracts.py`)
+- **Issue:** The plan's `<behavior>` block didn't explicitly call out asserting the `request_hash` provenance column never leaks a token, only that it be present.
+- **Fix:** Added `test_fixture_provenance_columns_present_and_typed`, which asserts `request_hash` is always a 64-char lowercase hex sha256 digest — structurally enforcing A-7 (token never appears in a committed fixture) rather than just checking the column exists.
+- **Files modified:** `tests/test_raw_contracts.py`
+- **Verification:** Test passes; manual `strings`-scan of all four committed parquet files found no plaintext token or literal secret.
+- **Committed in:** `b8bd421` (Task 1 commit)
+
+---
+
+**Total deviations:** 1 auto-fixed (1 missing critical / security hardening)
+**Impact on plan:** Strengthens the A-7 secrets guarantee already required by the plan's threat register (T-02-14). No scope creep — stayed within `tests/test_raw_contracts.py`.
+
+## Issues Encountered
+
+None on the automated side. Task 2 could not be executed in this environment (no `ENTSOE_API_TOKEN`, no live network access) — see "Deviations" and "User Setup Required" below; this is documented as the deliberate, plan-directed outcome, not an error.
+
+## User Setup Required
+
+**Live ENTSO-E backfill + validation requires the operator's own API token and cannot be automated in this environment.**
+
+1. Copy `.env.example` to `.env` and set `ENTSOE_API_TOKEN` (obtained per SPEC-01 §2, ING-020/021).
+2. Run `make setup` (if needed), then `make lint && make test` — confirm all green (already verified green automatically in this plan; re-confirm locally with the real token present).
+3. Run `make backfill` — expect `data/raw/entsoe_prices_at/`, `entsoe_prices_delu/`, `entsoe_load_at/`, `entsoe_gen_at/` to each contain `YYYY/*.parquet` files from 2019 onward.
+4. Run `make validate-ingest` — expect `reports/ingestion/validation_*.md` with ING-080 through ING-085 all PASS.
+5. If any gate fails: do not widen bands — investigate parser/timezone/units per A-2 and file an ADR if a genuine spec deviation is needed.
+
+Once steps 1–4 are green, all three ROADMAP Phase 2 success criteria are satisfied and M1 is fully done end-to-end (this SUMMARY documents the automated 2 of 3; the operator closes out the 3rd).
+
+## Next Phase Readiness
+
+- Automated M1 deliverables are complete: ING-070 contract tests + fixtures committed and green in CI; `epra.ingest.validate` gate framework implemented and unit-tested; `docs/BUILD_LOG.md` records full gate evidence.
+- **Blocker for full M1 sign-off:** the live backfill + `make validate-ingest` human checkpoint (Task 2) is still open — ROADMAP Phase 2 criteria 1 ("real backfill under data/raw/") and 3 ("validate-ingest PASS on 2019→latest real data") remain unverified against real data until the operator runs the steps above.
+- M2 (auxiliary data: GeoSphere, ÖSPI, calendar) has no hard dependency on the live M1 backfill completing first (per AGENTS.md M0/M1/M2 build order, M2 can proceed in parallel) but the milestone-level M1 gate ("ING-080…085 gates green on real 2019→latest data") should be closed by the operator before M1 is marked done in ROADMAP/STATE.
+
+## Self-Check: PASSED
+
+- `tests/test_raw_contracts.py` — FOUND
+- `tests/fixtures/entsoe/entsoe_prices_at_2024-01.parquet` — FOUND
+- `tests/fixtures/entsoe/entsoe_prices_delu_2024-01.parquet` — FOUND
+- `tests/fixtures/entsoe/entsoe_load_at_2024-01.parquet` — FOUND
+- `tests/fixtures/entsoe/entsoe_gen_at_2024-01.parquet` — FOUND
+- `docs/BUILD_LOG.md` — FOUND (contains "M1" 2026-07-21 entry)
+- Commit `b8bd421` — FOUND in `git log`
+- Commit `40e13d7` — FOUND in `git log`
+
+---
+*Phase: EPRA-02-m1-entso-e-ingestion*
+*Completed: 2026-07-21*
