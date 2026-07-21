@@ -330,3 +330,28 @@ def test_fetch_entsoe_logs_no_token(
     messages = [r.getMessage() for r in caplog.records]
     assert any("source=entsoe" in m and "status=200" in m for m in messages)
     assert all(FAKE_TOKEN not in m for m in messages)
+
+
+# --------------------------------------------------------------------------
+# Task 3: token fail-fast (ING-021)
+# --------------------------------------------------------------------------
+
+
+def test_fetch_entsoe_fails_without_token(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def _raise_unset() -> str:
+        raise RuntimeError("ENTSOE_API_TOKEN is not set. Copy .env.example to .env ...")
+
+    monkeypatch.setattr(_fetch, "entsoe_token", _raise_unset)
+
+    calls: list[int] = []
+
+    def stub_transport(query: EntsoeQuery, api_key: str) -> str:
+        calls.append(1)
+        return "<xml>should not be reached</xml>"
+
+    with pytest.raises(RuntimeError, match="ENTSOE_API_TOKEN"):
+        fetch_entsoe(_query(), tmp_settings, transport=stub_transport)
+
+    assert calls == []  # fails before any network call (ING-021)
