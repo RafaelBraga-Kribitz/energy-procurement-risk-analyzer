@@ -29,3 +29,10 @@ current task's changes).
 - **`tests/unit/test_config.py::test_entsoe_token_fails_fast_when_unset` still
   fails** in this environment for the same `02-02`-logged reason above;
   reconfirmed unaffected by `02-05`'s changes.
+
+## From 02-06 (validation gate framework, `validate-ingest`)
+
+- **`make lint` still fails on `ruff format --check tests/unit/test_aggregate_hourly.py`**
+  and **`tests/unit/test_config.py::test_entsoe_token_fails_fast_when_unset` still
+  fails** — both reconfirmed unaffected by this plan's changes (`git status`/`git
+  diff` show zero delta on either file before or after 02-06's commits).
