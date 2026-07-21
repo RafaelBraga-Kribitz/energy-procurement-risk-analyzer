@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -20,8 +21,8 @@ import pytest
 from epra.common.config import Settings
 from epra.ingest import _fetch, entsoe
 from epra.ingest._fetch import EntsoeQuery
-from epra.ingest._io import raw_month_path
-from epra.ingest.exceptions import ContractError
+from epra.ingest._io import raw_month_path, write_month
+from epra.ingest.exceptions import ContractError, NoDataError
 
 FAKE_TOKEN = "test-token-do-not-log"
 
@@ -215,3 +216,170 @@ def test_ingest_dataset_contract_error_leaves_no_partial_file(
 
     path = raw_month_path("entsoe_prices_at", pd.Timestamp("2024-01-01").date(), tmp_settings)
     assert not path.exists()
+
+
+# --------------------------------------------------------------------------
+# Task 2: backfill, ingest_incremental, latest_complete_month
+# --------------------------------------------------------------------------
+
+
+def test_backfill_iterates_all_four_dataset_keys_in_order(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: list[str] = []
+
+    def spy_ingest_dataset(
+        settings: Settings,
+        dataset_key: str,
+        start: date,
+        end: date,
+        transport: object = None,
+        *,
+        use_cache: bool = True,
+    ) -> None:
+        captured.append(dataset_key)
+
+    monkeypatch.setattr(entsoe, "ingest_dataset", spy_ingest_dataset)
+
+    entsoe.backfill(tmp_settings, date(2019, 1, 1), date(2024, 1, 1))
+
+    assert captured == [
+        "entsoe_prices_at",
+        "entsoe_prices_delu",
+        "entsoe_load_at",
+        "entsoe_gen_at",
+    ]
+
+
+def test_backfill_writes_real_files_for_all_datasets(
+    tmp_settings: Settings, entsoe_fixtures_dir: Path
+) -> None:
+    prices_xml = _read(entsoe_fixtures_dir, "prices_pt60m_at.xml")
+    load_xml = _read(entsoe_fixtures_dir, "load_at.xml")
+    gen_xml = _read(entsoe_fixtures_dir, "gen_at.xml")
+
+    def transport(query: EntsoeQuery, api_key: str) -> str:
+        if query.document_type == "day_ahead_prices":
+            return prices_xml
+        if query.document_type == "load":
+            return load_xml
+        return gen_xml
+
+    entsoe.backfill(tmp_settings, date(2024, 1, 1), date(2024, 2, 1), transport)
+
+    for dataset_key in (
+        "entsoe_prices_at",
+        "entsoe_prices_delu",
+        "entsoe_load_at",
+        "entsoe_gen_at",
+    ):
+        assert raw_month_path(dataset_key, date(2024, 1, 1), tmp_settings).exists()
+
+
+def test_ingest_incremental_uses_45_day_lookback_from_today(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: list[tuple[str, date, date]] = []
+
+    def spy_ingest_dataset(
+        settings: Settings,
+        dataset_key: str,
+        start: date,
+        end: date,
+        transport: object = None,
+        *,
+        use_cache: bool = True,
+    ) -> None:
+        captured.append((dataset_key, start, end))
+
+    monkeypatch.setattr(entsoe, "ingest_dataset", spy_ingest_dataset)
+
+    entsoe.ingest_incremental(tmp_settings)
+
+    assert len(captured) == 4
+    for _, start, end in captured:
+        assert end == date.today()
+        assert (end - start).days == tmp_settings.ingest.incremental_lookback_days == 45
+
+
+def _full_month_price_frame(year: int, month: int, zone: str) -> pd.DataFrame:
+    start = pd.Timestamp(year=year, month=month, day=1, tz="UTC")
+    end = start + pd.offsets.MonthBegin(1)
+    ts = pd.date_range(start, end, freq="h", inclusive="left")
+    return pd.DataFrame(
+        {
+            "ts_utc": ts,
+            "price_eur_mwh": 50.0,
+            "resolution": "PT60M",
+            "zone": zone,
+        }
+    )
+
+
+def _partial_month_price_frame(year: int, month: int, zone: str, missing_day: int) -> pd.DataFrame:
+    frame = _full_month_price_frame(year, month, zone)
+    return frame[frame["ts_utc"].dt.day != missing_day].reset_index(drop=True)
+
+
+def test_latest_complete_month_returns_min_of_at_and_delu(tmp_settings: Settings) -> None:
+    write_month(
+        _full_month_price_frame(2024, 1, "AT"),
+        "entsoe_prices_at",
+        date(2024, 1, 1),
+        "h",
+        tmp_settings,
+    )
+    write_month(
+        _full_month_price_frame(2024, 2, "AT"),
+        "entsoe_prices_at",
+        date(2024, 2, 1),
+        "h",
+        tmp_settings,
+    )
+    write_month(
+        _full_month_price_frame(2024, 1, "DE_LU"),
+        "entsoe_prices_delu",
+        date(2024, 1, 1),
+        "h",
+        tmp_settings,
+    )
+
+    assert entsoe.latest_complete_month(tmp_settings) == date(2024, 1, 1)
+
+
+def test_latest_complete_month_excludes_incomplete_month(tmp_settings: Settings) -> None:
+    write_month(
+        _full_month_price_frame(2024, 1, "AT"),
+        "entsoe_prices_at",
+        date(2024, 1, 1),
+        "h",
+        tmp_settings,
+    )
+    write_month(
+        _partial_month_price_frame(2024, 2, "AT", missing_day=15),
+        "entsoe_prices_at",
+        date(2024, 2, 1),
+        "h",
+        tmp_settings,
+    )
+    write_month(
+        _full_month_price_frame(2024, 1, "DE_LU"),
+        "entsoe_prices_delu",
+        date(2024, 1, 1),
+        "h",
+        tmp_settings,
+    )
+    write_month(
+        _full_month_price_frame(2024, 2, "DE_LU"),
+        "entsoe_prices_delu",
+        date(2024, 2, 1),
+        "h",
+        tmp_settings,
+    )
+
+    assert entsoe.latest_complete_month(tmp_settings) == date(2024, 1, 1)
+
+
+def test_latest_complete_month_raises_when_no_data_ingested(tmp_settings: Settings) -> None:
+    with pytest.raises(NoDataError):
+        entsoe.latest_complete_month(tmp_settings)

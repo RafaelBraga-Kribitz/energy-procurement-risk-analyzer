@@ -1,14 +1,14 @@
 """ENTSO-E ingestion — AT/DE-LU day-ahead prices, AT load, AT generation (M1).
 
 Appendix-A XML parsers (``parse_publication_xml``, ``parse_gl_xml``),
-``infer_resolution``, ``hourly_mean``, ``PSR_NAMES``, and ``iter_chunks`` are
-implemented in this module per ADR-003 (``EntsoeRawClient`` transport + own
-first-party parsers, never ``EntsoePandasClient``). Orchestration
-(``backfill``, ``ingest_incremental``, ``latest_complete_month``, ``main``)
-is still a ``NotImplementedError`` stub — built in plan 02-05 on top of
-``_fetch.fetch_entsoe`` + ``_io.write_month``.
+``infer_resolution``, ``hourly_mean``, ``PSR_NAMES``, ``iter_chunks``, and the
+full orchestration layer (``ingest_dataset``, ``backfill``,
+``ingest_incremental``, ``latest_complete_month``) are implemented per
+ADR-003 (``EntsoeRawClient`` transport + own first-party parsers, never
+``EntsoePandasClient``). The CLI entrypoint (``main``) is still a
+``NotImplementedError`` stub — built in the remainder of plan 02-05.
 
-Key points for the orchestration work still to come:
+Key points:
 
 - Wrap ``entsoe-py`` (``EntsoeRawClient``) — never call ``EntsoePandasClient``
   from analytics (ING-022, ADR-003).
@@ -24,25 +24,32 @@ Key points for the orchestration work still to come:
   dbt staging for the canonical analytical grain, ING-061/062.
 - Retry/backoff per ING-006; >= 0.5 s between requests (ING-007); response
   cache per ING-009; request log line per ING-008 (token never logged, A-7).
+  All implemented in ``_fetch.fetch_entsoe``, called from ``ingest_dataset``.
+- ``latest_complete_month`` follows ADR-005 (adopts SG-02): the min of AT's
+  and DE-LU's own latest complete price month, so downstream spread analysis
+  never assumes a month either zone is still missing.
 
-Implements: ING-031, ING-032, ING-050, ING-060, ING-061, ING-062, ING-063.
-Implements (when built): ING-002..010, ING-020..022, ING-030, ING-040..042,
-ING-051, ING-070.
+Implements: ING-001, ING-030, ING-031, ING-032, ING-040, ING-041, ING-042,
+ING-050, ING-060, ING-061, ING-062, ING-063.
+Implements (when built): ING-002, ING-010, ING-070.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 import xml.etree.ElementTree as ET
+from calendar import monthrange
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Literal, cast
 
 import pandas as pd
 
-from epra.common.config import Settings
-from epra.common.timeutil import VIENNA, iter_month_starts, next_month, to_utc
+from epra.common.config import REPO_ROOT, Settings
+from epra.common.timeutil import VIENNA, iter_month_starts, month_start, next_month, to_utc
 from epra.ingest._fetch import (
     DocumentType,
     EntsoeQuery,
@@ -567,23 +574,111 @@ def ingest_dataset(
         _write_by_month(frame, dataset_key, req_hash, settings)
 
 
-def backfill(settings: Settings, start: date, end: date) -> None:
-    """Full ingestion of all four ENTSO-E datasets for [start, end] (ING-040)."""
-    raise NotImplementedError(_MSG)
+def backfill(
+    settings: Settings,
+    start: date,
+    end: date,
+    transport: TransportFn | None = None,
+    *,
+    use_cache: bool = True,
+) -> None:
+    """Full ingestion of all four ENTSO-E datasets for [start, end] (ING-040).
+
+    Calls `ingest_dataset` once per dataset key in `_DATASET_KEYS`'s fixed
+    order. `transport`/`use_cache` are forwarded unchanged so callers (the
+    CLI, tests) control every fetch through the single injectable seam.
+    """
+    for dataset_key in _DATASET_KEYS:
+        ingest_dataset(settings, dataset_key, start, end, transport, use_cache=use_cache)
 
 
-def ingest_incremental(settings: Settings) -> None:
-    """45-day lookback re-ingestion — ENTSO-E restates recent data (ING-041)."""
-    raise NotImplementedError(_MSG)
+def ingest_incremental(
+    settings: Settings,
+    transport: TransportFn | None = None,
+    *,
+    use_cache: bool = True,
+) -> None:
+    """45-day lookback re-ingestion — ENTSO-E restates recent data (ING-041).
+
+    Re-ingests all four datasets over `[today - incremental_lookback_days,
+    today]`, rewriting the affected month files (`write_month`'s atomic
+    overwrite makes this idempotent, ING-003).
+    """
+    end = date.today()
+    start = end - timedelta(days=settings.ingest.incremental_lookback_days)
+    for dataset_key in _DATASET_KEYS:
+        ingest_dataset(settings, dataset_key, start, end, transport, use_cache=use_cache)
+
+
+_MONTH_FILENAME_RE = re.compile(r"_(\d{4})-(\d{2})\.parquet$")
+
+
+def _month_from_path(path: Path) -> date:
+    """Parse the `<YYYY>-<MM>` month out of a §7 raw parquet filename."""
+    match = _MONTH_FILENAME_RE.search(path.name)
+    if match is None:
+        raise ContractError(
+            "entsoe_raw_layout", expected="<dataset>_<YYYY-MM>.parquet", actual=path.name
+        )
+    return date(int(match.group(1)), int(match.group(2)), 1)
+
+
+def _dataset_root(dataset: str, settings: Settings) -> Path:
+    """Absolute `data/raw/<dataset>/` root (mirrors `_io._data_raw_root`)."""
+    p = settings.paths.data_raw
+    root = p if p.is_absolute() else REPO_ROOT / p
+    return root / dataset
+
+
+def _complete_price_months(dataset: str, settings: Settings) -> list[date]:
+    """Months (any order) where every UTC calendar day has >=1 price row.
+
+    "Complete" per ADR-005: after `hourly_mean` aggregation, every day of the
+    file's own calendar month has at least one hourly row. Rows are grouped
+    by the UTC calendar day of `ts_utc` -- the same boundary `write_month`
+    partitions files on, so no second timezone conversion is needed here.
+    """
+    root = _dataset_root(dataset, settings)
+    if not root.exists():
+        return []
+    complete: list[date] = []
+    for parquet_path in sorted(root.glob("*/*.parquet")):
+        month = _month_from_path(parquet_path)
+        frame = pd.read_parquet(parquet_path, columns=["ts_utc", "price_eur_mwh"])
+        if frame.empty:
+            continue
+        hourly = hourly_mean(frame, "price_eur_mwh")
+        present_days = set(hourly["ts_utc"].dt.date)
+        _, days_in_month = monthrange(month.year, month.month)
+        expected_days = {date(month.year, month.month, d) for d in range(1, days_in_month + 1)}
+        if expected_days <= present_days:
+            complete.append(month)
+    return complete
 
 
 def latest_complete_month(settings: Settings) -> date:
     """First day of the last calendar month with ALL days of price data present.
 
-    Computed from ingested data, never assumed (ING-042). Downstream modules
+    Computed from ingested data, never assumed (ING-042). Per ADR-005 (adopts
+    SG-02): returns `min(latest complete AT-prices month, latest complete
+    DE-LU-prices month)` so a downstream AT/DE-LU spread calculation never
+    assumes a month where either zone is still incomplete. Downstream modules
     (dbt freshness, SPEC-05 forward window) call this instead of guessing.
+
+    Raises:
+        NoDataError: no complete month exists yet for AT and/or DE-LU prices
+            (e.g. `backfill` has not run) -- computed, not assumed (ING-042).
     """
-    raise NotImplementedError(_MSG)
+    at_months = _complete_price_months("entsoe_prices_at", settings)
+    delu_months = _complete_price_months("entsoe_prices_delu", settings)
+    if not at_months or not delu_months:
+        raise NoDataError(
+            "entsoe",
+            "prices",
+            "no complete calendar month of AT and/or DE-LU day-ahead prices "
+            "has been ingested yet; run backfill first (ING-042/ADR-005)",
+        )
+    return month_start(min(max(at_months), max(delu_months)))
 
 
 def main(argv: Sequence[str] | None = None) -> int:
