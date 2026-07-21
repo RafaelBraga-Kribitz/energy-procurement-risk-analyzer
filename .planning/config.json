@@ -20,7 +20,8 @@
     "auto_advance": true,
     "use_worktrees": true,
     "skip_discuss": false,
-    "research_before_questions": true
+    "research_before_questions": true,
+    "_auto_chain_active": false
   },
   "hooks": {
     "workflow_guard": false,
