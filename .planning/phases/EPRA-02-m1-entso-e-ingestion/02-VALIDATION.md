@@ -47,7 +47,7 @@ created: 2026-07-21
 | 02-03-02 | 03 | 3 | ING-006..009 | unit | `uv run pytest tests/unit/test_fetch.py -x` | ❌ W0 | ⬜ pending |
 | 02-04-01 | 04 | 4 | ING-062/063 | unit | `uv run pytest tests/unit/test_aggregate_hourly.py tests/unit/test_entsoe_parse.py -x` | ❌ W0 | ⬜ pending |
 | 02-04-02 | 04 | 4 | ING-031/050 | unit | `uv run pytest tests/unit/test_entsoe_parse.py -k "utc or dst" -x` | ❌ W0 | ⬜ pending |
-| 02-05-01 | 05 | 5 | ING-002/042 | integration | `uv run pytest tests/unit/test_entsoe_cli.py -x` | ❌ W0 | ⬜ pending |
+| 02-05-01 | 05 | 5 | ING-002/042 | integration | `uv run pytest tests/unit/test_entsoe_orchestration.py -x` | ❌ W0 | ⬜ pending |
 | 02-06-01 | 06 | 5 | ING-080..085 | unit | `uv run pytest tests/unit/test_ingest_gates.py -x` | ❌ W0 | ⬜ pending |
 | 02-07-01 | 07 | 6 | ING-070 | integration | `uv run pytest tests/test_raw_contracts.py -x` | ❌ W0 | ⬜ pending |
 | 02-07-02 | 07 | 6 | REQ-ING-01 | manual | `make validate-ingest` (human token) | ❌ W0 | ⬜ pending |
