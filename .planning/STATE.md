@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 2
 current_phase_name: M1 ENTSO-E Ingestion
 status: executing
-stopped_at: Completed EPRA-02-01-PLAN.md
-last_updated: "2026-07-21T14:51:54.984Z"
+stopped_at: Completed EPRA-02-02-PLAN.md
+last_updated: "2026-07-21T15:04:20.943Z"
 last_activity: 2026-07-21
 last_activity_desc: Phase 2 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 8
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: 2 (M1 ENTSO-E Ingestion) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-07-21 — Phase 2 execution started
 
-Progress: [███░░░░░░░] 25%
+Progress: [████░░░░░░] 38%
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Progress: [███░░░░░░░] 25%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase EPRA-02 P01 | 20min | 3 tasks | 9 files |
+| Phase EPRA-02 P02 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -53,6 +54,8 @@ Progress: [███░░░░░░░] 25%
 - [Phase ?]: ADR-003: EntsoeRawClient transport-only, own Appendix-A parsers (adopts SG-01)
 - [Phase ?]: ADR-004: pyarrow>=18,<26 as canonical pandas parquet engine
 - [Phase ?]: ADR-005: latest_complete_month = min(AT, DE-LU) prices completeness (adopts SG-02)
+- [Phase ?]: write_month derives the ING-004 source column from dataset's prefix before the first underscore (no separate source argument)
+- [Phase ?]: Missing ts_utc column raises ContractError; naive/non-UTC or out-of-month ts_utc raises ValueError, per 03_MODULES.md write_month failure semantics
 
 ### Pending Todos
 
@@ -62,6 +65,7 @@ None yet.
 
 - ~~ENTSO-E API token required for M1 backfill (human-owned)~~ — RESOLVED 2026-07-21: `ENTSOE_API_TOKEN` present in `.env`
 - INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
+- Pre-existing (M0) test_config.py::test_entsoe_token_fails_fast_when_unset fails in this env (.env token repopulated by load_dotenv after monkeypatch.delenv) — logged in EPRA-02 deferred-items.md, not fixed (out of scope for 02-02)
 
 ## Deferred Items
 
@@ -71,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-21T14:51:54.977Z
-Stopped at: Completed EPRA-02-01-PLAN.md
+Last session: 2026-07-21T15:04:10.504Z
+Stopped at: Completed EPRA-02-02-PLAN.md
 Resume file: None
