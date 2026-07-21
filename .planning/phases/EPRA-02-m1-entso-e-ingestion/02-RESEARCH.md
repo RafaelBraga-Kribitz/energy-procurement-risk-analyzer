@@ -393,23 +393,15 @@ def request_hash(url: str) -> str:
 | A4 | ING-080 DST check uses `local_hours_in_day` on last Sunday Mar/Oct | Common Pitfalls | Spec says "distinct local clock times" — implement explicit count matching `test_timeutil` |
 | A5 | Human provides valid token before T1.09 live backfill | Environment | M1 code+fixture gates can ship without live data; real-data gate is human/local |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **ADR timing for SG-01 (EntsoeRawClient vs ING-022 PandasClient)**
-   - What we know: Blueprint T1.02 assumes RawClient; ING-022 is binding text; user confirmed SG-01 is not binding until ADR.
-   - Recommendation: First plan task = ADR-00x adopting SG-01; block `_fetch`/parser tasks until merged.
+1. **ADR timing for SG-01 (EntsoeRawClient vs ING-022 PandasClient)** — RESOLVED: Plan 02-01 Task 1 creates ADR-003 adopting SG-01 (EntsoeRawClient transport + Appendix-A parsers). `_fetch` (02-03) and parsers (02-04) depend on 02-01.
 
-2. **pyarrow pin vs DuckDB-only parquet**
-   - What we know: pandas parquet fails today; DuckDB write works; SPEC-07 omits pyarrow.
-   - Recommendation: ADR adding `pyarrow>=18,<26` — aligns with blueprint `_io` and ING-070 pandas contracts.
+2. **pyarrow pin vs DuckDB-only parquet** — RESOLVED: Plan 02-01 ADR-004 adds `pyarrow>=18,<26` to runtime deps; pandas parquet is canonical for `_io` and ING-070.
 
-3. **SG-02 latest_complete_month zones**
-   - What we know: Spread analysis needs both AT and DE-LU; SG-02 proposes min of zones.
-   - Recommendation: ADR at T1.08 before implementing `latest_complete_month()`.
+3. **SG-02 latest_complete_month zones** — RESOLVED: Plan 02-01 ADR-005 adopts min(AT prices complete month, DE-LU prices complete month) before `latest_complete_month()` implementation in 02-05.
 
-4. **validate-ingest dependency on M2 calendar for local-time joins**
-   - What we know: WBS T1.09 notes M2 calendar for local-time checks; ING-080 can use `timeutil.to_local` without full calendar for DST hour counts.
-   - Recommendation: M1 gates use `timeutil` only; defer holiday-aware joins to M2 if needed.
+4. **validate-ingest dependency on M2 calendar for local-time joins** — RESOLVED: M1 gates (02-06) use `timeutil.to_local` only for DST hour counts (ING-080); holiday-aware joins deferred to M2 per SPEC-01 scope.
 
 ## Environment Availability
 
