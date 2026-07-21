@@ -88,3 +88,85 @@ gates, CI jobs, or ceremony (Charter O-5 respected).
 **Open questions:** SG-01..SG-18 proposals await ADR adoption at their
 scheduled tasks; token ETA ~2026-07-22 (TP.01); ÖSPI transcription (T2.05)
 can start any time.
+
+---
+
+## 2026-07-21 — M1 ENTSO-E Ingestion (automated deliverables complete; live-data gate pending operator)
+
+**Shipped**
+
+- `epra.common` extended and `epra.ingest.entsoe` + `epra.ingest.validate`
+  implemented per SPEC-01 §§2–8: `EntsoeRawClient` transport (ADR-003) with
+  first-party Appendix-A XML parsers (`parse_publication_xml`,
+  `parse_gl_xml`), UTC boundary conversion (ING-031), resolution persistence
+  + inference (ING-060), A03 forward-fill (ING-063), long-format generation
+  (ING-032), quarterly chunking (ING-030), retry/backoff + response caching
+  (ING-006/009), request/token-safe logging (ING-008, A-7).
+  `_io.write_month` (ING-003/004/005) is the single raw-parquet write
+  boundary; `latest_complete_month()` implements ADR-005 (`min(AT, DE-LU)`
+  complete price month).
+- `epra.ingest.validate` implements all six M1 gates: ING-080 (hour coverage
+  + DST 23/25 check), ING-081 (price plausibility bounds), ING-082 (annual
+  mean plausibility table), ING-083 (negative-price presence), ING-084 (load
+  plausibility), ING-085 (price/load join coverage). Gates fail loudly on
+  empty input (no vacuous pass, A-2) and never warn-and-continue
+  (`ValidationReport.raise_if_failed`).
+- `Makefile` `backfill` / `ingest` / `validate-ingest` targets wired to the
+  real CLIs (`python -m epra.ingest.entsoe --backfill|--incremental`,
+  `python -m epra.ingest.validate`).
+- ADR-003 (EntsoeRawClient transport + own parsers, adopts SG-01), ADR-004
+  (pyarrow as the pinned pandas parquet engine), ADR-005
+  (`latest_complete_month` = min(AT, DE-LU), adopts SG-02) — all merged and
+  referenced from the relevant module docstrings.
+- ING-070: `tests/test_raw_contracts.py` (24 parametrized drift-guard tests)
+  plus four committed fixture parquets — `entsoe_prices_at_2024-01`,
+  `entsoe_prices_delu_2024-01`, `entsoe_load_at_2024-01`,
+  `entsoe_gen_at_2024-01` (≤200 rows each) — asserting exact SPEC-01 §7
+  column layout, dtypes, UTC `ts_utc`, zone values, and ING-004 provenance
+  columns. Fixtures were generated once via the real parsers run against the
+  already-committed XML fixtures, through the real `_io.write_month`, then
+  flattened into the `tests/fixtures/entsoe/` layout ING-070 expects.
+  `entsoe_prices_delu` has no committed DE-LU-domain XML source yet, so its
+  4-row frame was hand-built directly in the SPEC-01 §7 shape — logged as
+  threat T-02-15 (accepted: small static fixtures, contract tests catch
+  schema drift) in plan `02-07`'s threat register.
+
+**Gate evidence (automated, offline — `make lint && make test`)**
+
+- `uv run ruff check` / `mypy --strict` on `src/epra`: clean, 0 issues.
+- `uv run pytest -m "not live"`: **169 passed**, coverage 95.87% (gate: 80%).
+  Includes the 24 new ING-070 contract tests, all green with zero network
+  access.
+- ING-070 contract tests specifically: `uv run pytest tests/test_raw_contracts.py`
+  — 24 passed, no network.
+
+**PENDING OPERATOR ACTION — live backfill + `make validate-ingest` (ROADMAP
+Phase 2 criteria 1 and 3)**
+
+Plan `02-07` Task 2 is a blocking human checkpoint that requires the
+operator's real `ENTSOE_API_TOKEN` and live network access to
+`transparency.entsoe.eu` — neither is available to the automated executor
+that produced this entry (A-2: no invented data under `data/raw/`; the
+executor did not fabricate a backfill or a validation report). This gate
+remains **the one open item** before M1 can be marked fully done end-to-end.
+Operator, run exactly this:
+
+1. Copy `.env.example` to `.env` and set `ENTSOE_API_TOKEN` (ING-020/021).
+2. Run `make setup` (if needed), then `make lint && make test` — confirm all
+   green including `test_raw_contracts` and the gate unit tests (should
+   already be green per the automated evidence above; re-confirm locally).
+3. Run `make backfill` — expect progress logs; verify
+   `data/raw/entsoe_prices_at/`, `entsoe_prices_delu/`, `entsoe_load_at/`,
+   `entsoe_gen_at/` contain `YYYY/*.parquet` files from 2019 onward.
+4. Run `make validate-ingest` — expect
+   `reports/ingestion/validation_*.md` with ING-080 through ING-085 all PASS.
+5. If any gate fails: do not widen bands — investigate parser/timezone/units
+   per A-2 and file an ADR if a spec deviation is genuinely needed.
+
+Once steps 1–4 are green, M1 satisfies all three ROADMAP Phase 2 success
+criteria (ING-070 contract tests in CI, real backfill under `data/raw/`,
+`make validate-ingest` PASS on 2019→latest real data) and M2 (auxiliary data)
+can start.
+
+**Open questions:** none on the automated side. The single open item is the
+operator-owned live backfill + validate-ingest run above.
