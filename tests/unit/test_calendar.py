@@ -9,7 +9,7 @@ avoid repeatedly constructing a ~79k-row frame.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 import holidays
 import pandas as pd
@@ -48,7 +48,7 @@ def test_build_calendar_spine_covers_2019_through_end(calendar_frame: pd.DataFra
     assert calendar_frame["ts_utc"].iloc[-1] == pd.Timestamp("2027-12-31T23:00:00Z")
     # Hourly, contiguous, no gaps or duplicates.
     diffs = calendar_frame["ts_utc"].diff().iloc[1:]
-    assert (diffs == pd.Timedelta(hours=1)).all()
+    assert (diffs == timedelta(hours=1)).all()
 
 
 def test_build_calendar_dst_rows(calendar_frame: pd.DataFrame) -> None:
