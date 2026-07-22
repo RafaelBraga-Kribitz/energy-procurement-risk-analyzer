@@ -88,6 +88,22 @@ class GateFailure(IngestError):
         super().__init__(f"validation gate {gate_id} failed: {summary}")
 
 
+class DiscoveryError(IngestError):
+    """Resource discovery found no candidate matching its selection rule.
+
+    Raised by one-time discovery steps (e.g. `geosphere.discover_station`,
+    ING-091) when nothing in the source's metadata matches the required
+    selection criteria. The message must name every candidate that WAS
+    available so the failure feeds directly into the resulting ADR or human
+    checkpoint instead of a bare "not found".
+    """
+
+    def __init__(self, source: str, detail: str) -> None:
+        self.source = source
+        self.detail = detail
+        super().__init__(f"discovery failed for source={source}: {detail}")
+
+
 class NoDataError(IngestError):
     """An external source returned no data for a requested window.
 
