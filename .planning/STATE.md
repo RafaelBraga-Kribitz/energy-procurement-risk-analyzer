@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 2
 current_phase_name: M1 ENTSO-E Ingestion
-status: verifying
-stopped_at: Completed EPRA-02-07-PLAN.md (automated parts); live-backfill checkpoint deferred to operator
-last_updated: "2026-07-21T20:41:36.290Z"
-last_activity: 2026-07-21
-last_activity_desc: Phase 2 execution started
+status: human_verification_pending
+stopped_at: "Phase 2 automated build + code review + verification complete (/gsd-autonomous --to 2); live backfill pending operator token"
+last_updated: "2026-07-22"
+last_activity: 2026-07-22
+last_activity_desc: "Phase 2 autonomous build complete (7 plans); code review clean after 5/5 fixes; verification human_needed (live backfill only)"
 progress:
-  total_phases: 2
-  completed_phases: 2
+  total_phases: 8
+  completed_phases: 1
   total_plans: 8
   completed_plans: 8
 ---
@@ -82,8 +82,16 @@ None yet.
 
 - ~~ENTSO-E API token required for M1 backfill (human-owned)~~ — RESOLVED 2026-07-21: `ENTSOE_API_TOKEN` present in `.env`
 - INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
-- Pre-existing (M0) test_config.py::test_entsoe_token_fails_fast_when_unset fails in this env (.env token repopulated by load_dotenv after monkeypatch.delenv) — logged in EPRA-02 deferred-items.md, not fixed (out of scope for 02-02)
-- M1 live-data gate (ROADMAP Phase 2 criteria 1 and 3) pending operator: run make backfill && make validate-ingest with real ENTSOE_API_TOKEN per docs/BUILD_LOG.md 2026-07-21 M1 entry
+- ~~test_config.py::test_entsoe_token_fails_fast_when_unset fails (.env token repopulated by load_dotenv)~~ — RESOLVED 2026-07-22: test now stubs load_dotenv to isolate from real .env (commit dc14314)
+- M1 live-data gate (ROADMAP Phase 2 criteria 1 and 3) pending operator: run `make backfill && make validate-ingest` with real ENTSOE_API_TOKEN per docs/BUILD_LOG.md M1 entry — see `## Deferred Verification` below
+
+## Deferred Verification
+
+| Phase | State | Resume |
+|-------|-------|--------|
+| 2 | verification_deferred_human | /gsd-verify-work 2 |
+
+Phase 2 automated scope is fully verified (177 tests, ING-070 contract tests, DST fixtures, lint/mypy clean; code review clean). The only open item is the live ENTSO-E backfill + `make validate-ingest` on real data (ROADMAP criteria 1 & 3), which needs the operator's `ENTSOE_API_TOKEN`. See `.planning/phases/EPRA-02-m1-entso-e-ingestion/02-UAT.md`.
 
 ## Deferred Items
 
@@ -93,6 +101,7 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-07-21T20:41:36.282Z
-Stopped at: Completed EPRA-02-07-PLAN.md (automated parts); live-backfill checkpoint deferred to operator
-Resume file: None
+Last session: 2026-07-21T21:11:00.000Z
+Stopped at: Session resumed — awaiting operator backfill or verify
+Resume file: .planning/phases/EPRA-02-m1-entso-e-ingestion/.continue-here.md
+Also: .planning/SESSION_SNAP.md, .planning/CONTINUITY.md
