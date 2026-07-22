@@ -71,6 +71,17 @@ def _data_raw_root(settings: Settings) -> Path:
     return p if p.is_absolute() else REPO_ROOT / p
 
 
+def _dataset_root(dataset: str, settings: Settings) -> Path:
+    """Absolute `data/raw/<dataset>/` root.
+
+    Single canonical implementation (WR-03) -- `entsoe.py` and `validate.py`
+    both import this instead of reimplementing the same
+    `data_raw / dataset` path resolution independently, so a future change
+    to path resolution only has to happen here.
+    """
+    return _data_raw_root(settings) / dataset
+
+
 def raw_month_path(dataset: str, month: date, settings: Settings) -> Path:
     """Absolute path of the monthly raw parquet file for ``dataset``.
 
@@ -91,7 +102,12 @@ def raw_month_path(dataset: str, month: date, settings: Settings) -> Path:
 
 
 def _now_utc() -> datetime:
-    """Wall-clock accessor — a seam so tests can freeze `ingested_at_utc` (ING-003)."""
+    """Wall-clock accessor — a seam so tests can freeze `ingested_at_utc` (ING-003).
+
+    Single canonical implementation (WR-03): `_fetch.py` imports this same
+    function for its ING-009 cache-age cutoff instead of reimplementing an
+    identical one-line seam.
+    """
     return datetime.now(UTC)
 
 

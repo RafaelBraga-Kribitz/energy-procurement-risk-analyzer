@@ -23,7 +23,7 @@ import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlencode
@@ -36,7 +36,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from epra.common.config import REPO_ROOT, Settings, entsoe_token
 from epra.common.timeutil import to_local
-from epra.ingest._io import request_hash
+from epra.ingest._io import _now_utc, request_hash
 from epra.ingest.exceptions import IngestAuthError, IngestTransportError
 
 logger = logging.getLogger(__name__)
@@ -199,11 +199,6 @@ def _is_retryable(exc: BaseException) -> bool:
 )
 def _fetch_live_with_retry(transport: TransportFn, query: EntsoeQuery, api_key: str) -> str:
     return _invoke_transport_once(transport, query, api_key)
-
-
-def _now_utc() -> datetime:
-    """Wall-clock accessor — a seam so tests can freeze the ING-009 cutoff."""
-    return datetime.now(UTC)
 
 
 def _cache_root(settings: Settings) -> Path:

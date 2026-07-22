@@ -50,7 +50,7 @@ from typing import Literal, cast
 import pandas as pd
 
 from epra.common import logging as common_logging
-from epra.common.config import REPO_ROOT, Settings, load_settings
+from epra.common.config import Settings, load_settings
 from epra.common.timeutil import VIENNA, iter_month_starts, month_start, next_month, to_utc
 from epra.ingest._fetch import (
     DocumentType,
@@ -59,7 +59,7 @@ from epra.ingest._fetch import (
     _cache_request_url,
     fetch_entsoe,
 )
-from epra.ingest._io import request_hash, write_month
+from epra.ingest._io import _dataset_root, request_hash, write_month
 from epra.ingest.exceptions import ContractError, IngestError, NoDataError
 
 logger = logging.getLogger(__name__)
@@ -633,13 +633,6 @@ def _month_from_path(path: Path) -> date:
             "entsoe_raw_layout", expected="<dataset>_<YYYY-MM>.parquet", actual=path.name
         )
     return date(int(match.group(1)), int(match.group(2)), 1)
-
-
-def _dataset_root(dataset: str, settings: Settings) -> Path:
-    """Absolute `data/raw/<dataset>/` root (mirrors `_io._data_raw_root`)."""
-    p = settings.paths.data_raw
-    root = p if p.is_absolute() else REPO_ROOT / p
-    return root / dataset
 
 
 def _complete_price_months(dataset: str, settings: Settings) -> list[date]:

@@ -36,6 +36,7 @@ import pandas as pd
 from epra.common import logging as common_logging
 from epra.common.config import REPO_ROOT, Settings, load_settings
 from epra.common.timeutil import VIENNA, local_hours_in_day
+from epra.ingest._io import _dataset_root
 from epra.ingest.entsoe import hourly_mean
 from epra.ingest.exceptions import GateFailure
 
@@ -383,12 +384,6 @@ _HOURLY_DATASETS: tuple[tuple[str, str], ...] = (
     ("entsoe_prices_delu", "price_eur_mwh"),
     ("entsoe_load_at", "load_mw"),
 )
-
-
-def _dataset_root(dataset: str, settings: Settings) -> Path:
-    root = settings.paths.data_raw
-    root = root if root.is_absolute() else REPO_ROOT / root
-    return root / dataset
 
 
 def _load_hourly(dataset: str, value_col: str, settings: Settings) -> pd.DataFrame:
