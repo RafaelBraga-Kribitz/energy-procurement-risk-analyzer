@@ -25,14 +25,16 @@
   },
   "hooks": {
     "workflow_guard": false,
-    "context_warnings": true
+    "context_warnings": true,
+    "community": true
   },
   "intel": {
     "enabled": true
   },
   "graphify": {
     "enabled": true,
-    "auto_update": false
+    "auto_update": true,
+    "build_timeout": 300
   },
   "model_profile": "adaptive",
   "plan_review": {

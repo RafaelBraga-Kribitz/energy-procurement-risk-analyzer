@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 2
 current_phase_name: M1 ENTSO-E Ingestion
-status: human_verification_pending
-stopped_at: "Phase 2 automated build + code review + verification complete (/gsd-autonomous --to 2); live backfill pending operator token"
+status: completed
+stopped_at: "Phase 2 complete — live backfill + validate-ingest green (ING-080..085); validation report committed"
 last_updated: "2026-07-22"
 last_activity: 2026-07-22
-last_activity_desc: "Phase 2 autonomous build complete (7 plans); code review clean after 5/5 fixes; verification human_needed (live backfill only)"
+last_activity_desc: "M1 complete on real ENTSO-E data; ADR-006; reports/ingestion/validation_2026-07-22.md committed"
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 8
   completed_plans: 8
 ---
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 
 ## Current Position
 
-Phase: 2 (M1 ENTSO-E Ingestion) — EXECUTING
+Phase: 2 (M1 ENTSO-E Ingestion) — COMPLETE
 Plan: 7 of 7
-Status: Phase complete — ready for verification
-Last activity: 2026-07-21 — Phase 2 execution started
+Status: Verified on real data (ING-080..085 PASS); next is Phase 3 / M2
+Last activity: 2026-07-22 — live backfill + validate-ingest; validation report committed
 
 Progress: [██████████] 100%
 
@@ -101,7 +101,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-21T21:11:00.000Z
-Stopped at: Session resumed — awaiting operator backfill or verify
-Resume file: .planning/phases/EPRA-02-m1-entso-e-ingestion/.continue-here.md
-Also: .planning/SESSION_SNAP.md, .planning/CONTINUITY.md
+Last session: 2026-07-22
+Stopped at: Phase 2 (M1) complete — ready for Phase 3 / M2
+Resume file: *(none — no mid-task pause)*
+Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
