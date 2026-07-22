@@ -194,3 +194,9 @@ None - no external service configuration required. `holidays>=0.50` was already 
 ---
 *Phase: EPRA-03-m2-auxiliary-data*
 *Completed: 2026-07-23*
+
+## Self-Check: PASSED
+
+- All created/modified files verified present on disk: `tests/unit/test_calendar.py`, `src/epra/ingest/calendar.py`, `Makefile`, `tests/unit/test_stubs_fail_loudly.py`, `data/raw/calendar/calendar.parquet`, `03-02-SUMMARY.md`.
+- All task/summary commits verified in `git log`: `661e99c` (test), `83f17b9` (feat), `4485c16` (feat), `90ffeab` (docs: summary).
+- TDD gate sequence verified: `test(03-02)` precedes `feat(03-02)` in git log — RED then GREEN present. No REFACTOR commit (none needed).

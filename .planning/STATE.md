@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: m2-auxiliary-data
 status: executing
-stopped_at: Completed EPRA-03-01-PLAN.md
-last_updated: "2026-07-22T21:59:46.477Z"
+stopped_at: Completed EPRA-03-02-PLAN.md
+last_updated: "2026-07-22T22:26:56.014Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase EPRA-03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 14
-  completed_plans: 9
+  completed_plans: 10
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-03 (m2-auxiliary-data) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Executing Phase EPRA-03
 Last activity: 2026-07-22 — Phase EPRA-03 execution started
 
-Progress: [██████░░░░] 64%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Progress: [██████░░░░] 64%
 | Phase EPRA-02 P06 | 45min | 3 tasks | 4 files |
 | Phase EPRA-02 P07 | 35min | 2 tasks | 6 files |
 | Phase EPRA-03 P01 | 15min | 2 tasks | 2 files |
+| Phase EPRA-03 P02 | 35min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Progress: [██████░░░░] 64%
 - [Phase ?]: entsoe_prices_delu fixture hand-built directly in SPEC-01 §7 shape (no committed DE_LU-domain XML source yet) — accepted as threat T-02-15, low severity
 - [Phase ?]: Task 2 (live ENTSO-E backfill + validate-ingest) deferred to operator — no ENTSOE_API_TOKEN/live network in this execution; no data fabricated (A-2)
 - [Phase ?]: key_column promoted from implicit-only ts_utc anchor to a keyword-only parameter defaulting to ts_utc — additive, no add-alongside module (03-01)
+- [Phase ?]: [03-02] Import Austria from holidays.countries.austria (not bare 'import holidays') to satisfy mypy --strict no_implicit_reexport
+- [Phase ?]: [03-02] _default_end steps 18 months via timeutil.next_month() loop, not pd.DateOffset, reusing the codebase's month-arithmetic helper
+- [Phase ?]: [03-02] calendar.parquet persists as ONE file via _io._dataset_root, not monthly-partitioned and not through _io.write_month
 
 ### Pending Todos
 
@@ -103,7 +107,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-22T21:59:46.431Z
-Stopped at: Completed EPRA-03-01-PLAN.md
+Last session: 2026-07-22T22:26:56.003Z
+Stopped at: Completed EPRA-03-02-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
