@@ -5,12 +5,12 @@ milestone_name: milestone
 current_phase: 2
 current_phase_name: M1 ENTSO-E Ingestion
 status: completed
-stopped_at: "Phase 2 complete — live backfill + validate-ingest green (ING-080..085); validation report committed"
-last_updated: "2026-07-22"
+stopped_at: Phase 3 context gathered
+last_updated: "2026-07-22T13:31:07.369Z"
 last_activity: 2026-07-22
-last_activity_desc: "M1 complete on real ENTSO-E data; ADR-006; reports/ingestion/validation_2026-07-22.md committed"
+last_activity_desc: live backfill + validate-ingest; validation report committed
 progress:
-  total_phases: 8
+  total_phases: 3
   completed_phases: 2
   total_plans: 8
   completed_plans: 8
@@ -101,7 +101,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-22
-Stopped at: Phase 2 (M1) complete — ready for Phase 3 / M2
-Resume file: *(none — no mid-task pause)*
+Last session: 2026-07-22T13:31:07.348Z
+Stopped at: Phase 3 context gathered
+Resume file: .planning/phases/EPRA-03-m2-auxiliary-data/03-CONTEXT.md
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
