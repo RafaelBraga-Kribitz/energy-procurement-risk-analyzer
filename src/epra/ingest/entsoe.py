@@ -555,28 +555,33 @@ def ingest_dataset(
     spec = _DATASET_SPECS[dataset_key]
     zone_cfg = settings.zones[spec.zone_key]
 
-    # One provenance hash identifies the whole [start, end] ingest for this
-    # dataset (ING-004). request_hash() strips the securityToken value, so the
-    # placeholder here yields the same hash fetch_entsoe derives from the real
-    # token -- no second token read.
-    req_hash = request_hash(
-        _cache_request_url(
-            EntsoeQuery(
-                document_type=spec.document_type,
-                domain=zone_cfg.eic,
-                period_start=to_utc(datetime(start.year, start.month, start.day, tzinfo=VIENNA)),
-                period_end=to_utc(datetime(end.year, end.month, end.day, tzinfo=VIENNA)),
-            ),
-            "x",
-        )
-    )
-
     dataset_frames: list[pd.DataFrame] = []
     total_fills = 0
+    req_hash = ""
     for chunk_start, chunk_end in iter_chunks(start, end):
+        chunk_period_start = to_utc(
+            datetime(chunk_start.year, chunk_start.month, chunk_start.day, tzinfo=VIENNA)
+        )
         chunk_period_end = to_utc(
             datetime(chunk_end.year, chunk_end.month, chunk_end.day, tzinfo=VIENNA)
         )
+        if not req_hash:
+            # One provenance hash (ING-004) for the whole ingest, derived from
+            # the first (valid, <=90-day) chunk window -- NOT the full multi-year
+            # [start, end], which EntsoeQuery would reject. request_hash() strips
+            # the securityToken, so the placeholder yields the same hash
+            # fetch_entsoe computes from the real token -- no second token read.
+            req_hash = request_hash(
+                _cache_request_url(
+                    EntsoeQuery(
+                        document_type=spec.document_type,
+                        domain=zone_cfg.eic,
+                        period_start=chunk_period_start,
+                        period_end=chunk_period_end,
+                    ),
+                    "x",
+                )
+            )
         # ENTSO-E caps a single response at 100 market documents, so ING-030's
         # <=90-day window is necessary but NOT sufficient: day-ahead prices
         # return ~2 TimeSeries per delivery day and generation one per
