@@ -66,7 +66,7 @@ Plans:
   2. ING-094/101/103/111 gates pass; `data/manual/oespi_monthly.csv` is double-entry reconciled
   3. Full ingestion validation suite passes for 2019→latest complete month
 
-**Plans**: 2/6 plans executed
+**Plans**: 3/6 plans executed
 
 Plans:
 **Wave 1**
@@ -76,7 +76,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-03-PLAN.md — GeoSphere station discovery (ING-091) + ADR-007, live-first/fixture-fallback
+- [x] 03-03-PLAN.md — GeoSphere station discovery (ING-091) + ADR-007, live-first/fixture-fallback
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -165,7 +165,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 |-------|----------------|--------|-----------|
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
 | 2. M1 ENTSO-E | 7/7 | In Progress|  |
-| 3. M2 Auxiliary | 2/6 | In Progress|  |
+| 3. M2 Auxiliary | 3/6 | In Progress|  |
 | 4. M3 dbt | 0/TBD | Not started | - |
 | 5. M4 Profile | 0/TBD | Not started | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |

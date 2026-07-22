@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: m2-auxiliary-data
 status: executing
-stopped_at: Completed EPRA-03-02-PLAN.md
-last_updated: "2026-07-22T22:26:56.014Z"
+stopped_at: Completed EPRA-03-03-PLAN.md
+last_updated: "2026-07-22T22:45:32.821Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase EPRA-03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 14
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-03 (m2-auxiliary-data) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Executing Phase EPRA-03
 Last activity: 2026-07-22 — Phase EPRA-03 execution started
 
-Progress: [███████░░░] 71%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -50,6 +50,7 @@ Progress: [███████░░░] 71%
 | Phase EPRA-02 P07 | 35min | 2 tasks | 6 files |
 | Phase EPRA-03 P01 | 15min | 2 tasks | 2 files |
 | Phase EPRA-03 P02 | 35min | 2 tasks | 4 files |
+| Phase 03 P03 | 45min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Progress: [███████░░░] 71%
 - [Phase ?]: [03-02] Import Austria from holidays.countries.austria (not bare 'import holidays') to satisfy mypy --strict no_implicit_reexport
 - [Phase ?]: [03-02] _default_end steps 18 months via timeutil.next_month() loop, not pd.DateOffset, reusing the codebase's month-arithmetic helper
 - [Phase ?]: [03-02] calendar.parquet persists as ONE file via _io._dataset_root, not monthly-partitioned and not through _io.write_month
+- [Phase ?]: [03-03] ADR-007: GeoSphere discover_station picks station id 30 'Graz Universität/Heinrichstraße' (COMBINED, longest record since 1894, still active) via live discovery — recorded in config/settings.yaml, not a pending human checkpoint
+- [Phase ?]: [03-03] GeoSphere /station/historical/klima-v2-1d/metadata returns a flat {"stations": [...]} object, not a GeoJSON FeatureCollection — output_format=geojson applies only to the data endpoint (03-04), confirmed live and documented in geosphere.py + ADR-007
 
 ### Pending Todos
 
@@ -107,7 +110,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-22T22:26:56.003Z
-Stopped at: Completed EPRA-03-02-PLAN.md
+Last session: 2026-07-22T22:45:32.809Z
+Stopped at: Completed EPRA-03-03-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
