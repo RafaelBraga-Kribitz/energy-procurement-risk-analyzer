@@ -649,6 +649,13 @@ def _complete_price_months(dataset: str, settings: Settings) -> list[date]:
     file's own calendar month has at least one hourly row. Rows are grouped
     by the UTC calendar day of `ts_utc` -- the same boundary `write_month`
     partitions files on, so no second timezone conversion is needed here.
+
+    WEAKER than ING-080's hour-coverage gate (<=24 missing hours per
+    zone-year): this only requires >=1 row per day, not full/near-full hour
+    coverage -- a month with, say, 1 of 24 hours present on every day still
+    counts as "complete" here. Callers that need hour-level completeness
+    guarantees (not just day-presence) must also run `validate.run_gates()`,
+    which enforces the stricter ING-080 bound separately.
     """
     root = _dataset_root(dataset, settings)
     if not root.exists():
@@ -676,6 +683,10 @@ def latest_complete_month(settings: Settings) -> date:
     DE-LU-prices month)` so a downstream AT/DE-LU spread calculation never
     assumes a month where either zone is still incomplete. Downstream modules
     (dbt freshness, SPEC-05 forward window) call this instead of guessing.
+
+    "Complete" here means day-presence only (see `_complete_price_months`) --
+    NOT full-hour coverage. Callers relying on hour-level completeness must
+    also run `validate.run_gates()` (ING-080).
 
     Raises:
         NoDataError: no complete month exists yet for AT and/or DE-LU prices
