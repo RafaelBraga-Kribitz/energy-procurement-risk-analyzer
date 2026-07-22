@@ -33,6 +33,24 @@ def _prices_frame(month: date, *, n: int = 3) -> pd.DataFrame:
     )
 
 
+def _geosphere_daily_frame(month: date, *, n: int = 3) -> pd.DataFrame:
+    """Minimal `geosphere_graz_daily`-shaped frame for `month` (SPEC-01 §7,
+    plain `date`-keyed — no `ts_utc` column)."""
+    dates = pd.date_range(
+        start=pd.Timestamp(year=month.year, month=month.month, day=1),
+        periods=n,
+        freq="D",
+    )
+    return pd.DataFrame(
+        {
+            "date": dates,
+            "station_id": "11290",
+            "tl_mittel_c": [4.1, 5.2, 3.9][:n],
+            "parameter_raw": "tlmittel",
+        }
+    )
+
+
 # ---------------------------------------------------------------- request_hash
 
 
@@ -236,3 +254,111 @@ def test_write_month_fixed_column_order_for_determinism(tmp_settings: Settings) 
         "source",
         "request_hash",
     ]
+
+
+# ------------------------------------------------------ write_month key_column
+
+
+def test_write_month_date_key_happy_path(tmp_settings: Settings) -> None:
+    """key_column='date': a plain date-keyed frame (GeoSphere §7) writes
+    atomically with no tz assertion applied to the key column."""
+    month = date(2021, 3, 1)
+    frame = _geosphere_daily_frame(month)
+    req_hash = _io.request_hash("https://dataset.api.hub.geosphere.at/v1/station/historical/klima-v2-1d")
+
+    path = _io.write_month(
+        frame, "geosphere_graz_daily", month, req_hash, tmp_settings, key_column="date"
+    )
+
+    assert path == _io.raw_month_path("geosphere_graz_daily", month, tmp_settings)
+    assert path.exists()
+
+    out = pd.read_parquet(path)
+    assert list(out.columns) == [
+        "date",
+        "station_id",
+        "tl_mittel_c",
+        "parameter_raw",
+        "ingested_at_utc",
+        "source",
+        "request_hash",
+    ]
+    assert (out["source"] == "geosphere").all()
+    assert (out["request_hash"] == req_hash).all()
+    assert len(out) == len(frame)
+
+
+def test_write_month_date_key_rejects_missing_date_column(tmp_settings: Settings) -> None:
+    month = date(2021, 3, 1)
+    frame = _geosphere_daily_frame(month).drop(columns=["date"])
+    with pytest.raises(ContractError, match="date"):
+        _io.write_month(
+            frame, "geosphere_graz_daily", month, "h" * 64, tmp_settings, key_column="date"
+        )
+
+
+def test_write_month_date_key_rejects_out_of_month_rows(tmp_settings: Settings) -> None:
+    month = date(2021, 3, 1)
+    frame = _geosphere_daily_frame(month)
+    frame.loc[0, "date"] = pd.Timestamp("2021-04-01")
+    with pytest.raises(ValueError, match="2021-03"):
+        _io.write_month(
+            frame, "geosphere_graz_daily", month, "h" * 64, tmp_settings, key_column="date"
+        )
+
+
+def test_write_month_date_key_applies_no_timezone_assertion(tmp_settings: Settings) -> None:
+    """A plain (tz-naive) `date` column must be accepted as-is -- no UTC
+    assertion is applied on the date-key path (unlike the ts_utc path)."""
+    month = date(2021, 3, 1)
+    frame = _geosphere_daily_frame(month)
+    assert frame["date"].dt.tz is None
+
+    path = _io.write_month(
+        frame, "geosphere_graz_daily", month, "h" * 64, tmp_settings, key_column="date"
+    )
+    assert path.exists()
+
+
+def test_write_month_round_trip_both_key_modes_preserve_provenance_order(
+    tmp_settings: Settings,
+) -> None:
+    """Both a ts_utc-keyed frame and a date-keyed frame round-trip through
+    write_month with the frame's own columns followed by the fixed ING-004
+    provenance column order."""
+    month = date(2021, 3, 1)
+
+    ts_frame = _prices_frame(month)
+    ts_path = _io.write_month(ts_frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
+    ts_out = pd.read_parquet(ts_path)
+    assert list(ts_out.columns) == [*ts_frame.columns, *_io._PROVENANCE_COLUMNS]
+
+    date_frame = _geosphere_daily_frame(month)
+    date_path = _io.write_month(
+        date_frame, "geosphere_graz_daily", month, "h" * 64, tmp_settings, key_column="date"
+    )
+    date_out = pd.read_parquet(date_path)
+    assert list(date_out.columns) == [*date_frame.columns, *_io._PROVENANCE_COLUMNS]
+
+
+def test_write_month_default_key_column_still_rejects_missing_ts_utc(
+    tmp_settings: Settings,
+) -> None:
+    """Regression: the default (no key_column passed) call path is unchanged
+    -- missing ts_utc still raises ContractError."""
+    month = date(2021, 3, 1)
+    frame = _prices_frame(month).drop(columns=["ts_utc"])
+    with pytest.raises(ContractError, match="ts_utc"):
+        _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
+
+
+def test_write_month_default_key_column_still_rejects_naive_ts_utc(
+    tmp_settings: Settings,
+) -> None:
+    """Regression: the default (no key_column passed) call path is unchanged
+    -- naive ts_utc still raises ValueError."""
+    month = date(2021, 3, 1)
+    frame = _prices_frame(month)
+    frame["ts_utc"] = frame["ts_utc"].dt.tz_localize(None)
+    with pytest.raises(ValueError, match="tz-aware"):
+        _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
