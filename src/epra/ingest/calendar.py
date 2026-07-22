@@ -20,17 +20,20 @@ Implements: ING-110, ING-111; feeds dim_calendar (SPEC-02 §4).
 
 from __future__ import annotations
 
+import argparse
+import logging
 from collections.abc import Sequence
 from datetime import date, timedelta
 
 import pandas as pd
 from holidays.countries.austria import Austria
 
-from epra.common.config import Settings
+from epra.common.config import Settings, load_settings
 from epra.common.timeutil import VIENNA, is_peak_hour, next_month
+from epra.ingest._io import _dataset_root
 from epra.ingest.entsoe import latest_complete_month
 
-_MSG = "M2 not implemented yet — build per SPEC-01 §11 (see module docstring)"
+logger = logging.getLogger(__name__)
 
 #: Forward-risk coverage horizon (SG-15/D-08): SPEC-05's forward simulation
 #: needs 12 months ahead plus a 6-month cushion so the calendar spine never
@@ -98,9 +101,45 @@ def build_calendar(settings: Settings, end: date | None = None) -> pd.DataFrame:
     )
 
 
+def _parse_cli_date(text: str) -> date:
+    """``argparse`` ``type=`` callback: reject anything not YYYY-MM-DD
+    (mirrors ``epra.ingest.entsoe._parse_cli_date``, T-02-10)."""
+    try:
+        return date.fromisoformat(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid date {text!r}; expected YYYY-MM-DD") from exc
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: ``python -m epra.ingest.calendar`` (ING-002)."""
-    raise NotImplementedError(_MSG)
+    """CLI: ``python -m epra.ingest.calendar [--end YYYY-MM-DD]`` (ING-002).
+
+    ``--end`` defaults to the dynamic ``latest_complete_month() +
+    _FORWARD_HORIZON_MONTHS`` months (D-09); pass a fixed value for
+    deterministic/manual runs. Writes a SINGLE parquet file — not
+    monthly-partitioned, not via ``_io.write_month``. Returns 0 on success.
+    """
+    parser = argparse.ArgumentParser(
+        prog="python -m epra.ingest.calendar",
+        description="Build the hourly UTC calendar spine with Vienna-local "
+        "attributes and Styrian holidays (ING-110).",
+    )
+    parser.add_argument(
+        "--end",
+        type=_parse_cli_date,
+        default=None,
+        help="Fixed end date (YYYY-MM-DD). Default: dynamic (D-09).",
+    )
+    args = parser.parse_args(argv)
+
+    settings = load_settings()
+    frame = build_calendar(settings, args.end)
+
+    path = _dataset_root("calendar", settings) / "calendar.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    frame.to_parquet(path, index=False, engine="pyarrow")
+    logger.info("calendar: wrote %d rows to %s", len(frame), path)
+
+    return 0
 
 
 if __name__ == "__main__":

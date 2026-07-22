@@ -4,7 +4,7 @@
 
 UV ?= uv
 
-.PHONY: setup backfill ingest validate-ingest transform profile analyze simulate \
+.PHONY: setup backfill ingest validate-ingest calendar transform profile analyze simulate \
         ssot export report test lint all refresh
 
 setup:
@@ -28,6 +28,9 @@ ingest:              ## M1 — SPEC-01 §4: incremental 45-day refresh (ING-041)
 
 validate-ingest:     ## M1/M2 — SPEC-01 §§8-11 gates → reports/ingestion/
 	$(UV) run python -m epra.ingest.validate
+
+calendar:            ## M2 — SPEC-01 §11: hourly UTC calendar spine (ING-110)
+	$(UV) run python -m epra.ingest.calendar
 
 # ---------------------------------------------------------------- not yet implemented ----
 transform:           ## M3 — dbt build (models + tests)

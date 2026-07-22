@@ -15,7 +15,7 @@ import holidays
 import pandas as pd
 import pytest
 
-from epra.common.config import load_settings
+from epra.common.config import Settings, load_settings
 from epra.common.timeutil import local_hours_in_day
 from epra.ingest import calendar as cal
 
@@ -102,3 +102,28 @@ def test_styria_subdivision_code_is_6() -> None:
     # SG-10: assert the working Styria subdivision code exists on the
     # `holidays` package's Austria implementation.
     assert "6" in holidays.Austria.subdivisions
+
+
+def test_calendar_main_writes_single_parquet_file(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Task 2: CLI persists ONE parquet file (not monthly-partitioned, not
+    via `_io.write_month`)."""
+    monkeypatch.setattr(cal, "load_settings", lambda: tmp_settings)
+
+    exit_code = cal.main(["--end", "2027-12-31"])
+
+    assert exit_code == 0
+    calendar_dir = tmp_settings.paths.data_raw / "calendar"
+    path = calendar_dir / "calendar.parquet"
+    assert path.is_file()
+    frame = pd.read_parquet(path)
+    assert list(frame.columns) == _EXPECTED_COLUMNS
+    assert frame["ts_utc"].iloc[-1] == pd.Timestamp("2027-12-31T23:00:00Z")
+    # Single file, not `data/raw/calendar/<YYYY>/...` monthly partitions.
+    assert sorted(p.name for p in calendar_dir.iterdir()) == ["calendar.parquet"]
+
+
+def test_calendar_main_rejects_malformed_end_date() -> None:
+    with pytest.raises(SystemExit):
+        cal.main(["--end", "not-a-date"])
