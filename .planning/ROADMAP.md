@@ -66,7 +66,15 @@ Plans:
   2. ING-094/101/103/111 gates pass; `data/manual/oespi_monthly.csv` is double-entry reconciled
   3. Full ingestion validation suite passes for 2019→latest complete month
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Extend _io.write_month with additive key_column (date-grain writes for GeoSphere)
+- [ ] 03-02-PLAN.md — Calendar hourly spine (ING-110/111): Styrian holidays, DST, timeutil peak flags
+- [ ] 03-03-PLAN.md — GeoSphere station discovery (ING-091) + ADR-007, live-first/fixture-fallback
+- [ ] 03-04-PLAN.md — GeoSphere ingest + ING-094 gate + §7 raw-contract row (date-keyed)
+- [ ] 03-05-PLAN.md — ÖSPI loader + ING-103 gates + ADR-008 + synthetic CSV (ships without real data)
+- [ ] 03-06-PLAN.md — M2 assembly: validate-ingest full suite + real ÖSPI/GeoSphere human checkpoint
 
 ### Phase 4: M3 dbt Warehouse
 
@@ -143,7 +151,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 |-------|----------------|--------|-----------|
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
 | 2. M1 ENTSO-E | 7/7 | In Progress|  |
-| 3. M2 Auxiliary | 0/TBD | Not started | - |
+| 3. M2 Auxiliary | 0/6 | Planned | - |
 | 4. M3 dbt | 0/TBD | Not started | - |
 | 5. M4 Profile | 0/TBD | Not started | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |
