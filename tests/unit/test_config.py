@@ -36,13 +36,14 @@ def test_settings_window_and_ingest_params() -> None:
     assert s.ingest.incremental_lookback_days == 45  # ING-041
 
 
-def test_settings_geosphere_station_pending_discovery() -> None:
-    # ING-091: station is discovered, not hardcoded. Once discovery runs, this
-    # test flips to asserting the ADR'd station id.
+def test_settings_geosphere_station_discovered() -> None:
+    # ING-091: station is discovered, not hardcoded (docs/ADR/ADR-007) — this
+    # test asserts the ADR'd station id, not a hardcoded value.
     s = load_settings()
     assert s.geosphere.dataset_id == "klima-v2-1d"
     assert s.geosphere.parameter == "tl_mittel"
-    assert s.geosphere.station_id is None
+    assert s.geosphere.station_id == "30"
+    assert s.geosphere.station_name == "Graz Universität/Heinrichstraße"
 
 
 def test_consumer_profile_matches_spec03() -> None:

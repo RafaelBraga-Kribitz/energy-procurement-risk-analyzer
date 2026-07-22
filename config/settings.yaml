@@ -20,9 +20,10 @@ window:
 
 geosphere:
   base_url: https://dataset.api.hub.geosphere.at/v1   # ING-090
-  dataset_id: klima-v2-1d      # verify at build time via discovery (ING-091)
-  station_id: null             # filled by ING-091 discovery + ADR (prefer "Graz Universität")
-  station_name: null
+  dataset_id: klima-v2-1d      # verified live at discovery time (ADR-007) — title
+                                # "Stationsdaten-v2 (1 d)" confirms this is the right dataset
+  station_id: "30"              # ING-091 discovery result, see ADR-007
+  station_name: "Graz Universität/Heinrichstraße"   # longest record (1894-01-01-), COMBINED station
   parameter: tl_mittel         # daily mean air temperature, °C (ING-092)
 
 paths:

@@ -21,7 +21,6 @@ from epra.strategies import calibration, forward_risk, retrospective
 SETTINGS = load_settings()
 
 STUBS: list[tuple[str, Callable[..., Any], tuple[Any, ...]]] = [
-    ("M2", geosphere.discover_station, (SETTINGS,)),
     ("M2", geosphere.ingest, (SETTINGS, date(2019, 1, 1), date(2019, 2, 1))),
     ("M2", geosphere.main, ([],)),
     ("M2", oespi.load_oespi, (SETTINGS,)),
