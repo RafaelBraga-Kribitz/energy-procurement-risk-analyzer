@@ -441,20 +441,30 @@ def hourly_mean(df: pd.DataFrame, value_col: str) -> pd.DataFrame:
 
 
 def iter_chunks(start: date, end: date) -> Iterator[tuple[date, date]]:
-    """Quarterly ``(start, end)`` request windows covering ``iter_month_starts``.
+    """``(start, end)`` request windows covering ``iter_month_starts``, each
+    bounded to <= 90 elapsed days.
 
-    Groups the month starts from ``timeutil.iter_month_starts`` into chunks
-    of up to 3 months so a caller can request in <= 90-day windows (ING-030)
-    without walking one month at a time.
+    Groups the month starts from ``timeutil.iter_month_starts`` into the
+    widest chunks whose elapsed span still satisfies ING-030's <= 90-day
+    request limit -- NOT a fixed count of months, since 3 consecutive
+    calendar months commonly exceed 90 days (e.g. Apr+May+Jun = 91 days).
 
     Yields:
         ``(chunk_start, chunk_end)`` where ``chunk_start`` is the first day
         of the first month in the chunk and ``chunk_end`` is the first day
         of the month after the chunk's last month (exclusive upper bound).
+        Every yielded pair satisfies ``(chunk_end - chunk_start).days <= 90``.
     """
     months = list(iter_month_starts(start, end))
-    for i in range(0, len(months), 3):
-        chunk = months[i : i + 3]
+    chunk: list[date] = []
+    for m in months:
+        prospective_end = next_month(m)
+        if chunk and (prospective_end - chunk[0]).days > 90:
+            yield chunk[0], next_month(chunk[-1])
+            chunk = [m]
+        else:
+            chunk.append(m)
+    if chunk:
         yield chunk[0], next_month(chunk[-1])
 
 

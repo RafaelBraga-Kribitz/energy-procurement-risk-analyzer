@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import date
+from datetime import date, timedelta
+from itertools import pairwise
 from pathlib import Path
 
 import pandas as pd
@@ -42,6 +43,61 @@ def _no_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def _read(fixtures_dir: Path, name: str) -> str:
     return (fixtures_dir / name).read_text(encoding="utf-8")
+
+
+# --------------------------------------------------------------------------
+# Task 0: iter_chunks (ING-030 <= 90-day bound; CR-01 regression coverage)
+# --------------------------------------------------------------------------
+
+
+def test_iter_chunks_never_exceeds_90_days_across_2019_2025() -> None:
+    """Sweep the whole real backfill range (settings.window.start_date =
+    2019-01-01 through a generous 2025 end) and assert every yielded window
+    satisfies ING-030's <= 90-day limit -- the exact bound `EntsoeQuery`
+    enforces in `_fetch.py`."""
+    chunks = list(entsoe.iter_chunks(date(2019, 1, 1), date(2025, 12, 31)))
+
+    assert chunks, "expected at least one chunk"
+    for chunk_start, chunk_end in chunks:
+        assert (chunk_end - chunk_start).days <= 90
+
+
+def test_iter_chunks_covers_full_window_with_no_gaps_or_overlaps() -> None:
+    chunks = list(entsoe.iter_chunks(date(2019, 1, 1), date(2025, 12, 31)))
+
+    assert chunks[0][0] == date(2019, 1, 1)
+    assert chunks[-1][1] == date(2026, 1, 1)
+    for (_, prev_end), (next_start, _) in pairwise(chunks):
+        assert prev_end == next_start  # contiguous: no gap, no overlap
+
+
+def test_iter_chunks_apr_may_jun_91_day_span_is_split_not_rejected() -> None:
+    """Regression for CR-01: Apr+May+Jun 2019 is a 91-day calendar span (a
+    fixed group-of-3 chunking would yield a window `EntsoeQuery.__post_init__`
+    rejects as exceeding ING-030's 90-day maximum). The fix must instead
+    split it into <= 90-day windows that still cover Apr 1 -> Jul 1 exactly.
+    """
+    chunks = list(entsoe.iter_chunks(date(2019, 4, 1), date(2019, 6, 30)))
+
+    for chunk_start, chunk_end in chunks:
+        assert (chunk_end - chunk_start).days <= 90
+    assert chunks[0][0] == date(2019, 4, 1)
+    assert chunks[-1][1] == date(2019, 7, 1)
+
+
+def test_iter_chunks_second_backfill_chunk_from_real_start_date_is_valid() -> None:
+    """Regression for CR-01: with the real production start date
+    (2019-01-01, per `config/settings.yaml`), the *second* yielded chunk used
+    to be Apr 1 -> Jul 1, 2019 (91 days), which crashed `EntsoeQuery`
+    construction on the very first `make backfill` run."""
+    chunks = list(entsoe.iter_chunks(date(2019, 1, 1), date(2019, 12, 31)))
+
+    assert len(chunks) >= 2
+    second_start, second_end = chunks[1]
+    assert (second_end - second_start).days <= 90
+    # Every chunk must also be constructible as a real EntsoeQuery window.
+    for chunk_start, chunk_end in chunks:
+        assert (chunk_end - chunk_start) <= timedelta(days=90)
 
 
 # --------------------------------------------------------------------------
