@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: M1 ENTSO-E Ingestion
-status: completed
-stopped_at: Phase 3 (M2) planned — 6 plans ready to execute
-last_updated: "2026-07-22T17:23:43.000Z"
+current_phase: 03
+current_phase_name: m2-auxiliary-data
+status: executing
+stopped_at: Completed EPRA-03-01-PLAN.md
+last_updated: "2026-07-22T21:59:46.477Z"
 last_activity: 2026-07-22
-last_activity_desc: "Phase 3 (M2 Auxiliary Data) planned: 6 plans / 5 waves; research + validation committed"
+last_activity_desc: Phase EPRA-03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 14
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase 3 — M2 Auxiliary Data (planned: 6 plans / 5 waves, ready to execute)
+**Current focus:** Phase EPRA-03 — m2-auxiliary-data
 
 ## Current Position
 
-Phase: 2 (M1 ENTSO-E Ingestion) — COMPLETE
-Plan: 7 of 7
-Status: Verified on real data (ING-080..085 PASS); next is Phase 3 / M2
-Last activity: 2026-07-22 — live backfill + validate-ingest; validation report committed
+Phase: EPRA-03 (m2-auxiliary-data) — EXECUTING
+Plan: 2 of 6
+Status: Executing Phase EPRA-03
+Last activity: 2026-07-22 — Phase EPRA-03 execution started
 
-Progress: [██████████] 100%
+Progress: [██████░░░░] 64%
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Progress: [██████████] 100%
 | Phase EPRA-02 P05 | 30min | 3 tasks | 4 files |
 | Phase EPRA-02 P06 | 45min | 3 tasks | 4 files |
 | Phase EPRA-02 P07 | 35min | 2 tasks | 6 files |
+| Phase EPRA-03 P01 | 15min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,7 @@ Progress: [██████████] 100%
 - [Phase ?]: gate_ing_082 fails a year outside the SPEC-01 SS8 table entirely, not just out-of-range -- new years need an ADR-extended table
 - [Phase ?]: entsoe_prices_delu fixture hand-built directly in SPEC-01 §7 shape (no committed DE_LU-domain XML source yet) — accepted as threat T-02-15, low severity
 - [Phase ?]: Task 2 (live ENTSO-E backfill + validate-ingest) deferred to operator — no ENTSOE_API_TOKEN/live network in this execution; no data fabricated (A-2)
+- [Phase ?]: key_column promoted from implicit-only ts_utc anchor to a keyword-only parameter defaulting to ts_utc — additive, no add-alongside module (03-01)
 
 ### Pending Todos
 
@@ -101,7 +103,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-22T17:23:43.000Z
-Stopped at: Phase 3 (M2) planned — 6 plans ready to execute
-Resume file: .planning/phases/EPRA-03-m2-auxiliary-data/03-01-PLAN.md
+Last session: 2026-07-22T21:59:46.431Z
+Stopped at: Completed EPRA-03-01-PLAN.md
+Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
