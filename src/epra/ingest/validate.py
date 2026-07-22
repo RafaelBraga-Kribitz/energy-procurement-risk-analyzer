@@ -9,7 +9,8 @@ Gate summary (fail-fast per EN-061 — a failed gate raises, never warns):
 - ING-080 hour coverage per zone-year (≤ 24 missing; DST 23/25 check)
 - ING-081 price bounds −500..5000 EUR/MWh (out of range ⇒ investigate, not clip)
 - ING-082 annual mean plausibility table (per-year ranges; widening needs ADR)
-- ING-083 negative prices must exist in 2023/2024/2025 (else parser bug)
+- ING-083 negative prices must exist in each spec-required year the data covers
+  in full (else parser bug) — ADR-006
 - ING-084 load plausibility 3000-13000 MW hourly, 6000-9000 MW annual mean
 - ING-085 price↔load join coverage ≥ 99.5% per year
 - ING-094 GeoSphere coverage/range/seasonal means (M2, not yet implemented)
@@ -133,6 +134,9 @@ _ANNUAL_MEAN_RANGE_EUR_MWH: dict[int, tuple[float, float]] = {
     2025: (40, 140),
 }
 
+# SPEC-01 §8 years where negative day-ahead prices are expected. ING-083 asserts
+# only those that are *complete* in the ingested data (ADR-006), so the gate is
+# horizon-robust and extends automatically as 2024/2025 fill in.
 _NEGATIVE_PRICE_REQUIRED_YEARS = (2023, 2024, 2025)
 
 _LOAD_HOURLY_MIN_MW = 3000.0
@@ -150,6 +154,52 @@ def _last_sunday(year: int, month: int) -> date:
     return last_day - timedelta(days=offset)
 
 
+def _local_year(frame: pd.DataFrame) -> pd.Series:
+    """Vienna-local calendar year for each row (T-1, ADR-006).
+
+    The analytic domain is Europe/Vienna, so per-year gate checks must bucket by
+    the local year -- e.g. ``2019-01-01 00:00`` Vienna (stored as
+    ``2018-12-31 23:00 UTC``) belongs to local year 2019, not 2018.
+    """
+    return pd.Series(frame["ts_utc"].dt.tz_convert(VIENNA).dt.year)
+
+
+def _complete_local_years(*frames: pd.DataFrame) -> set[int]:
+    """Vienna-local years the ingested data fully spans (ADR-006).
+
+    A year ``Y`` is *complete* iff ``min_local <= Y-01-01 00:00`` and
+    ``max_local >= Y-12-31 23:00``. The leading local year at the window start
+    and the trailing local year at the data horizon may be partial by
+    construction; gates report those as ``scope="boundary"`` (informational) and
+    never fail on them, while still failing on real gaps in complete years (A-2).
+    Boundary hours are never trimmed -- that ``2018-12-31 23:00 UTC`` hour is a
+    real ``2019-01-01 00:00`` Vienna hour and stays in raw.
+    """
+    lo: pd.Timestamp | None = None
+    hi: pd.Timestamp | None = None
+    for frame in frames:
+        if frame is None or frame.empty:
+            continue
+        local = frame["ts_utc"].dt.tz_convert(VIENNA)
+        fmin, fmax = local.min(), local.max()
+        lo = fmin if lo is None else min(lo, fmin)
+        hi = fmax if hi is None else max(hi, fmax)
+    if lo is None or hi is None:
+        return set()
+    complete: set[int] = set()
+    # A 1-day grace absorbs the fixed UTC<->Vienna boundary offset (Jan-01 00:00
+    # Vienna is stored as Dec-31 23:00 UTC) and a single missing boundary hour --
+    # which ING-080's own 24-hour tolerance already forgives. It can never admit
+    # a genuinely partial boundary year: the window-start and data-horizon years
+    # are short by whole months, not hours.
+    for year in range(int(lo.year), int(hi.year) + 1):
+        starts_by = pd.Timestamp(year=year, month=1, day=2, tz=VIENNA)
+        ends_after = pd.Timestamp(year=year, month=12, day=31, tz=VIENNA)
+        if lo <= starts_by and hi >= ends_after:
+            complete.add(year)
+    return complete
+
+
 def gate_ing_080(hourly_by_zone: dict[str, pd.DataFrame]) -> GateResult:
     """ING-080: hour coverage per zone-year (≤24 missing) + DST 23/25 correctness check.
 
@@ -159,19 +209,24 @@ def gate_ing_080(hourly_by_zone: dict[str, pd.DataFrame]) -> GateResult:
             :func:`epra.ingest.entsoe.hourly_mean` — aggregating BEFORE this
             gate avoids false-missing-hours on PT15M-resolution raw data).
     """
+    complete = _complete_local_years(*hourly_by_zone.values())
     rows: list[dict[str, object]] = []
     all_ok = True
     for zone, frame in hourly_by_zone.items():
         if frame.empty:
             continue
         ts = frame["ts_utc"]
-        for year_val in sorted(ts.dt.year.unique()):
+        local_year = _local_year(frame)
+        for year_val in sorted(local_year.unique()):
             year = int(year_val)
-            year_ts = ts[ts.dt.year == year]
+            in_scope = year in complete
+            year_ts = ts[local_year == year]
             expected_hours = (366 if isleap(year) else 365) * 24
             actual_hours = int(year_ts.dt.floor("h").nunique())
             missing = expected_hours - actual_hours
-            coverage_ok = missing <= 24
+            # Boundary years (window start / data horizon) are partial by
+            # construction -- report, do not fail (ADR-006).
+            coverage_ok = (missing <= 24) if in_scope else True
             all_ok = all_ok and coverage_ok
             rows.append(
                 {
@@ -181,10 +236,13 @@ def gate_ing_080(hourly_by_zone: dict[str, pd.DataFrame]) -> GateResult:
                     "expected": expected_hours,
                     "actual": actual_hours,
                     "missing_hours": missing,
+                    "scope": "complete" if in_scope else "boundary",
                     "ok": coverage_ok,
                 }
             )
 
+            if not in_scope:
+                continue  # a partial boundary year may lack a DST transition day
             local_dates = year_ts.dt.tz_convert(VIENNA).dt.date
             for month, label in ((3, "dst_mar"), (10, "dst_oct")):
                 dst_date = _last_sunday(year, month)
@@ -202,6 +260,7 @@ def gate_ing_080(hourly_by_zone: dict[str, pd.DataFrame]) -> GateResult:
                         "expected": expected_local,
                         "actual": on_day,
                         "missing_hours": None,
+                        "scope": "complete",
                         "ok": dst_ok,
                     }
                 )
@@ -245,19 +304,24 @@ def gate_ing_082(prices_hourly: pd.DataFrame) -> GateResult:
     A year outside the documented table (not just outside its range) also
     fails — a new year needs the table extended via ADR, not silently skipped.
     """
+    complete = _complete_local_years(prices_hourly)
     rows: list[dict[str, object]] = []
     all_ok = True
-    for year_val, group in prices_hourly.groupby(prices_hourly["ts_utc"].dt.year):
+    for year_val, group in prices_hourly.groupby(_local_year(prices_hourly)):
         year = int(year_val)
+        in_scope = year in complete
         mean_price = float(group["price_eur_mwh"].mean())
         bounds = _ANNUAL_MEAN_RANGE_EUR_MWH.get(year)
-        ok = bounds is not None and bounds[0] <= mean_price <= bounds[1]
+        # Assert the plausibility table only for complete years; a partial
+        # boundary year's mean is not comparable to a full-year range (ADR-006).
+        ok = (bounds is not None and bounds[0] <= mean_price <= bounds[1]) if in_scope else True
         all_ok = all_ok and ok
         rows.append(
             {
                 "year": year,
                 "mean_price_eur_mwh": round(mean_price, 2),
                 "expected_range": bounds,
+                "scope": "complete" if in_scope else "boundary",
                 "ok": ok,
             }
         )
@@ -276,24 +340,41 @@ def gate_ing_082(prices_hourly: pd.DataFrame) -> GateResult:
 
 
 def gate_ing_083(prices_hourly: pd.DataFrame) -> GateResult:
-    """ING-083: at least one negative hourly AT price in each of 2023/2024/2025.
+    """ING-083: negative hourly AT prices must appear in each spec-required year
+    the data covers in full (ADR-006).
 
-    Zero negatives across all three years indicates a parser bug (fail).
+    Negative day-ahead prices are a real market feature; zero negatives in a
+    complete required year indicates a parser bug (fail). Only the
+    ``_NEGATIVE_PRICE_REQUIRED_YEARS`` that are *complete* in the ingested data
+    are asserted, so the gate is not brittle to the data horizon -- it extends to
+    2024/2025 automatically once those local years complete.
     """
+    complete = _complete_local_years(prices_hourly)
+    checkable = sorted(y for y in _NEGATIVE_PRICE_REQUIRED_YEARS if y in complete)
+    if not checkable:
+        return GateResult(
+            "ING-083",
+            True,
+            "no complete year among the negative-price-required years yet -- skipped",
+            None,
+        )
+    local_year = _local_year(prices_hourly)
     rows: list[dict[str, object]] = []
     all_ok = True
-    for year in _NEGATIVE_PRICE_REQUIRED_YEARS:
-        year_prices = prices_hourly.loc[prices_hourly["ts_utc"].dt.year == year, "price_eur_mwh"]
+    for year in checkable:
+        year_prices = prices_hourly.loc[local_year == year, "price_eur_mwh"]
         n_negative = int((year_prices < 0).sum())
         ok = n_negative > 0
         all_ok = all_ok and ok
         rows.append({"year": year, "n_negative": n_negative, "ok": ok})
 
     evidence = pd.DataFrame(rows)
+    yrs = "/".join(str(y) for y in checkable)
     summary = (
-        "at least one negative hourly AT price present in each of 2023/2024/2025"
+        f"at least one negative hourly AT price present in each complete required year ({yrs})"
         if all_ok
-        else "no negative price found in one or more of 2023/2024/2025 (likely parser bug)"
+        else f"no negative price found in one or more complete required year(s) ({yrs}) "
+        "-- likely parser bug"
     )
     return GateResult("ING-083", all_ok, summary, evidence)
 
@@ -306,10 +387,17 @@ def gate_ing_084(load_hourly: pd.DataFrame) -> GateResult:
     out_of_range = load_hourly.loc[(load < _LOAD_HOURLY_MIN_MW) | (load > _LOAD_HOURLY_MAX_MW)]
     hourly_ok = out_of_range.empty
 
-    year_key = load_hourly["ts_utc"].dt.year.rename("year")
+    # Annual mean is only comparable for complete years; a partial boundary
+    # year's mean is not asserted (ADR-006). The hourly-range check above still
+    # covers every row regardless of year.
+    complete = _complete_local_years(load_hourly)
+    year_key = _local_year(load_hourly).rename("year")
     annual = load_hourly.groupby(year_key)["load_mw"].mean()
-    annual_out_of_band = (annual < _LOAD_ANNUAL_MEAN_MIN_MW) | (annual > _LOAD_ANNUAL_MEAN_MAX_MW)
-    annual_bad = annual.loc[annual_out_of_band]
+    complete_annual = annual.loc[[y for y in annual.index if int(y) in complete]]
+    annual_out_of_band = (complete_annual < _LOAD_ANNUAL_MEAN_MIN_MW) | (
+        complete_annual > _LOAD_ANNUAL_MEAN_MAX_MW
+    )
+    annual_bad = complete_annual.loc[annual_out_of_band]
     annual_ok = annual_bad.empty
 
     ok = hourly_ok and annual_ok
@@ -340,15 +428,20 @@ def gate_ing_084(load_hourly: pd.DataFrame) -> GateResult:
 
 def gate_ing_085(prices_hourly: pd.DataFrame, load_hourly: pd.DataFrame) -> GateResult:
     """ING-085: every priced hour must have a load value -- join coverage >=99.5% per year."""
+    complete = _complete_local_years(prices_hourly, load_hourly)
+    price_local_year = _local_year(prices_hourly)
+    load_local_year = _local_year(load_hourly)
     rows: list[dict[str, object]] = []
     all_ok = True
-    for year_val, price_group in prices_hourly.groupby(prices_hourly["ts_utc"].dt.year):
+    for year_val, price_group in prices_hourly.groupby(price_local_year):
         year = int(year_val)
+        in_scope = year in complete
         price_hours = set(price_group["ts_utc"])
-        load_hours = set(load_hourly.loc[load_hourly["ts_utc"].dt.year == year, "ts_utc"])
+        load_hours = set(load_hourly.loc[load_local_year == year, "ts_utc"])
         matched = price_hours & load_hours
         coverage = (len(matched) / len(price_hours)) if price_hours else 0.0
-        ok = coverage >= _JOIN_COVERAGE_MIN
+        # Boundary years are informational (ADR-006).
+        ok = (coverage >= _JOIN_COVERAGE_MIN) if in_scope else True
         all_ok = all_ok and ok
         rows.append(
             {
@@ -356,6 +449,7 @@ def gate_ing_085(prices_hourly: pd.DataFrame, load_hourly: pd.DataFrame) -> Gate
                 "price_hours": len(price_hours),
                 "matched_hours": len(matched),
                 "coverage": round(coverage, 4),
+                "scope": "complete" if in_scope else "boundary",
                 "ok": ok,
             }
         )
