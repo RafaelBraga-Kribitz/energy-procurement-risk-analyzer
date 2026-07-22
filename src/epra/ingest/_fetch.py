@@ -27,6 +27,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlencode
+from uuid import uuid4
 
 import pandas as pd
 import requests
@@ -309,7 +310,10 @@ def fetch_entsoe(
     elapsed_ms = int((time.monotonic() - start_ns) * 1000)
 
     cache_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = cache_path.parent / (cache_path.name + ".tmp")
+    # Per-call-unique temp name (PID + short uuid4) so two processes racing
+    # to fetch the same cache key never share a `.tmp` path (WR-02) -- see
+    # the identical rationale in `_io.write_month`.
+    tmp_path = cache_path.parent / f"{cache_path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
     tmp_path.write_text(xml, encoding="utf-8")
     os.replace(tmp_path, cache_path)
 

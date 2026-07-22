@@ -21,6 +21,7 @@ from datetime import UTC, date, datetime
 from hashlib import sha256
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from uuid import uuid4
 
 import pandas as pd
 
@@ -173,7 +174,13 @@ def write_month(
 
     path = raw_month_path(dataset, month, settings)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = path.parent / (path.name + ".tmp")
+    # Per-call-unique temp name (PID + short uuid4) so two processes writing
+    # the same month file concurrently never share a `.tmp` path and clobber
+    # each other's partially-written temp file before either `os.replace`
+    # (WR-02) -- the fixed `<name>.tmp` scheme this replaces defeated the
+    # atomicity guarantee in exactly the concurrent-writer scenario it was
+    # meant to protect against.
+    tmp_path = path.parent / f"{path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
     out.to_parquet(tmp_path, index=False, engine="pyarrow")
     os.replace(tmp_path, path)
 

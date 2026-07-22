@@ -299,6 +299,36 @@ def test_fetch_entsoe_401_empty_body_never_leaks_token_via_str_exc_fallback(
     assert excinfo.value.__cause__ is None
 
 
+def test_fetch_entsoe_cache_tmp_path_is_per_call_unique(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WR-02 regression: two live fetches writing the same cache file must
+    never share a `.tmp` path -- see the identical rationale in
+    `test_io.test_write_month_tmp_path_is_per_call_unique`."""
+    calls: list[int] = []
+
+    def stub_transport(query: EntsoeQuery, api_key: str) -> str:
+        calls.append(1)
+        return f"<xml>{len(calls)}</xml>"
+
+    tmp_srcs: list[str] = []
+    real_replace = _fetch.os.replace
+
+    def _spy_replace(src: object, dst: object) -> None:
+        tmp_srcs.append(str(src))
+        real_replace(src, dst)
+
+    monkeypatch.setattr(_fetch.os, "replace", _spy_replace)
+
+    q = _old_window()
+    fetch_entsoe(q, tmp_settings, use_cache=False, transport=stub_transport)
+    fetch_entsoe(q, tmp_settings, use_cache=False, transport=stub_transport)
+
+    assert len(tmp_srcs) == 2
+    assert tmp_srcs[0] != tmp_srcs[1]
+    assert all(src.endswith(".tmp") for src in tmp_srcs)
+
+
 def test_fetch_entsoe_5xx_empty_body_exhausted_retries_never_leaks_token(
     tmp_settings: Settings,
 ) -> None:

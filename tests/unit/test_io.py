@@ -159,6 +159,36 @@ def test_write_month_replaces_via_tmp_file_and_os_replace(
     assert dst == str(path)
 
 
+def test_write_month_tmp_path_is_per_call_unique(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WR-02 regression: two concurrent writers targeting the same month file
+    must never share a `.tmp` path -- a shared fixed name defeats the
+    temp-file-then-`os.replace` atomicity guarantee if one process's
+    partially-written temp file is clobbered/renamed out from under the
+    other. Simulated here by capturing the `.tmp` source path from two
+    separate `write_month` calls for the same month and asserting they
+    differ."""
+    month = date(2021, 3, 1)
+    frame = _prices_frame(month)
+
+    tmp_srcs: list[str] = []
+    real_replace = _io.os.replace
+
+    def _spy_replace(src: object, dst: object) -> None:
+        tmp_srcs.append(str(src))
+        real_replace(src, dst)
+
+    monkeypatch.setattr(_io.os, "replace", _spy_replace)
+
+    _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
+    _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
+
+    assert len(tmp_srcs) == 2
+    assert tmp_srcs[0] != tmp_srcs[1]
+    assert all(src.endswith(".tmp") for src in tmp_srcs)
+
+
 # --------------------------------------------------------------- idempotency
 
 
