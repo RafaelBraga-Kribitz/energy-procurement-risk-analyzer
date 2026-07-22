@@ -83,7 +83,7 @@ None yet.
 - ~~ENTSO-E API token required for M1 backfill (human-owned)~~ — RESOLVED 2026-07-21: `ENTSOE_API_TOKEN` present in `.env`
 - INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
 - ~~test_config.py::test_entsoe_token_fails_fast_when_unset fails (.env token repopulated by load_dotenv)~~ — RESOLVED 2026-07-22: test now stubs load_dotenv to isolate from real .env (commit dc14314)
-- M1 live-data gate (ROADMAP Phase 2 criteria 1 and 3) pending operator: run `make backfill && make validate-ingest` with real ENTSOE_API_TOKEN per docs/BUILD_LOG.md M1 entry — see `## Deferred Verification` below
+- M1 live backfill RUN 2026-07-22 (real ENTSO-E, token in .env): found + fixed two data-loss bugs (100-doc response cap → pagination; chunk-boundary month overwrite → accumulate-then-write). Complete years 2019–2023 now full (~8760 h) and pass ING-080/082; ING-081/084/085 PASS. Remaining gate reds are boundary/horizon only (2018-12 UTC sliver, 2024 partial, ING-083 expects 2025) — operator spec-alignment call, NOT data loss. See docs/BUILD_LOG.md 2026-07-22 entry.
 
 ## Deferred Verification
 

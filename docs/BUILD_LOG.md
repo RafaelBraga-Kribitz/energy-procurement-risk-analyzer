@@ -170,3 +170,47 @@ can start.
 
 **Open questions:** none on the automated side. The single open item is the
 operator-owned live backfill + validate-ingest run above.
+
+---
+
+## 2026-07-22 — M1 live backfill run: two data-loss bugs found and fixed
+
+The live backfill (2019→latest) was run against the real ENTSO-E Transparency
+Platform with the operator token in `.env`. It surfaced two bugs that every
+single-document offline fixture had masked:
+
+1. **ENTSO-E 100-document response cap (silent truncation).** ING-030's ≤90-day
+   window is necessary but not sufficient: ENTSO-E caps a response at 100 market
+   documents, and AT/DE-LU day-ahead prices come back as ~2 TimeSeries per
+   delivery day, so a 90-day request returned only its first ~50 days. Every
+   year held ~4,880/8,760 price hours (~44% missing). Fixed: `ingest_dataset`
+   now pages each chunk, resuming from the day after the last covered day until
+   the window is filled (`fix(EPRA-02)` pagination commit).
+2. **Chunk-boundary month overwrite.** Adjacent Vienna-aligned chunks overlap by
+   the UTC-boundary hour (a "January" Vienna chunk starts Dec 31 23:00 UTC), so
+   writing per-chunk let a later chunk's 1-hour sliver overwrite a prior chunk's
+   full month — interior months collapsed to ~2 hours. Fixed: accumulate all of
+   a dataset's frames, de-duplicate, and write each UTC month once.
+
+Regression test added simulating the 100-document cap. `make lint && make test`
+green (178 tests, ~96% coverage).
+
+**Gate evidence after the fix (real 2019→2024-01 data):** complete years
+2019–2023 hold full ~8,760 hourly prices (2020 leap = 8,784) and pass ING-080
+coverage and ING-082 plausibility. ING-081/084/085 PASS.
+
+**Remaining gate reds are boundary/horizon artifacts, not data loss (operator
+decision, do not widen bands per A-2):**
+- ING-080 fails only for **2018** (a 1-hour Dec-2018 UTC-boundary sliver created
+  because backfill starts at 2019-01-01 Vienna = 2018-12-31 23:00 UTC) and
+  **2024** (partial — the real ENTSO-E data horizon is ~Jan 2024).
+- ING-082 fails only for the **2018** sliver (no plausibility-table entry).
+- ING-083 expects negative prices in 2023/2024/2025; **2025** has no data
+  (horizon), so it fails.
+
+**Open questions for the operator:** (a) whether to trim the leading Dec-2018
+UTC-boundary sliver (or have gates skip incomplete boundary months); (b) align
+ING-082's plausibility table and ING-083's expected-year set with the actual
+ENTSO-E data horizon (~2024-01), or confirm the intended `window.start_date`/
+latest-month once data past 2024 exists. These are spec-alignment calls, not
+pipeline defects.
