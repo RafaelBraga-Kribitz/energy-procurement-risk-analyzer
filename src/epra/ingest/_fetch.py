@@ -138,13 +138,18 @@ def _error_detail(exc: BaseException) -> str:
 
     The token only ever appears in the outgoing request's query string, not
     in ENTSO-E's response body, so truncating the response text here cannot
-    leak it.
+    leak it. When there is no response body (e.g. a gateway/WAF 401/403 with
+    an empty body), we must NOT fall back to `str(exc)`: for a
+    `requests.HTTPError` raised via `response.raise_for_status()`, that
+    string embeds the full request URL -- including the real
+    `securityToken` -- which would leak the token into an
+    `IngestAuthError`/`IngestTransportError` message (A-7/ING-008).
     """
     response = getattr(exc, "response", None)
     text = getattr(response, "text", None)
     if text:
         return str(text)[:500]
-    return str(exc)[:500]
+    return f"{type(exc).__name__}: no response body available"
 
 
 def _invoke_transport_once(transport: TransportFn, query: EntsoeQuery, api_key: str) -> str:
@@ -159,9 +164,14 @@ def _invoke_transport_once(transport: TransportFn, query: EntsoeQuery, api_key: 
     except Exception as exc:
         status = _http_status(exc)
         if status in _AUTH_STATUS:
-            raise IngestAuthError("entsoe", f"HTTP {status}: {_error_detail(exc)}") from exc
+            # `from None` deliberately severs the exception chain (A-7): the
+            # original `requests.HTTPError`'s own `str()` can embed the real
+            # token-bearing request URL, and preserving it as `__cause__`
+            # would let a future traceback dump (logger.exception, a bare
+            # script, pytest failure output) reprint it.
+            raise IngestAuthError("entsoe", f"HTTP {status}: {_error_detail(exc)}") from None
         if status == 400:
-            raise IngestTransportError("entsoe", _error_detail(exc), status_code=400) from exc
+            raise IngestTransportError("entsoe", _error_detail(exc), status_code=400) from None
         raise
 
 
@@ -290,9 +300,12 @@ def fetch_entsoe(
     except (IngestAuthError, IngestTransportError):
         raise
     except Exception as exc:  # tenacity exhausted retries on 429/5xx/connection error
+        # `from None` severs the exception chain (A-7) -- see the comment in
+        # `_invoke_transport_once` for why preserving `__cause__` here could
+        # leak the real token via a future traceback dump.
         raise IngestTransportError(
             "entsoe", _error_detail(exc), status_code=_http_status(exc)
-        ) from exc
+        ) from None
     elapsed_ms = int((time.monotonic() - start_ns) * 1000)
 
     cache_path.parent.mkdir(parents=True, exist_ok=True)

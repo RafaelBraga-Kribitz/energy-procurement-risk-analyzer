@@ -273,6 +273,53 @@ def test_fetch_entsoe_403_raises_auth_error_without_retry(tmp_settings: Settings
     assert attempts["n"] == 1
 
 
+def test_fetch_entsoe_401_empty_body_never_leaks_token_via_str_exc_fallback(
+    tmp_settings: Settings,
+) -> None:
+    """CR-02 regression: when the HTTP error response has an empty body,
+    `_error_detail` must not fall back to `str(exc)` -- for a
+    `requests.HTTPError` built via `raise_for_status()`, that string embeds
+    the real request URL (and thus the real `securityToken`, A-7/ING-008).
+    """
+
+    def stub_transport(query: EntsoeQuery, api_key: str) -> str:
+        response = Mock(status_code=401, text="", url=f"https://x/?securityToken={FAKE_TOKEN}")
+        raise requests.exceptions.HTTPError(
+            f"401 Client Error: for url: https://x/?securityToken={FAKE_TOKEN}",
+            response=response,
+        )
+
+    with pytest.raises(IngestAuthError) as excinfo:
+        fetch_entsoe(_old_window(), tmp_settings, transport=stub_transport)
+
+    assert FAKE_TOKEN not in str(excinfo.value)
+    # Exception chain must also be severed (`from None`) so a future
+    # traceback dump of `__cause__`/`__context__` can't reprint the token
+    # via the original `requests.HTTPError`'s own token-bearing `str()`.
+    assert excinfo.value.__cause__ is None
+
+
+def test_fetch_entsoe_5xx_empty_body_exhausted_retries_never_leaks_token(
+    tmp_settings: Settings,
+) -> None:
+    """Same CR-02 regression, via the retry-exhausted fallback path in
+    `fetch_entsoe` (429/5xx/connection errors, not the 400/401/403 fast
+    path)."""
+
+    def stub_transport(query: EntsoeQuery, api_key: str) -> str:
+        response = Mock(status_code=503, text="", url=f"https://x/?securityToken={FAKE_TOKEN}")
+        raise requests.exceptions.HTTPError(
+            f"503 Server Error: for url: https://x/?securityToken={FAKE_TOKEN}",
+            response=response,
+        )
+
+    with pytest.raises(IngestTransportError) as excinfo:
+        fetch_entsoe(_old_window(), tmp_settings, transport=stub_transport)
+
+    assert FAKE_TOKEN not in str(excinfo.value)
+    assert excinfo.value.__cause__ is None
+
+
 def test_fetch_entsoe_400_raises_transport_error_without_retry(tmp_settings: Settings) -> None:
     attempts = {"n": 0}
 
