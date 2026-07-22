@@ -111,7 +111,16 @@ def _now_utc() -> datetime:
     return datetime.now(UTC)
 
 
-def _validate_ts_utc(frame: pd.DataFrame, dataset: str, month: date) -> None:
+def _month_bounds(month: date) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """UTC-naive-safe ``[month_start, month_end)`` bounds shared by both
+    validation paths (ts_utc and date-keyed) so the calendar-month contract
+    is computed in exactly one place (WR-03)."""
+    month_start = pd.Timestamp(year=month.year, month=month.month, day=1, tz="UTC")
+    month_end = month_start + pd.offsets.MonthBegin(1)  # exclusive upper bound
+    return month_start, month_end
+
+
+def _validate_ts_utc_key(frame: pd.DataFrame, dataset: str, month: date) -> None:
     """Enforce ING-005 (UTC, tz-aware) and the write-boundary month contract.
 
     Raises:
@@ -140,11 +149,44 @@ def _validate_ts_utc(frame: pd.DataFrame, dataset: str, month: date) -> None:
     if str(tz) != "UTC":
         raise ValueError(f"write_month({dataset}): ts_utc must be UTC, got tz={tz}")
 
-    month_start = pd.Timestamp(year=month.year, month=month.month, day=1, tz="UTC")
-    month_end = month_start + pd.offsets.MonthBegin(1)  # exclusive upper bound
+    month_start, month_end = _month_bounds(month)
     out_of_month = ts[(ts < month_start) | (ts >= month_end)]
     if not out_of_month.empty:
         offenders = [str(t) for t in out_of_month.tolist()]
+        raise ValueError(
+            f"write_month({dataset}): {len(offenders)} row(s) fall outside target month "
+            f"{month:%Y-%m}: {offenders[:10]}"
+        )
+
+
+def _validate_date_key(frame: pd.DataFrame, dataset: str, month: date, key_column: str) -> None:
+    """Enforce the write-boundary month contract for a plain (tz-naive)
+    date-grain key column — e.g. GeoSphere's ``date`` (SPEC-01 §7).
+
+    Unlike ``_validate_ts_utc_key`` this applies NO timezone assertion: a
+    calendar ``date`` is tz-naive by design, not a defect.
+
+    Raises:
+        ContractError: ``key_column`` missing entirely — a schema violation,
+            not a value problem.
+        ValueError: any row's key value falls outside ``month`` (calendar-
+            month bounds, per the monthly file layout).
+    """
+    if key_column not in frame.columns:
+        raise ContractError(
+            dataset,
+            expected=f"column {key_column!r}",
+            actual=f"columns={list(frame.columns)}",
+        )
+    key = pd.to_datetime(frame[key_column])
+    # Compare tz-naive: strip the UTC tz from the shared bounds since a
+    # `date`-grain key carries no tzinfo of its own (no UTC assertion here).
+    month_start, month_end = _month_bounds(month)
+    month_start = month_start.tz_localize(None)
+    month_end = month_end.tz_localize(None)
+    out_of_month = key[(key < month_start) | (key >= month_end)]
+    if not out_of_month.empty:
+        offenders = [str(v) for v in out_of_month.tolist()]
         raise ValueError(
             f"write_month({dataset}): {len(offenders)} row(s) fall outside target month "
             f"{month:%Y-%m}: {offenders[:10]}"
@@ -157,6 +199,8 @@ def write_month(
     month: date,
     request_hash: str,
     settings: Settings,
+    *,
+    key_column: str = "ts_utc",
 ) -> Path:
     """Persist one calendar-month slice of raw ``dataset`` rows, atomically.
 
@@ -168,6 +212,16 @@ def write_month(
     the frame's own columns unchanged, then the three ING-004 columns — the
     layout `tests/test_raw_contracts.py` asserts against).
 
+    ``key_column`` selects which write-key grain to validate against
+    ``month``'s calendar bounds. It defaults to ``"ts_utc"``, which preserves
+    ING-005's tz-aware-UTC contract byte-for-byte for every existing
+    ENTSO-E caller. Passing ``key_column="date"`` (or any other non-
+    ``"ts_utc"`` column name) switches to a plain, tz-naive date-grain
+    validation path with no UTC assertion — for date-keyed datasets such as
+    GeoSphere daily temperature (SPEC-01 §7) that have no ``ts_utc`` column
+    at all. Both paths share the same atomic write, ING-004 provenance
+    columns, and ING-070 column-order guarantee below.
+
     ``source`` is derived from ``dataset``'s prefix before the first
     underscore (``entsoe_prices_at`` -> ``entsoe``, ``geosphere_graz_daily``
     -> ``geosphere``) so callers never pass a fourth provenance argument
@@ -176,11 +230,15 @@ def write_month(
     Does NOT deduplicate rows or convert units — raw means raw (ING-004).
 
     Raises:
-        ContractError: ``ts_utc`` column missing.
-        ValueError: ``ts_utc`` naive/non-UTC, a row falls outside ``month``,
-            or ``dataset`` is not a safe filesystem identifier (T-02-03).
+        ContractError: ``key_column`` missing.
+        ValueError: (``ts_utc`` path only) naive/non-UTC key, a row falls
+            outside ``month``, or ``dataset`` is not a safe filesystem
+            identifier (T-02-03).
     """
-    _validate_ts_utc(frame, dataset, month)
+    if key_column == "ts_utc":
+        _validate_ts_utc_key(frame, dataset, month)
+    else:
+        _validate_date_key(frame, dataset, month, key_column)
 
     out = frame.copy()
     out["ingested_at_utc"] = _now_utc().isoformat()
