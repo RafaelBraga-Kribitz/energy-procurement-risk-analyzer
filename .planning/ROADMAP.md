@@ -69,11 +69,25 @@ Plans:
 **Plans**: 6 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 03-01-PLAN.md — Extend _io.write_month with additive key_column (date-grain writes for GeoSphere)
 - [ ] 03-02-PLAN.md — Calendar hourly spine (ING-110/111): Styrian holidays, DST, timeutil peak flags
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 03-03-PLAN.md — GeoSphere station discovery (ING-091) + ADR-007, live-first/fixture-fallback
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 03-04-PLAN.md — GeoSphere ingest + ING-094 gate + §7 raw-contract row (date-keyed)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 03-05-PLAN.md — ÖSPI loader + ING-103 gates + ADR-008 + synthetic CSV (ships without real data)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 03-06-PLAN.md — M2 assembly: validate-ingest full suite + real ÖSPI/GeoSphere human checkpoint
 
 ### Phase 4: M3 dbt Warehouse
