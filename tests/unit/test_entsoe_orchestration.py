@@ -233,9 +233,16 @@ def test_ingest_dataset_logs_a03_fill_count(
     tmp_settings: Settings, entsoe_fixtures_dir: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
     xml = _read(entsoe_fixtures_dir, "prices_a03_forward_fill.xml")
+    ack = _read(entsoe_fixtures_dir, "acknowledgement.xml")
+
+    # The fixture covers less than the requested window, so ingest_dataset's
+    # 100-document pagination will request the remainder; return a no-data
+    # Acknowledgement for that follow-up so fills are counted exactly once.
+    calls = {"n": 0}
 
     def stub_transport(query: EntsoeQuery, api_key: str) -> str:
-        return xml
+        calls["n"] += 1
+        return xml if calls["n"] == 1 else ack
 
     caplog.set_level(logging.INFO, logger="epra.ingest.entsoe")
 
@@ -248,6 +255,75 @@ def test_ingest_dataset_logs_a03_fill_count(
     )
 
     assert any("a03_fills=2" in r.getMessage() for r in caplog.records)
+
+
+def _synth_prices_xml(start_utc: pd.Timestamp, n_days: int) -> str:
+    """Minimal valid A44 publication doc: one PT60M Period of `n_days` days."""
+    n_points = n_days * 24
+    s = start_utc.strftime("%Y-%m-%dT%H:%MZ")
+    e = (start_utc + pd.Timedelta(days=n_days)).strftime("%Y-%m-%dT%H:%MZ")
+    points = "".join(
+        f"<Point><position>{p}</position><price.amount>{40.0 + (p % 24)}</price.amount></Point>"
+        for p in range(1, n_points + 1)
+    )
+    return (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        "<Publication_MarketDocument "
+        'xmlns="urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:3">'
+        "<mRID>synth</mRID><type>A44</type>"
+        f"<period.timeInterval><start>{s}</start><end>{e}</end></period.timeInterval>"
+        "<TimeSeries><mRID>1</mRID><businessType>A62</businessType>"
+        '<in_Domain.mRID codingScheme="A01">10YAT-APG------L</in_Domain.mRID>'
+        '<out_Domain.mRID codingScheme="A01">10YAT-APG------L</out_Domain.mRID>'
+        "<currency_Unit.name>EUR</currency_Unit.name>"
+        "<price_Measure_Unit.name>MWH</price_Measure_Unit.name><curveType>A01</curveType>"
+        f"<Period><timeInterval><start>{s}</start><end>{e}</end></timeInterval>"
+        f"<resolution>PT60M</resolution>{points}</Period></TimeSeries></Publication_MarketDocument>"
+    )
+
+
+def test_ingest_dataset_pages_past_100_document_cap(
+    tmp_settings: Settings, entsoe_fixtures_dir: Path
+) -> None:
+    """A truncating transport (ENTSO-E's 100-doc cap) must not drop months.
+
+    Regression: a wide window was silently truncated to its first ~50 days, and
+    a later chunk's UTC-boundary sliver overwrote an earlier chunk's full month,
+    leaving interior months (e.g. February) with ~0 hours on real backfills.
+    """
+    ack = _read(entsoe_fixtures_dir, "acknowledgement.xml")
+    cap_days = 20  # each response covers at most 20 days, like the real cap
+
+    def capped_transport(query: EntsoeQuery, api_key: str) -> str:
+        start = pd.Timestamp(query.period_start)
+        end = pd.Timestamp(query.period_end)
+        remaining = int((end - start) / pd.Timedelta(days=1))
+        n = min(cap_days, remaining)
+        if n <= 0:
+            return ack
+        return _synth_prices_xml(start, n)
+
+    # Two-month window -> one 59-day chunk -> must page ~3x to cover it.
+    entsoe.ingest_dataset(
+        tmp_settings,
+        "entsoe_prices_at",
+        pd.Timestamp("2024-01-01").date(),
+        pd.Timestamp("2024-03-01").date(),
+        capped_transport,
+    )
+
+    feb = (
+        tmp_settings.paths.data_raw
+        / "entsoe_prices_at"
+        / "2024"
+        / "entsoe_prices_at_2024-02.parquet"
+    )
+    assert feb.exists(), "interior month February was dropped by truncation"
+    df = pd.read_parquet(feb)
+    df["ts_utc"] = pd.to_datetime(df["ts_utc"], utc=True)
+    # 2024-02 is fully interior to the window; expect ~a full month of hours,
+    # not a boundary sliver (the old bug left ~1-2 hours here).
+    assert df["ts_utc"].dt.floor("h").nunique() >= 600
 
 
 def test_ingest_dataset_contract_error_leaves_no_partial_file(

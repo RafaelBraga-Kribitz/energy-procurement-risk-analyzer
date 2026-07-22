@@ -51,7 +51,14 @@ import pandas as pd
 
 from epra.common import logging as common_logging
 from epra.common.config import Settings, load_settings
-from epra.common.timeutil import VIENNA, iter_month_starts, month_start, next_month, to_utc
+from epra.common.timeutil import (
+    VIENNA,
+    iter_month_starts,
+    month_start,
+    next_month,
+    to_local,
+    to_utc,
+)
 from epra.ingest._fetch import (
     DocumentType,
     EntsoeQuery,
@@ -548,42 +555,85 @@ def ingest_dataset(
     spec = _DATASET_SPECS[dataset_key]
     zone_cfg = settings.zones[spec.zone_key]
 
+    # One provenance hash identifies the whole [start, end] ingest for this
+    # dataset (ING-004). request_hash() strips the securityToken value, so the
+    # placeholder here yields the same hash fetch_entsoe derives from the real
+    # token -- no second token read.
+    req_hash = request_hash(
+        _cache_request_url(
+            EntsoeQuery(
+                document_type=spec.document_type,
+                domain=zone_cfg.eic,
+                period_start=to_utc(datetime(start.year, start.month, start.day, tzinfo=VIENNA)),
+                period_end=to_utc(datetime(end.year, end.month, end.day, tzinfo=VIENNA)),
+            ),
+            "x",
+        )
+    )
+
+    dataset_frames: list[pd.DataFrame] = []
+    total_fills = 0
     for chunk_start, chunk_end in iter_chunks(start, end):
-        period_start = to_utc(
-            datetime(chunk_start.year, chunk_start.month, chunk_start.day, tzinfo=VIENNA)
+        chunk_period_end = to_utc(
+            datetime(chunk_end.year, chunk_end.month, chunk_end.day, tzinfo=VIENNA)
         )
-        period_end = to_utc(datetime(chunk_end.year, chunk_end.month, chunk_end.day, tzinfo=VIENNA))
-        query = EntsoeQuery(
-            document_type=spec.document_type,
-            domain=zone_cfg.eic,
-            period_start=period_start,
-            period_end=period_end,
-        )
-        # request_hash() strips the securityToken value regardless of what's
-        # passed, so a placeholder here yields the identical hash fetch_entsoe
-        # computes internally from the real token -- no second token read.
-        req_hash = request_hash(_cache_request_url(query, "x"))
-
-        try:
-            xml = fetch_entsoe(query, settings, use_cache=use_cache, transport=transport)
-            frame = _parse_document(spec.document_type, xml)
-        except NoDataError as exc:
-            logger.info(
-                "dataset=%s window=%s..%s no data: %s", dataset_key, chunk_start, chunk_end, exc
+        # ENTSO-E caps a single response at 100 market documents, so ING-030's
+        # <=90-day window is necessary but NOT sufficient: day-ahead prices
+        # return ~2 TimeSeries per delivery day and generation one per
+        # production type, so a wide window comes back silently truncated to
+        # its first ~100 documents (dropping the rest of the chunk). Page
+        # through the chunk: after each response, resume from the day AFTER the
+        # last covered local day until the window is filled or the response
+        # stops advancing (ING-001, ING-030).
+        cursor = chunk_start
+        while cursor < chunk_end:
+            query = EntsoeQuery(
+                document_type=spec.document_type,
+                domain=zone_cfg.eic,
+                period_start=to_utc(datetime(cursor.year, cursor.month, cursor.day, tzinfo=VIENNA)),
+                period_end=chunk_period_end,
             )
-            continue
-
-        fills = frame.attrs.get("a03_fills", 0)
-        if fills:
+            try:
+                xml = fetch_entsoe(query, settings, use_cache=use_cache, transport=transport)
+                frame = _parse_document(spec.document_type, xml)
+            except NoDataError as exc:
+                logger.info(
+                    "dataset=%s window=%s..%s no data: %s", dataset_key, cursor, chunk_end, exc
+                )
+                break
+            if frame.empty:
+                break
+            dataset_frames.append(frame)
+            total_fills += int(frame.attrs.get("a03_fills", 0))
+            last_covered = to_local(frame["ts_utc"].max()).date()
+            next_cursor = last_covered + timedelta(days=1)
+            # Stop when the response reached the window end (full coverage -- the
+            # common single-request case) or failed to advance (guards against an
+            # infinite loop on a fixed/non-progressing response).
+            if next_cursor >= chunk_end or next_cursor <= cursor:
+                break
             logger.info(
-                "dataset=%s window=%s..%s a03_fills=%d",
+                "dataset=%s window=%s..%s truncated at %s -- paging remainder",
                 dataset_key,
                 chunk_start,
                 chunk_end,
-                fills,
+                last_covered,
             )
+            cursor = next_cursor
 
-        _write_by_month(frame, dataset_key, req_hash, settings)
+    if not dataset_frames:
+        return
+    # Write each UTC month exactly once from the concatenated, de-duplicated
+    # frame. Accumulating across ALL chunks before writing is what makes the
+    # month files correct: adjacent Vienna-aligned chunks overlap by the
+    # UTC-boundary hour (a "January" Vienna chunk starts at Dec 31 23:00 UTC),
+    # so writing per-chunk let a later chunk's one-hour sliver overwrite a
+    # prior chunk's full month (ING-003). Merging first unions the boundary
+    # hour into its complete month.
+    combined = pd.concat(dataset_frames, ignore_index=True).drop_duplicates(ignore_index=True)
+    if total_fills:
+        logger.info("dataset=%s window=%s..%s a03_fills=%d", dataset_key, start, end, total_fills)
+    _write_by_month(combined, dataset_key, req_hash, settings)
 
 
 def backfill(
