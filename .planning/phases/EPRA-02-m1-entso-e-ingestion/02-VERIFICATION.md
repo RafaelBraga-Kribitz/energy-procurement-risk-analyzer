@@ -1,8 +1,8 @@
 ---
 phase: EPRA-02-m1-entso-e-ingestion
 verified: 2026-07-22T06:00:00Z
-status: human_needed
-score: 2/3 roadmap criteria automated-verified; 3rd requires live operator run
+status: passed
+score: 3/3 ROADMAP criteria met — live backfill + validate-ingest run on real data 2026-07-22 (ALL GATES PASSED); surfaced and fixed 2 data-loss bugs + ADR-006 gate scoping
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:

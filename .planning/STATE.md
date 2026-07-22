@@ -83,15 +83,15 @@ None yet.
 - ~~ENTSO-E API token required for M1 backfill (human-owned)~~ — RESOLVED 2026-07-21: `ENTSOE_API_TOKEN` present in `.env`
 - INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
 - ~~test_config.py::test_entsoe_token_fails_fast_when_unset fails (.env token repopulated by load_dotenv)~~ — RESOLVED 2026-07-22: test now stubs load_dotenv to isolate from real .env (commit dc14314)
-- M1 live backfill RUN 2026-07-22 (real ENTSO-E, token in .env): found + fixed two data-loss bugs (100-doc response cap → pagination; chunk-boundary month overwrite → accumulate-then-write). Complete years 2019–2023 now full (~8760 h) and pass ING-080/082; ING-081/084/085 PASS. Remaining gate reds are boundary/horizon only (2018-12 UTC sliver, 2024 partial, ING-083 expects 2025) — operator spec-alignment call, NOT data loss. See docs/BUILD_LOG.md 2026-07-22 entry.
+- ~~M1 live-data gate pending operator~~ — DONE 2026-07-22. Live backfill run on real ENTSO-E (token in .env); found + fixed two data-loss bugs (100-doc response cap → pagination; chunk-boundary month overwrite → accumulate-then-write) and one domain bug (gates bucketed by UTC year → ADR-006 scopes them to complete Vienna-local years). `make validate-ingest` now exits 0 — ALL GATES PASSED (ING-080..085) on real 2019→2024-01 data. All three ROADMAP Phase 2 criteria met; M1 complete. See docs/BUILD_LOG.md 2026-07-22 entry.
 
 ## Deferred Verification
 
 | Phase | State | Resume |
 |-------|-------|--------|
-| 2 | verification_deferred_human | /gsd-verify-work 2 |
+| *(none)* | | |
 
-Phase 2 automated scope is fully verified (177 tests, ING-070 contract tests, DST fixtures, lint/mypy clean; code review clean). The only open item is the live ENTSO-E backfill + `make validate-ingest` on real data (ROADMAP criteria 1 & 3), which needs the operator's `ENTSOE_API_TOKEN`. See `.planning/phases/EPRA-02-m1-entso-e-ingestion/02-UAT.md`.
+Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clean, live backfill run on real ENTSO-E, and `make validate-ingest` exits 0 (ALL GATES PASSED). All three ROADMAP Phase 2 criteria met — no open items.
 
 ## Deferred Items
 

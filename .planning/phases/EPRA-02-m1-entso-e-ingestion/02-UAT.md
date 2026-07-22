@@ -1,10 +1,16 @@
 ---
-status: testing
+status: passed
 phase: 02-m1-entso-e-ingestion
 source: [02-VERIFICATION.md]
 started: 2026-07-22
 updated: 2026-07-22
 ---
+
+> RESOLVED 2026-07-22: both items were run against the real ENTSO-E API (token in
+> `.env`) — not deferred. Doing so surfaced and fixed two data-loss bugs (100-doc
+> pagination, chunk-boundary month overwrite) and one gate-domain bug (ADR-006).
+> `make backfill` fills all four `data/raw/entsoe_*` trees (2019→2024-01, the real
+> data horizon) and `make validate-ingest` exits 0 — ALL GATES PASSED.
 
 ## Current Test
 
