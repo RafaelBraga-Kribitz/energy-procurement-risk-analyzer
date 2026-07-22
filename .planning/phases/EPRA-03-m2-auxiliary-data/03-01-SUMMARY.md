@@ -170,3 +170,12 @@ None - no external service configuration required.
 ---
 *Phase: EPRA-03-m2-auxiliary-data*
 *Completed: 2026-07-22*
+
+## Self-Check: PASSED
+
+- FOUND: src/epra/ingest/_io.py
+- FOUND: tests/unit/test_io.py
+- FOUND: .planning/phases/EPRA-03-m2-auxiliary-data/03-01-SUMMARY.md
+- FOUND: 58c69ca (test commit)
+- FOUND: 1d7f1f5 (feat commit)
+- FOUND: 728e2de (docs/SUMMARY commit)
