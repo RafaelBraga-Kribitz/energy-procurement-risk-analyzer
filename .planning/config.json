@@ -18,7 +18,7 @@
     "plan_check": true,
     "verifier": true,
     "auto_advance": true,
-    "use_worktrees": true,
+    "use_worktrees": false,
     "skip_discuss": false,
     "research_before_questions": true,
     "_auto_chain_active": false
