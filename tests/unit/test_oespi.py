@@ -19,7 +19,9 @@ from epra.ingest.oespi import load_oespi
 
 SETTINGS = load_settings()
 
-_FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "oespi" / "synthetic_oespi_monthly.csv"
+_FIXTURE = (
+    Path(__file__).resolve().parents[1] / "fixtures" / "oespi" / "synthetic_oespi_monthly.csv"
+)
 
 
 def _write_csv(tmp_path: Path, content: str) -> Path:
