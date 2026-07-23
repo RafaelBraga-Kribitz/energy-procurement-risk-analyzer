@@ -17,7 +17,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase (Charte
 ### Pipeline Capabilities
 
 - [x] **REQ-ENG-01**: Fresh clone runs `make setup && make lint && make test` green locally and in CI; Makefile skeleton, ruff/pre-commit, pytest smoke, pinned deps per SPEC-07 (M0)
-- [ ] **REQ-ING-01**: ENTSO-E (AT + DE-LU prices, AT load, AT generation), GeoSphere temperature, ÖSPI manual CSV (double-entry), and calendar/holidays ingested with validation gates green for 2019→latest (SPEC-01, M1+M2)
+- [x] **REQ-ING-01**: ENTSO-E (AT + DE-LU prices, AT load, AT generation), GeoSphere temperature, ÖSPI manual CSV (double-entry), and calendar/holidays ingested with validation gates green for 2019→latest (SPEC-01, M1+M2)
 - [ ] **REQ-DWH-01**: `dbt build` green on real data and CI fixtures; mart schemas byte-match SPEC-02 §5 contract YAML (M3)
 - [ ] **REQ-LP-01**: Deterministic consumer load profile with golden test; annual sum = 50,000.00 MWh ± 0.01 per local year; `consumer_peak_share` in SSOT inputs (SPEC-03, M4)
 - [ ] **REQ-ANA-01**: Analytics modules A1–A4 complete with SPEC-04 §7 exit gates including crisis-regime sanity gate AN-304 (M5)

@@ -10,7 +10,7 @@ Deliver a reproducible batch pipeline from real Austrian market data through dbt
 
 - [x] **Phase 1: M0 Bootstrap** — Repo layout, tooling, CI, smoke tests (shipped)
 - [ ] **Phase 2: M1 ENTSO-E Ingestion** — Prices, load, generation with validation
-- [ ] **Phase 3: M2 Auxiliary Data** — GeoSphere, ÖSPI, calendar
+- [x] **Phase 3: M2 Auxiliary Data** — GeoSphere, ÖSPI, calendar (completed 2026-07-23)
 - [ ] **Phase 4: M3 dbt Warehouse** — Staging + marts on DuckDB
 - [ ] **Phase 5: M4 Consumer Profile** — Deterministic StyriaMetal load
 - [ ] **Phase 6: M5 Analytics** — Market structure analytics A1–A4
@@ -165,7 +165,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 |-------|----------------|--------|-----------|
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
 | 2. M1 ENTSO-E | 7/7 | In Progress|  |
-| 3. M2 Auxiliary | 6/6 | In Progress|  |
+| 3. M2 Auxiliary | 6/6 | Complete    | 2026-07-23 |
 | 4. M3 dbt | 0/TBD | Not started | - |
 | 5. M4 Profile | 0/TBD | Not started | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |
