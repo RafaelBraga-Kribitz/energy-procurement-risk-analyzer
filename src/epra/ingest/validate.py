@@ -17,12 +17,22 @@ Gate summary (fail-fast per EN-061 — a failed gate raises, never warns):
 - ING-103 ÖSPI continuity, positivity, crisis visibility (2022≥3×2019), MoM ≤60%
   (ING-101 double-entry reconciliation lives in ``scripts/oespi_reconcile.py``,
   not run through this framework — its own CLI + exit code is the gate)
+- ING-111 calendar spine — 2024 Styrian holiday count/fixed holidays, Mon/Sun
+  peak-hour correctness (thin wrapper over ``epra.ingest.calendar.build_calendar``)
+
+A missing real ``data/manual/oespi_monthly.csv`` (the ING-101 double-entry
+reconciled file, a 03-06 human checkpoint) degrades ``run_gates`` to a
+non-fatal informational ING-103 result rather than crashing or failing — D-06
+explicitly excludes the real ÖSPI transcription from being a CI/local
+blocker. GeoSphere (ING-094) and the calendar spine (ING-111) have no such
+carve-out: missing/incomplete data there is a genuine (non-crashing) gate
+failure, same as any M1 gate.
 
 A-2 applies verbatim: on failure, investigate the pipeline — never adjust data
 to pass, never widen a gate without an ADR.
 
 Implements: ING-080, ING-081, ING-082, ING-083, ING-084, ING-085 (M1), ING-094,
-ING-103 (M2).
+ING-103, ING-111 (M2).
 """
 
 from __future__ import annotations
@@ -36,13 +46,15 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
+from holidays.countries.austria import Austria
 
 from epra.common import logging as common_logging
 from epra.common.config import REPO_ROOT, Settings, load_settings
 from epra.common.timeutil import VIENNA, local_hours_in_day
 from epra.ingest._io import _dataset_root
+from epra.ingest.calendar import build_calendar
 from epra.ingest.entsoe import hourly_mean
-from epra.ingest.exceptions import GateFailure
+from epra.ingest.exceptions import GateFailure, NoDataError
 
 logger = logging.getLogger(__name__)
 
@@ -663,6 +675,86 @@ def gate_ing_103(oespi: pd.DataFrame) -> GateResult:
     return GateResult("ING-103", all_ok, summary, evidence)
 
 
+def gate_ing_111(calendar_frame: pd.DataFrame) -> GateResult:
+    """ING-111: calendar spine assertions -- thin wrapper for the aggregate report.
+
+    Args:
+        calendar_frame: the ING-110 hourly spine from
+            :func:`epra.ingest.calendar.build_calendar` (``ts_utc,
+            date_local, hour_local, dow_local, is_weekend, is_holiday_at,
+            is_peak_hour, year_local, month_local``).
+
+    Reuses the exact assertions already validated for ``build_calendar`` in
+    03-02 (``tests/unit/test_calendar.py``) -- this function does not
+    re-derive holiday or peak-hour logic (D-10), it only surfaces the same
+    checks as one ``GateResult`` so ``make validate-ingest`` renders ING-111
+    alongside every other gate (RESEARCH Open Question 3).
+
+    Three independent sub-checks, aggregated (mirrors `gate_ing_094`'s style):
+
+    - holiday_count_2024: the set of ``is_holiday_at`` dates in 2024 matches
+      ``holidays.Austria(subdiv='6', years=2024)`` exactly.
+    - fixed_holidays: Jan 1, May 1, Dec 25 (2024) are all flagged
+      ``is_holiday_at``.
+    - peak_hour_mon_sun: a known non-holiday Monday 10:00 local is
+      ``is_peak_hour`` True; a known Sunday 10:00 local is False.
+
+    Empty input returns ``passed=False`` (A-2 -- no vacuous pass).
+    """
+    if calendar_frame.empty:
+        return GateResult("ING-111", False, "no calendar data supplied to ING-111", None)
+
+    frame_2024 = calendar_frame.loc[calendar_frame["year_local"] == 2024]
+    holiday_dates_2024 = set(frame_2024.loc[frame_2024["is_holiday_at"], "date_local"])
+    expected_holidays_2024 = set(Austria(subdiv="6", years=2024).keys())
+    holiday_count_ok = holiday_dates_2024 == expected_holidays_2024
+
+    fixed_holidays = {date(2024, 1, 1), date(2024, 5, 1), date(2024, 12, 25)}
+    fixed_holidays_ok = fixed_holidays.issubset(holiday_dates_2024)
+
+    def _peak_at(target_date: date, hour: int) -> bool | None:
+        match = calendar_frame.loc[
+            (calendar_frame["date_local"] == target_date) & (calendar_frame["hour_local"] == hour)
+        ]
+        return None if match.empty else bool(match.iloc[0]["is_peak_hour"])
+
+    monday_peak = _peak_at(date(2024, 1, 8), 10)  # non-holiday Monday
+    sunday_peak = _peak_at(date(2024, 1, 7), 10)  # Sunday
+    peak_ok = (monday_peak is True) and (sunday_peak is False)
+
+    all_ok = holiday_count_ok and fixed_holidays_ok and peak_ok
+
+    evidence = pd.DataFrame(
+        [
+            {
+                "check": "holiday_count_2024",
+                "expected": len(expected_holidays_2024),
+                "actual": len(holiday_dates_2024),
+                "ok": holiday_count_ok,
+            },
+            {
+                "check": "fixed_holidays",
+                "expected": sorted(str(d) for d in fixed_holidays),
+                "actual": sorted(str(d) for d in (holiday_dates_2024 & fixed_holidays)),
+                "ok": fixed_holidays_ok,
+            },
+            {
+                "check": "peak_hour_mon_sun",
+                "expected": "Mon 2024-01-08 10:00 local=peak; Sun 2024-01-07 10:00 local=off-peak",
+                "actual": f"monday_peak={monday_peak}, sunday_peak={sunday_peak}",
+                "ok": peak_ok,
+            },
+        ]
+    )
+    failing = evidence.loc[~evidence["ok"]]
+    summary = (
+        "holiday-count/fixed-holiday/peak-hour checks all pass"
+        if all_ok
+        else f"{len(failing)} ING-111 check(s) failed (see evidence)"
+    )
+    return GateResult("ING-111", all_ok, summary, evidence)
+
+
 # ---------------------------------------------------------------------------
 # run_gates -- loads raw parquet, aggregates to hourly mean, runs all M1 gates
 # ---------------------------------------------------------------------------
@@ -701,6 +793,97 @@ def _load_hourly(dataset: str, value_col: str, settings: Settings) -> pd.DataFra
     return hourly_mean(raw, value_col)
 
 
+#: SPEC-01 §7 GeoSphere date-keyed columns (ING-004 provenance columns excluded
+#: -- gate_ing_094 never needs them, same read-only-what's-needed pattern as
+#: `_load_hourly`).
+_GEOSPHERE_COLUMNS = ("date", "station_id", "tl_mittel_c", "parameter_raw")
+
+
+def _load_geosphere(settings: Settings) -> pd.DataFrame:
+    """Glob-read every monthly ``geosphere_graz_daily`` raw parquet (ING-094 input).
+
+    Mirrors `_load_hourly`'s missing-directory/no-files -> typed-empty-frame
+    behavior (never raises): the real live GeoSphere pull is the 03-06 human
+    checkpoint (D-06/D-07), so a fresh checkout with no GeoSphere data yet
+    must produce a genuine (non-crashing) ING-094 gate failure, not a
+    traceback.
+    """
+    root = _dataset_root("geosphere_graz_daily", settings)
+    empty = pd.DataFrame({col: pd.Series([], dtype="object") for col in _GEOSPHERE_COLUMNS})
+    if not root.exists():
+        return empty
+    paths = sorted(root.glob("*/*.parquet"))
+    if not paths:
+        return empty
+    frames = [pd.read_parquet(path, columns=list(_GEOSPHERE_COLUMNS)) for path in paths]
+    return pd.concat(frames, ignore_index=True)
+
+
+#: ING-110 calendar spine columns -- mirrors `epra.ingest.calendar.build_calendar`'s
+#: output exactly, used only as the typed-empty fallback in `_load_calendar`.
+_CALENDAR_COLUMNS = (
+    "ts_utc",
+    "date_local",
+    "hour_local",
+    "dow_local",
+    "is_weekend",
+    "is_holiday_at",
+    "is_peak_hour",
+    "year_local",
+    "month_local",
+)
+
+
+def _load_calendar(settings: Settings) -> pd.DataFrame:
+    """Build the ING-110 calendar spine for the ING-111 gate.
+
+    `build_calendar`'s dynamic default `end` calls
+    `entsoe.latest_complete_month`, which raises `NoDataError` when no
+    complete ENTSO-E price month has been backfilled yet. That is a genuine
+    "nothing to check" state, not a crash: this degrades to a typed-empty
+    frame so `gate_ing_111` reports a real (non-vacuous) failure instead of
+    an uncaught exception propagating out of `run_gates` (EN-061 -- `run_gates`
+    only ever raises `GateFailure`).
+    """
+    try:
+        return build_calendar(settings)
+    except NoDataError:
+        return pd.DataFrame({col: pd.Series([], dtype="object") for col in _CALENDAR_COLUMNS})
+
+
+def _oespi_gate_result(settings: Settings) -> GateResult:
+    """Load the reconciled ÖSPI CSV and run `gate_ing_103`; degrade gracefully.
+
+    Deferred (function-local) import of `epra.ingest.oespi`: `oespi.py`
+    imports `gate_ing_103` from this module at its own top level, so a
+    top-level import here would be a circular import (this module would need
+    `oespi` fully loaded before its own `gate_ing_103` definition exists,
+    which `oespi` itself depends on).
+
+    A missing real `data/manual/oespi_monthly.csv` (the ING-101 double-entry
+    reconciled file, 03-06's human checkpoint) is expected pre-checkpoint
+    state, not a failure: D-06 explicitly excludes it from being a CI/local
+    blocker, so this renders a non-fatal informational `GateResult` instead
+    of calling `gate_ing_103` (which would otherwise vacuously fail on the
+    empty-input path, A-2 -- that A-2 rule governs `gate_ing_103` itself when
+    given real-but-empty data, not this "not transcribed yet" carve-out).
+    """
+    from epra.ingest.oespi import load_oespi
+
+    path = settings.paths.data_manual / "oespi_monthly.csv"
+    try:
+        oespi_frame = load_oespi(settings)
+    except FileNotFoundError:
+        return GateResult(
+            "ING-103",
+            True,
+            f"real ÖSPI data not yet transcribed ({path} absent) -- ING-101 double-entry "
+            "human checkpoint pending (D-06), not a gate failure",
+            None,
+        )
+    return gate_ing_103(oespi_frame)
+
+
 def _write_report(report: ValidationReport, settings: Settings) -> Path:
     reports_root = settings.paths.reports
     reports_root = reports_root if reports_root.is_absolute() else REPO_ROOT / reports_root
@@ -712,13 +895,18 @@ def _write_report(report: ValidationReport, settings: Settings) -> Path:
 
 
 def run_gates(settings: Settings) -> None:
-    """Run all M1 ENTSO-E gates (ING-080..085); write report; raise on failure (EN-061).
+    """Run all M1+M2 gates (ING-080..085, 094, 103, 111); write report; raise on failure (EN-061).
 
-    Loads every monthly raw parquet for the three hourly ENTSO-E datasets
-    under ``settings.paths.data_raw``, aggregates each to hourly mean, runs
-    ING-080..085 in order, writes ``reports/ingestion/validation_<date>.md``
-    listing every registered gate exactly once (T-02-13), then raises
-    ``GateFailure`` if any gate failed (A-2 -- never warn-and-continue).
+    Loads every monthly raw parquet for the three hourly ENTSO-E datasets and
+    the GeoSphere daily dataset under ``settings.paths.data_raw``, the
+    reconciled ÖSPI CSV under ``settings.paths.data_manual``, and the ING-110
+    calendar spine, runs every M1+M2 gate exactly once, writes
+    ``reports/ingestion/validation_<date>.md`` listing every registered gate
+    exactly once (T-02-13), then raises ``GateFailure`` if any gate failed
+    (A-2 -- never warn-and-continue). ``run_gates`` never raises anything
+    other than ``GateFailure``: a missing/incomplete M2 input degrades to a
+    genuine (non-crashing) gate result -- see ``_load_geosphere``,
+    ``_load_calendar``, ``_oespi_gate_result``.
     """
     hourly = {
         dataset: _load_hourly(dataset, value_col, settings)
@@ -726,6 +914,8 @@ def run_gates(settings: Settings) -> None:
     }
     at_prices = hourly["entsoe_prices_at"]
     at_load = hourly["entsoe_load_at"]
+    geosphere_daily = _load_geosphere(settings)
+    calendar_frame = _load_calendar(settings)
 
     report = ValidationReport()
     report.add(gate_ing_080(hourly))
@@ -734,6 +924,9 @@ def run_gates(settings: Settings) -> None:
     report.add(gate_ing_083(at_prices))
     report.add(gate_ing_084(at_load))
     report.add(gate_ing_085(at_prices, at_load))
+    report.add(gate_ing_094(geosphere_daily))
+    report.add(_oespi_gate_result(settings))
+    report.add(gate_ing_111(calendar_frame))
 
     for result in report.results:
         logger.info("gate=%s passed=%s summary=%s", result.gate_id, result.passed, result.summary)
@@ -745,13 +938,14 @@ def run_gates(settings: Settings) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: ``python -m epra.ingest.validate`` -- run all M1 gates, write the report.
+    """CLI: ``python -m epra.ingest.validate`` -- run all M1+M2 gates, write the report.
 
     Returns 0 if every gate passed, 1 if any gate failed (``GateFailure``).
     """
     parser = argparse.ArgumentParser(
         prog="python -m epra.ingest.validate",
-        description="Run all M1 ENTSO-E validation gates (ING-080..085) and write the report.",
+        description="Run all M1+M2 ingestion validation gates (ING-080..085, 094, 103, 111) "
+        "and write the report.",
     )
     parser.parse_args(argv)
 

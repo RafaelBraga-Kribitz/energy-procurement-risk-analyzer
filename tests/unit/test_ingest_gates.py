@@ -17,6 +17,7 @@ import pytest
 
 from epra.common.config import Settings, load_settings
 from epra.ingest._io import write_month
+from epra.ingest.calendar import build_calendar
 from epra.ingest.exceptions import GateFailure
 from epra.ingest.oespi import load_oespi
 from epra.ingest.validate import (
@@ -30,10 +31,14 @@ from epra.ingest.validate import (
     gate_ing_085,
     gate_ing_094,
     gate_ing_103,
+    gate_ing_111,
     run_gates,
 )
 
 _ALL_GATE_IDS = ("ING-080", "ING-081", "ING-082", "ING-083", "ING-084", "ING-085")
+#: Full M1+M2 gate roster `run_gates` registers (03-06) -- used by the
+#: aggregate `run_gates` tests to assert every gate appears exactly once.
+_ALL_M1_M2_GATE_IDS = (*_ALL_GATE_IDS, "ING-094", "ING-103", "ING-111")
 
 _OESPI_FIXTURE = (
     Path(__file__).resolve().parents[1] / "fixtures" / "oespi" / "synthetic_oespi_monthly.csv"
@@ -377,7 +382,75 @@ def test_gate_ing_103_input_mutation_is_avoided() -> None:
 
 
 # ---------------------------------------------------------------------------
-# run_gates -- loader + report writer integration (task 2)
+# ING-111 -- calendar spine gate (03-06 task 1): thin wrapper over
+# `epra.ingest.calendar.build_calendar`, reusing the 03-02 assertions.
+# ---------------------------------------------------------------------------
+
+_CALENDAR_FIXED_END = date(2027, 12, 31)
+
+_EMPTY_CALENDAR_COLUMNS = [
+    "ts_utc",
+    "date_local",
+    "hour_local",
+    "dow_local",
+    "is_weekend",
+    "is_holiday_at",
+    "is_peak_hour",
+    "year_local",
+    "month_local",
+]
+
+
+def _clean_calendar() -> pd.DataFrame:
+    """A valid ING-110 calendar spine -- `gate_ing_111` PASSES outright."""
+    return build_calendar(load_settings(), end=_CALENDAR_FIXED_END)
+
+
+def test_gate_ing_111_passes_on_valid_calendar_spine() -> None:
+    result = gate_ing_111(_clean_calendar())
+    assert result.gate_id == "ING-111"
+    assert result.passed is True
+
+
+def test_gate_ing_111_fails_on_empty_input() -> None:
+    empty = pd.DataFrame(columns=_EMPTY_CALENDAR_COLUMNS)
+    result = gate_ing_111(empty)
+    assert result.passed is False
+
+
+def test_gate_ing_111_fails_when_fixed_holiday_missing() -> None:
+    frame = _clean_calendar().copy()
+    mask = frame["date_local"] == date(2024, 1, 1)
+    frame.loc[mask, "is_holiday_at"] = False
+
+    result = gate_ing_111(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "fixed_holidays", "ok"].all()
+
+
+def test_gate_ing_111_fails_when_peak_hour_wrong() -> None:
+    frame = _clean_calendar().copy()
+    # Flip the known non-holiday Monday 10:00 local hour to off-peak.
+    mask = (frame["date_local"] == date(2024, 1, 8)) & (frame["hour_local"] == 10)
+    frame.loc[mask, "is_peak_hour"] = False
+
+    result = gate_ing_111(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "peak_hour_mon_sun", "ok"].all()
+
+
+def test_gate_ing_111_input_mutation_is_avoided() -> None:
+    frame = _clean_calendar()
+    before = frame.copy()
+    gate_ing_111(frame)
+    pd.testing.assert_frame_equal(frame, before)
+
+
+# ---------------------------------------------------------------------------
+# run_gates -- loader + report writer integration (task 2, extended 03-06 for
+# ING-094/103/111 wiring)
 # ---------------------------------------------------------------------------
 
 
@@ -388,6 +461,21 @@ def _write_year(settings: Settings, dataset: str, value_col: str, year: int, val
     for month in sorted(months.unique()):
         write_month(
             frame.loc[months == month], dataset, date(year, int(month), 1), "testhash", settings
+        )
+
+
+def _write_geosphere_frame(settings: Settings, frame: pd.DataFrame) -> None:
+    """Write a full GeoSphere daily frame to `data_raw/geosphere_graz_daily/`, split by month."""
+    dates = pd.to_datetime(frame["date"])
+    for year, month in sorted({(int(d.year), int(d.month)) for d in dates}):
+        month_mask = (dates.dt.year == year) & (dates.dt.month == month)
+        write_month(
+            frame.loc[month_mask],
+            "geosphere_graz_daily",
+            date(year, month, 1),
+            "testhash",
+            settings,
+            key_column="date",
         )
 
 
@@ -414,6 +502,12 @@ def test_run_gates_passes_and_writes_report_on_good_synthetic_data(
             tmp_settings,
         )
 
+    # M2: plausible GeoSphere coverage (ING-094). ÖSPI (ING-103) and the
+    # calendar (ING-111) need no seeding here -- `tmp_settings.paths.data_manual`
+    # has no `oespi_monthly.csv` (informational skip, D-06), and
+    # `build_calendar` derives its spine from the ENTSO-E data written above.
+    _write_geosphere_frame(tmp_settings, _geosphere_year(2023, {7: 20.0, 1: 0.0}))
+
     run_gates(tmp_settings)  # must not raise
 
     report_path = (
@@ -422,8 +516,56 @@ def test_run_gates_passes_and_writes_report_on_good_synthetic_data(
     assert report_path.exists()
     content = report_path.read_text(encoding="utf-8")
     assert "ALL GATES PASSED" in content
-    for gate_id in _ALL_GATE_IDS:
-        assert gate_id in content
+    for gate_id in _ALL_M1_M2_GATE_IDS:
+        assert content.count(gate_id) == 1
+    assert "not yet transcribed" in content  # ÖSPI D-06 informational skip is visible
+
+
+def test_run_gates_raises_on_m2_gate_failure_and_lists_all_ids_once(
+    tmp_settings: Settings,
+) -> None:
+    """A failing M2 gate (GeoSphere, ING-094) still raises `GateFailure` and the
+    report lists every M1+M2 gate id exactly once (T-02-13) -- confirms the
+    03-06 wiring surfaces a real M2 failure, not just M1 failures."""
+    for year in (2023, 2024, 2025):
+        _write_year(tmp_settings, "entsoe_prices_at", "price_eur_mwh", year, value=100.0)
+        _write_year(tmp_settings, "entsoe_prices_delu", "price_eur_mwh", year, value=40.0)
+        _write_year(tmp_settings, "entsoe_load_at", "load_mw", year, value=7000.0)
+
+    at_prices_root = tmp_settings.paths.data_raw / "entsoe_prices_at"
+    for year in (2023, 2024, 2025):
+        jan_path = at_prices_root / str(year) / f"entsoe_prices_at_{year}-01.parquet"
+        frame = pd.read_parquet(jan_path)
+        frame.loc[0, "price_eur_mwh"] = -5.0
+        write_month(
+            frame.drop(columns=["ingested_at_utc", "source", "request_hash"]),
+            "entsoe_prices_at",
+            date(year, 1, 1),
+            "testhash",
+            tmp_settings,
+        )
+
+    # Seed a genuine M2 (GeoSphere) failure: one temperature above the 42 degC ceiling.
+    bad_geosphere = _geosphere_year(2023, {7: 20.0, 1: 0.0})
+    bad_geosphere.loc[0, "tl_mittel_c"] = 50.0
+    _write_geosphere_frame(tmp_settings, bad_geosphere)
+
+    with pytest.raises(GateFailure) as excinfo:
+        run_gates(tmp_settings)
+    assert "ING-094" in str(excinfo.value)
+
+    report_path = (
+        tmp_settings.paths.reports / "ingestion" / f"validation_{date.today():%Y-%m-%d}.md"
+    )
+    content = report_path.read_text(encoding="utf-8")
+    assert "GATE FAILURE" in content
+    # Count section headers, not bare substring occurrences -- a FAILING
+    # gate's own summary text may legitimately re-mention its gate id (e.g.
+    # gate_ing_094's "N ING-094 check(s) failed"), so the "registered exactly
+    # once" invariant (T-02-13) is about the one `### {gate_id} --` heading
+    # `report.add()` produces per gate, not literal substring frequency.
+    for gate_id in _ALL_M1_M2_GATE_IDS:
+        assert content.count(f"### {gate_id} ") == 1
 
 
 def test_run_gates_raises_and_still_writes_report_on_incomplete_data(
