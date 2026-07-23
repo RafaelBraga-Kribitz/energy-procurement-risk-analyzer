@@ -10,13 +10,15 @@ from __future__ import annotations
 
 from calendar import isleap
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
-from epra.common.config import Settings
+from epra.common.config import Settings, load_settings
 from epra.ingest._io import write_month
 from epra.ingest.exceptions import GateFailure
+from epra.ingest.oespi import load_oespi
 from epra.ingest.validate import (
     GateResult,
     ValidationReport,
@@ -27,10 +29,15 @@ from epra.ingest.validate import (
     gate_ing_084,
     gate_ing_085,
     gate_ing_094,
+    gate_ing_103,
     run_gates,
 )
 
 _ALL_GATE_IDS = ("ING-080", "ING-081", "ING-082", "ING-083", "ING-084", "ING-085")
+
+_OESPI_FIXTURE = (
+    Path(__file__).resolve().parents[1] / "fixtures" / "oespi" / "synthetic_oespi_monthly.csv"
+)
 
 
 def _year_hourly(year: int, value_col: str, value: float = 50.0) -> pd.DataFrame:
@@ -293,6 +300,80 @@ def test_gate_ing_094_fails_when_january_mean_outside_range() -> None:
     assert result.passed is False
     assert result.evidence is not None
     assert not result.evidence.loc[result.evidence["check"] == "january_mean", "ok"].all()
+
+
+# ---------------------------------------------------------------------------
+# ING-103 -- ÖSPI series gates (03-05 task 2): continuity, positivity, crisis
+# visibility (2022 peak >= 3x 2019 mean), month-over-month stability
+# ---------------------------------------------------------------------------
+
+
+def _clean_oespi() -> pd.DataFrame:
+    """The committed synthetic ÖSPI series (2019-2023) -- a clean case gate_ing_103 PASSES."""
+    return load_oespi(load_settings(), csv_path=_OESPI_FIXTURE)
+
+
+def test_gate_ing_103_passes_clean_series() -> None:
+    result = gate_ing_103(_clean_oespi())
+    assert result.gate_id == "ING-103"
+    assert result.passed is True
+
+
+def test_gate_ing_103_fails_on_empty_input() -> None:
+    empty = pd.DataFrame(columns=["oespi_base", "oespi_peak", "source_url", "retrieved_at"])
+    result = gate_ing_103(empty)
+    assert result.passed is False
+
+
+def test_gate_ing_103_fails_on_month_gap() -> None:
+    frame = _clean_oespi()
+    frame = frame.drop(frame.index[30])  # drop an internal month (2021-07) -- creates a gap
+
+    result = gate_ing_103(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "continuity", "ok"].all()
+
+
+def test_gate_ing_103_fails_on_negative_value() -> None:
+    frame = _clean_oespi()
+    frame.loc[frame.index[0], "oespi_base"] = -5.0
+
+    result = gate_ing_103(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "positivity", "ok"].all()
+
+
+def test_gate_ing_103_fails_when_2022_peak_below_3x_2019_mean() -> None:
+    frame = _clean_oespi()
+    # Clamp every 2022 value to the Dec-2021 level (190) -- ratio to the 2019
+    # mean (100) drops to 1.9x (< 3x), while the Dec21->Jan22 (0%) and
+    # Dec22->Jan23 (~58%) transitions both stay within the +/-60% MoM band.
+    frame.loc[frame.index.year == 2022, "oespi_base"] = 190.0
+
+    result = gate_ing_103(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "crisis_visibility", "ok"].all()
+
+
+def test_gate_ing_103_fails_on_mom_jump_exceeding_60_percent() -> None:
+    frame = _clean_oespi()
+    prev_value = frame.loc[frame.index[9], "oespi_base"]
+    frame.loc[frame.index[10], "oespi_base"] = prev_value * 3  # +200% month-over-month
+
+    result = gate_ing_103(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "mom_change", "ok"].all()
+
+
+def test_gate_ing_103_input_mutation_is_avoided() -> None:
+    frame = _clean_oespi()
+    before = frame.copy()
+    gate_ing_103(frame)
+    pd.testing.assert_frame_equal(frame, before)
 
 
 # ---------------------------------------------------------------------------
