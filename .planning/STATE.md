@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: m2-auxiliary-data
 status: executing
-stopped_at: Completed EPRA-03-03-PLAN.md
-last_updated: "2026-07-22T22:45:32.821Z"
+stopped_at: Completed EPRA-03-04-PLAN.md
+last_updated: "2026-07-23T09:24:10.601Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase EPRA-03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-03 (m2-auxiliary-data) — EXECUTING
-Plan: 4 of 6
+Plan: 5 of 6
 Status: Executing Phase EPRA-03
 Last activity: 2026-07-22 — Phase EPRA-03 execution started
 
-Progress: [████████░░] 79%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Progress: [████████░░] 79%
 | Phase EPRA-03 P01 | 15min | 2 tasks | 2 files |
 | Phase EPRA-03 P02 | 35min | 2 tasks | 4 files |
 | Phase 03 P03 | 45min | 2 tasks | 8 files |
+| Phase EPRA-03 P04 | 55min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ Progress: [████████░░] 79%
 - [Phase ?]: [03-02] calendar.parquet persists as ONE file via _io._dataset_root, not monthly-partitioned and not through _io.write_month
 - [Phase ?]: [03-03] ADR-007: GeoSphere discover_station picks station id 30 'Graz Universität/Heinrichstraße' (COMBINED, longest record since 1894, still active) via live discovery — recorded in config/settings.yaml, not a pending human checkpoint
 - [Phase ?]: [03-03] GeoSphere /station/historical/klima-v2-1d/metadata returns a flat {"stations": [...]} object, not a GeoJSON FeatureCollection — output_format=geojson applies only to the data endpoint (03-04), confirmed live and documented in geosphere.py + ADR-007
+- [Phase ?]: [03-04] gate_ing_094 coverage denominator is calendar days spanned by the data itself (min..max date), never an hours-based constant (RESEARCH Pitfall 6)
+- [Phase ?]: [03-04] _fetch_geosphere is a small GeoSphere-scoped transport with its own cache/politeness logic, not forced through _fetch.fetch_entsoe (typed around EntsoeQuery/EntsoeRawClient, ADR-003)
+- [Phase ?]: [03-04] geosphere_graz_daily_2024-01.parquet fixture generated via the real parse_geojson+write_month path against klima_2019-01.geojson, with dates remapped 2019->2024 only to follow the repo's <dataset>_2024-01.parquet naming convention
 
 ### Pending Todos
 
@@ -110,7 +114,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-22T22:45:32.809Z
-Stopped at: Completed EPRA-03-03-PLAN.md
+Last session: 2026-07-23T09:24:10.593Z
+Stopped at: Completed EPRA-03-04-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
