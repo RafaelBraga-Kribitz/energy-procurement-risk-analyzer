@@ -101,7 +101,37 @@ Plans:
   2. Mart schemas byte-match the committed SPEC-02 §5 contract YAML
   3. CI fixture bootstrap enables `dbt build` green without a full local backfill
 
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 04-01-PLAN.md — Sources + generate_schema_name macro + month_spine/accepted_range helpers + ADR-009 (T3.01)
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 04-02-PLAN.md — 8 staging models + staging.yml (dedup, hourly mean/n_subhours, DM-020) (T3.02)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 04-03-PLAN.md — dim_calendar (weather join, season, degree-days, no TZ calls) + dims.yml (T3.03)
+
+**Wave 4** *(blocked on Wave 3; 04-04 and 04-05 run in parallel)*
+
+- [ ] 04-04-PLAN.md — Price & generation marts (fct_price_hourly/daily/monthly, fct_generation_monthly) + ADR-011 + LIMITATIONS §2 (T3.04a)
+- [ ] 04-05-PLAN.md — Fixture/stand-in generator + future marts (fct_consumer_load_hourly, fct_procurement_cost_monthly) + ADR-010 (T3.04b/T3.06 generator)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 04-06-PLAN.md — dbt test suite DM-050/062/064/065/066 + marts_contract.yml + schema-contract pytest (T3.05)
+
+**Wave 6** *(blocked on Wave 5)*
+
+- [ ] 04-07-PLAN.md — Build-report writer (D-02) + Makefile transform/warehouse targets (T3.05/operator interface)
+
+**Wave 7** *(blocked on Wave 6)*
+
+- [ ] 04-08-PLAN.md — CI dbt-check job + phase close-out (real+CI builds green, BUILD_LOG, M3 PR) (T3.06/T3.07)
 
 ### Phase 5: M4 Consumer Profile
 
@@ -166,7 +196,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
 | 2. M1 ENTSO-E | 7/7 | In Progress|  |
 | 3. M2 Auxiliary | 6/6 | Complete    | 2026-07-23 |
-| 4. M3 dbt | 0/TBD | Not started | - |
+| 4. M3 dbt | 0/8 | Planned | - |
 | 5. M4 Profile | 0/TBD | Not started | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |
 | 7. M6 Strategies | 0/TBD | Not started | - |
