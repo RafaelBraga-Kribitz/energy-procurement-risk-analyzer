@@ -46,27 +46,21 @@ price lever. Total electricity bill impact differs from the numbers shown here.
 *(finalized at M1/M5)* — Any gate that required investigation (R-8) is
 documented here with its resolution.
 
-**Open as of Phase EPRA-03 (M2) close-out, 2026-07-23: ÖSPI double-entry
-reconciliation pending.** `data/manual/oespi_monthly.csv` (the reconciled
-ÖSPI series ING-103 needs) does not exist yet. The two human transcriptions
-required for double-entry (D-03) — `data/manual/oespi_monthly_entry1.csv`
-and `oespi_monthly_entry2.csv` — are present locally but have not been
-reconciled against each other. `make validate-ingest` currently SOFT-PASSES
-ING-103 with the message "real ÖSPI data not yet transcribed ...
-ING-101 double-entry human checkpoint pending (D-06), not a gate failure"
-(see `reports/ingestion/validation_2026-07-23.md`). This is a
-design-sanctioned deferral (D-06: real ÖSPI transcription is a human
-checkpoint, never a CI blocker), not a gate failure — all 9 registered
-gates (ING-080..085, ING-094, ING-103, ING-111) otherwise pass on real data
-(GeoSphere station 30, live pull 2019-01→2023-12).
+**RESOLVED 2026-07-23 (Phase EPRA-03 close-out): ÖSPI double-entry
+reconciliation complete.** The human double-entry transcription was completed
+(`data/manual/oespi_monthly_entry1.csv` == `oespi_monthly_entry2.csv`, verified
+identical) and reconciled via `uv run python scripts/oespi_reconcile.py`
+(exit 0, 92 months 2019-01→2026-08) into `data/manual/oespi_monthly.csv`.
+`make validate-ingest` now exits 0 with **ING-103 a substantive real-data PASS**
+(continuity/positivity/crisis-visibility/MoM checks all pass) — no longer the
+informational soft-pass. All 9 registered gates (ING-080..085, ING-094,
+ING-103, ING-111) pass on real data (GeoSphere station 30, live pull
+2019-01→2023-12; ÖSPI 2019-01→2026-08). REQ-ING-01 fully closed.
 
-**To resolve:** reconcile the two entry files —
-`uv run python scripts/oespi_reconcile.py` — until it exits 0 and writes
-`data/manual/oespi_monthly.csv`; then delete
-`data/manual/oespi_monthly_entry1.csv` and `oespi_monthly_entry2.csv`; then
-re-run `make validate-ingest` and confirm ING-103 reports a real-data PASS
-(not the informational soft-pass) before REQ-ING-01 is considered fully
-closed.
+*Housekeeping (ING-101 step 4):* the transient double-entry working files
+`data/manual/oespi_monthly_entry1.csv`, `oespi_monthly_entry2.csv`, and
+`oespi_monthly_entry.csv` remain on disk (untracked) — safe to delete now that
+`oespi_monthly.csv` is the committed source of truth.
 
 ## 7. No forecast-skill claim
 This project makes no price forecasts (Charter O-1). Strategies are evaluated
