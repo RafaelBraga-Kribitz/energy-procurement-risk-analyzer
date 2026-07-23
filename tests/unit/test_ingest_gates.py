@@ -26,6 +26,7 @@ from epra.ingest.validate import (
     gate_ing_083,
     gate_ing_084,
     gate_ing_085,
+    gate_ing_094,
     run_gates,
 )
 
@@ -213,6 +214,85 @@ def test_gate_ing_085_fails_when_join_coverage_below_threshold() -> None:
     at_load = _year_hourly(2023, "load_mw", value=7000.0).iloc[:-100]  # drop ~1.1% of hours
     result = gate_ing_085(at_prices, at_load)
     assert result.passed is False
+
+
+# ---------------------------------------------------------------------------
+# ING-094 -- GeoSphere coverage/range/seasonal-mean gate (03-04 task 2)
+# ---------------------------------------------------------------------------
+
+
+def _geosphere_year(year: int, month_value: dict[int, float] | None = None) -> pd.DataFrame:
+    """Full real-calendar-year daily frame -- one row per day, no gaps.
+
+    `month_value` overrides the per-month temperature (e.g. `{7: 20.0}` for a
+    plausible July mean); every other month defaults to 10.0 degC (well
+    within the [-30, 42] range).
+    """
+    overrides = month_value or {}
+    days = pd.date_range(f"{year}-01-01", f"{year}-12-31", freq="D")
+    temps = [overrides.get(int(d.month), 10.0) for d in days]
+    return pd.DataFrame(
+        {
+            "date": days,
+            "station_id": "30",
+            "tl_mittel_c": temps,
+            "parameter_raw": [str(t) for t in temps],
+        }
+    )
+
+
+def test_gate_ing_094_passes_on_full_coverage_and_plausible_data() -> None:
+    frame = _geosphere_year(2023, {7: 20.0, 1: 0.0})  # July/Jan means inside bounds
+    result = gate_ing_094(frame)
+    assert result.gate_id == "ING-094"
+    assert result.passed is True
+
+
+def test_gate_ing_094_fails_on_empty_input() -> None:
+    empty = pd.DataFrame(columns=["date", "station_id", "tl_mittel_c", "parameter_raw"])
+    result = gate_ing_094(empty)
+    assert result.passed is False
+
+
+def test_gate_ing_094_fails_when_coverage_below_99_percent() -> None:
+    frame = _geosphere_year(2023, {7: 20.0, 1: 0.0})
+    # Drop a 60-day chunk out of the middle of the year -- min/max date (the
+    # coverage denominator) stay the same, so this is a real gap, not a
+    # shrunk window (RESEARCH Pitfall 6: denominator = days in window).
+    frame = frame.drop(frame.index[100:160]).reset_index(drop=True)
+
+    result = gate_ing_094(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "coverage", "ok"].all()
+
+
+def test_gate_ing_094_fails_when_temperature_out_of_range() -> None:
+    frame = _geosphere_year(2023, {7: 20.0, 1: 0.0})
+    frame.loc[0, "tl_mittel_c"] = 50.0  # above the 42 degC ceiling
+
+    result = gate_ing_094(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "range", "ok"].all()
+
+
+def test_gate_ing_094_fails_when_july_mean_outside_range() -> None:
+    frame = _geosphere_year(2023, {7: 5.0, 1: 0.0})  # July mean 5 -- below [15, 30]
+
+    result = gate_ing_094(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "july_mean", "ok"].all()
+
+
+def test_gate_ing_094_fails_when_january_mean_outside_range() -> None:
+    frame = _geosphere_year(2023, {7: 20.0, 1: 20.0})  # January mean 20 -- above [-10, 8]
+
+    result = gate_ing_094(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    assert not result.evidence.loc[result.evidence["check"] == "january_mean", "ok"].all()
 
 
 # ---------------------------------------------------------------------------

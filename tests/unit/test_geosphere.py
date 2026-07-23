@@ -17,14 +17,23 @@ pinned station) used to lock down `parse_geojson`'s exact field paths.
 from __future__ import annotations
 
 import json
+import time
+from datetime import date
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
 import pytest
 
 from epra.common.config import Settings, load_settings
 from epra.ingest.exceptions import ContractError, DiscoveryError
-from epra.ingest.geosphere import StationInfo, discover_station, parse_geojson
+from epra.ingest.geosphere import (
+    StationInfo,
+    _fetch_geosphere,
+    discover_station,
+    ingest,
+    parse_geojson,
+)
 
 FIXTURE_PATH = Path(__file__).resolve().parents[1] / "fixtures" / "geosphere" / "metadata.json"
 GEOJSON_FIXTURE_PATH = (
@@ -162,3 +171,106 @@ def test_parse_geojson_never_returns_empty_frame_on_shape_mismatch() -> None:
     mismatch, not an empty window (RESEARCH Pitfall 5)."""
     with pytest.raises(ContractError):
         parse_geojson({"timestamps": ["2019-01-01T00:00+00:00"], "features": []}, station_id="30")
+
+
+# ---------------------------------------------------------------------------
+# _fetch_geosphere (ING-093) — ING-009 cache + ING-007 politeness sleep
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def _sleep_calls(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    calls: list[float] = []
+    monkeypatch.setattr(time, "sleep", lambda s: calls.append(s))
+    return calls
+
+
+def test_fetch_geosphere_live_writes_cache_file(tmp_settings: Settings) -> None:
+    payload = _fixture_geojson()
+    calls: list[int] = []
+
+    def stub_transport(settings: Settings, station_id: str, month: date) -> Any:
+        calls.append(1)
+        return payload
+
+    result = _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=stub_transport)
+
+    assert result == payload
+    assert len(calls) == 1
+    cache_dir = tmp_settings.paths.data_cache / "geosphere"
+    assert len(list(cache_dir.glob("*.json"))) == 1
+
+
+def test_fetch_geosphere_uses_cache_on_second_call(tmp_settings: Settings) -> None:
+    payload = _fixture_geojson()
+    calls: list[int] = []
+
+    def stub_transport(settings: Settings, station_id: str, month: date) -> Any:
+        calls.append(1)
+        return payload
+
+    first = _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=stub_transport)
+    second = _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=stub_transport)
+
+    assert first == second == payload
+    assert len(calls) == 1  # second call served from cache, no network
+
+
+def test_fetch_geosphere_sleeps_after_live_call_not_cache_hit(
+    tmp_settings: Settings, _sleep_calls: list[float]
+) -> None:
+    payload = _fixture_geojson()
+
+    def stub_transport(settings: Settings, station_id: str, month: date) -> Any:
+        return payload
+
+    _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=stub_transport)
+    assert _sleep_calls, "expected a politeness sleep after the live call"
+    assert all(s >= 0.2 for s in _sleep_calls)
+
+    _sleep_calls.clear()
+    _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=stub_transport)  # cache hit
+    assert _sleep_calls == []
+
+
+# ---------------------------------------------------------------------------
+# ingest (ING-093)
+# ---------------------------------------------------------------------------
+
+
+def test_ingest_writes_geosphere_graz_daily_monthly_parquet(tmp_settings: Settings) -> None:
+    payload = _fixture_geojson()
+
+    def stub_transport(settings: Settings, station_id: str, month: date) -> Any:
+        return payload
+
+    ingest(tmp_settings, date(2019, 1, 1), date(2019, 1, 31), transport=stub_transport)
+
+    path = (
+        tmp_settings.paths.data_raw
+        / "geosphere_graz_daily"
+        / "2019"
+        / "geosphere_graz_daily_2019-01.parquet"
+    )
+    assert path.exists()
+    frame = pd.read_parquet(path)
+    assert list(frame.columns) == [
+        "date",
+        "station_id",
+        "tl_mittel_c",
+        "parameter_raw",
+        "ingested_at_utc",
+        "source",
+        "request_hash",
+    ]
+    assert len(frame) == 31
+    assert (frame["source"] == "geosphere").all()
+
+
+def test_ingest_fails_fast_when_station_id_unset(tmp_settings: Settings) -> None:
+    settings = tmp_settings.model_copy(
+        update={"geosphere": tmp_settings.geosphere.model_copy(update={"station_id": None})}
+    )
+
+    with pytest.raises(DiscoveryError):
+        ingest(settings, date(2019, 1, 1), date(2019, 1, 31))

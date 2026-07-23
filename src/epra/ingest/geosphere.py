@@ -32,23 +32,31 @@ Binding contract: SPEC-01 §9. Key points:
 - Gates (ING-094): coverage ≥ 99% of days; −30 ≤ tl_mittel ≤ 42; July mean in
   [15, 30]; January mean in [−10, 8].
 
-Implements: ING-090, ING-091, ING-092.
-Implements (when built, 03-04): ING-093, ING-094.
+Implements: ING-090, ING-091, ING-092, ING-093.
+Implements (when built, 03-04 task 3): ING-002 (CLI entrypoint).
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import os
+import time
+from calendar import monthrange
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
+from uuid import uuid4
 
 import pandas as pd
 import requests
 
-from epra.common.config import Settings
+from epra.common.config import REPO_ROOT, Settings
+from epra.common.timeutil import iter_month_starts
+from epra.ingest._io import _now_utc, request_hash, write_month
 from epra.ingest.exceptions import ContractError, DiscoveryError
 
 logger = logging.getLogger(__name__)
@@ -73,6 +81,13 @@ class StationInfo:
 #: returning the committed fixture instead (mirrors `_fetch.TransportFn` /
 #: ADR-003's test-double pattern, D-07's live-first/fixture-fallback split).
 MetadataTransportFn = Callable[[Settings], Any]
+
+#: Transport seam for the daily-data fetch — takes the validated settings,
+#: the pinned station id, and the target calendar month; returns the raw
+#: parsed JSON (GeoJSON-shaped) payload. Defaults to `_default_data_transport`
+#: (real network); tests inject a stub returning the committed
+#: `tests/fixtures/geosphere/klima_2019-01.geojson` fixture instead (D-07).
+DataTransportFn = Callable[[Settings, str, date], Any]
 
 
 def _default_metadata_transport(settings: Settings) -> Any:
@@ -291,9 +306,163 @@ def parse_geojson(payload: Any, station_id: str) -> pd.DataFrame:
     return frame
 
 
-def ingest(settings: Settings, start: date, end: date) -> None:
-    """Ingest daily temperatures into monthly parquet per SPEC-01 §7 contract."""
-    raise NotImplementedError(_MSG)
+# ---------------------------------------------------------------------------
+# _fetch_geosphere — no-auth GET + ING-009 cache + ING-007 politeness (ING-093)
+# ---------------------------------------------------------------------------
+
+
+def _month_end(month: date) -> date:
+    """Last calendar day of `month` (inclusive) — the GeoSphere `end` query param."""
+    _, last_day = monthrange(month.year, month.month)
+    return date(month.year, month.month, last_day)
+
+
+def _request_url(settings: Settings, station_id: str, month: date) -> str:
+    """Deterministic GeoSphere data-endpoint URL for one calendar month.
+
+    Used both as the live GET URL and as the ING-009 cache/request_hash key
+    — GeoSphere has no auth token to strip (unlike `_fetch._cache_request_url`
+    for ENTSO-E), so this is also the literal URL sent over the wire.
+    """
+    params = {
+        "parameters": settings.geosphere.parameter,
+        "station_ids": station_id,
+        "start": month.isoformat(),
+        "end": _month_end(month).isoformat(),
+        "output_format": "geojson",
+    }
+    return (
+        f"{settings.geosphere.base_url}/station/historical/{settings.geosphere.dataset_id}"
+        f"?{urlencode(sorted(params.items()))}"
+    )
+
+
+def _default_data_transport(settings: Settings, station_id: str, month: date) -> Any:
+    """Live GET of one calendar month of GeoSphere `tl_mittel` daily data (no auth, ING-093)."""
+    response = requests.get(_request_url(settings, station_id, month), timeout=30)
+    response.raise_for_status()
+    return response.json()
+
+
+def _cache_root(settings: Settings) -> Path:
+    """Absolute path of `data/cache/geosphere/` (mirrors `_fetch._cache_root`)."""
+    p = settings.paths.data_cache
+    root = p if p.is_absolute() else REPO_ROOT / p
+    return root / "geosphere"
+
+
+def _cache_path(settings: Settings, req_hash: str) -> Path:
+    return _cache_root(settings) / f"{req_hash}.json"
+
+
+def _is_cache_eligible(month: date, settings: Settings) -> bool:
+    """ING-009: cache is used only once the requested month is safely in the past."""
+    cutoff = _now_utc().date() - timedelta(days=settings.ingest.cache_min_age_days)
+    return _month_end(month) <= cutoff
+
+
+def _fetch_geosphere(
+    settings: Settings,
+    station_id: str,
+    month: date,
+    *,
+    transport: DataTransportFn | None = None,
+) -> Any:
+    """Fetch one calendar month of GeoSphere daily `tl_mittel` data (ING-093).
+
+    Mirrors `_fetch.fetch_entsoe`'s cache/politeness shape at GeoSphere's
+    smaller scope: no auth token (no A-7 stripping needed), an on-disk cache
+    under `data/cache/geosphere/` (ING-009's 7-day rule, atomic
+    temp-file-then-rename), and a `settings.ingest.geosphere_sleep_s` (>=0.2s,
+    ING-007) sleep after every LIVE fetch only — a cache hit never sleeps.
+
+    Args:
+        transport: override for the live network call. Defaults to
+            `_default_data_transport` (real `requests.get`); tests inject a
+            stub returning the committed GeoJSON fixture (D-07).
+
+    Returns:
+        Parsed JSON payload (`response.json()` shape) ready for
+        `parse_geojson`.
+    """
+    transport_fn = transport if transport is not None else _default_data_transport
+    req_hash = request_hash(_request_url(settings, station_id, month))
+    cache_path = _cache_path(settings, req_hash)
+
+    if cache_path.exists() and _is_cache_eligible(month, settings):
+        logger.info("source=geosphere_graz_daily month=%s status=cache_hit", f"{month:%Y-%m}")
+        return json.loads(cache_path.read_text(encoding="utf-8"))
+
+    payload = transport_fn(settings, station_id, month)
+
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    # Per-call-unique temp name (PID + short uuid4) mirrors `_io.write_month` /
+    # `_fetch.fetch_entsoe`'s WR-02 guard against two processes racing to
+    # write the same cache key.
+    tmp_path = cache_path.parent / f"{cache_path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
+    tmp_path.write_text(json.dumps(payload), encoding="utf-8")
+    os.replace(tmp_path, cache_path)
+
+    logger.info("source=geosphere_graz_daily month=%s status=200", f"{month:%Y-%m}")
+    time.sleep(settings.ingest.geosphere_sleep_s)  # ING-007 -- paces the *next* live call
+
+    return payload
+
+
+# ---------------------------------------------------------------------------
+# ingest (ING-093)
+# ---------------------------------------------------------------------------
+
+
+def _require_station_id(settings: Settings) -> str:
+    """Fail fast if station discovery (ING-091/ADR-007) hasn't been pinned yet."""
+    station_id = settings.geosphere.station_id
+    if not station_id:
+        raise DiscoveryError(
+            "geosphere",
+            "settings.geosphere.station_id is not set -- run discover_station() "
+            "first and record the result in config/settings.yaml + ADR-007",
+        )
+    return station_id
+
+
+def ingest(
+    settings: Settings,
+    start: date,
+    end: date,
+    transport: DataTransportFn | None = None,
+) -> None:
+    """Ingest GeoSphere daily temperatures into monthly date-keyed parquet.
+
+    Implements: ING-093.
+
+    Iterates calendar months in ``[start, end]`` (`timeutil.iter_month_starts`),
+    fetches each month's GeoJSON (`_fetch_geosphere` — ING-009 cache, ING-007
+    politeness sleep), parses via `parse_geojson`, and writes through
+    `_io.write_month(..., key_column="date")` — GeoSphere's `date` grain, not
+    `ts_utc` (Pattern 1 / RESEARCH Pitfall 1).
+
+    Args:
+        transport: forwarded to `_fetch_geosphere`; `None` uses the real
+            network. Tests inject a stub returning the committed GeoJSON
+            fixture (D-07).
+
+    Raises:
+        DiscoveryError: `settings.geosphere.station_id` is unset (run
+            `discover_station()` first, ADR-007) — checked before any
+            network call.
+    """
+    station_id = _require_station_id(settings)
+    for month in iter_month_starts(start, end):
+        payload = _fetch_geosphere(settings, station_id, month, transport=transport)
+        frame = parse_geojson(payload, station_id)
+        if frame.empty:
+            logger.info(
+                "dataset=geosphere_graz_daily month=%s no data -- skipping write", f"{month:%Y-%m}"
+            )
+            continue
+        req_hash = request_hash(_request_url(settings, station_id, month))
+        write_month(frame, "geosphere_graz_daily", month, req_hash, settings, key_column="date")
 
 
 def main(argv: Sequence[str] | None = None) -> int:

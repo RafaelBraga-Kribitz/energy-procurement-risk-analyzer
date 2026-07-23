@@ -13,13 +13,13 @@ Gate summary (fail-fast per EN-061 — a failed gate raises, never warns):
   in full (else parser bug) — ADR-006
 - ING-084 load plausibility 3000-13000 MW hourly, 6000-9000 MW annual mean
 - ING-085 price↔load join coverage ≥ 99.5% per year
-- ING-094 GeoSphere coverage/range/seasonal means (M2, not yet implemented)
+- ING-094 GeoSphere coverage ≥99% of days; −30..42°C range; Jul/Jan seasonal means
 - ING-101/103 ÖSPI reconciliation + series gates (M2, not yet implemented)
 
 A-2 applies verbatim: on failure, investigate the pipeline — never adjust data
 to pass, never widen a gate without an ADR.
 
-Implements: ING-080, ING-081, ING-082, ING-083, ING-084, ING-085 (M1).
+Implements: ING-080, ING-081, ING-082, ING-083, ING-084, ING-085 (M1), ING-094 (M2).
 """
 
 from __future__ import annotations
@@ -145,6 +145,14 @@ _LOAD_ANNUAL_MEAN_MIN_MW = 6000.0
 _LOAD_ANNUAL_MEAN_MAX_MW = 9000.0
 
 _JOIN_COVERAGE_MIN = 0.995
+
+#: SPEC-01 §9 ING-094 GeoSphere plausibility constants. Widening any of these
+#: needs an ADR (A-2, EN-061) -- never edit to make a gate pass.
+_GEOSPHERE_COVERAGE_MIN = 0.99
+_TL_MITTEL_MIN_C = -30.0
+_TL_MITTEL_MAX_C = 42.0
+_JULY_MEAN_RANGE_C = (15.0, 30.0)
+_JANUARY_MEAN_RANGE_C = (-10.0, 8.0)
 
 
 def _last_sunday(year: int, month: int) -> date:
@@ -465,6 +473,83 @@ def gate_ing_085(prices_hourly: pd.DataFrame, load_hourly: pd.DataFrame) -> Gate
         else f"{len(failing)} year(s) below 99.5% price/load join coverage (see evidence)"
     )
     return GateResult("ING-085", all_ok, summary, evidence)
+
+
+def gate_ing_094(geosphere_daily: pd.DataFrame) -> GateResult:
+    """ING-094: GeoSphere coverage >=99%; -30<=tl_mittel<=42; Jul/Jan seasonal means.
+
+    Args:
+        geosphere_daily: the §7 GeoSphere frame (``date``, ``station_id``,
+            ``tl_mittel_c``, ``parameter_raw``, + ING-004 provenance).
+
+    Coverage's denominator is the number of CALENDAR DAYS spanned by the
+    ingested data itself (``min(date)..max(date)``, inclusive) -- NOT an
+    hours-based constant copied from the ENTSO-E gates (RESEARCH Pitfall 6).
+    Empty input returns ``passed=False`` (A-2 -- no vacuous pass). A missing
+    July or January in the data does not fail those specific checks (nothing
+    to assert yet), but never counts toward a false "all passed" if coverage
+    or range still fail.
+    """
+    if geosphere_daily.empty:
+        return GateResult("ING-094", False, "no GeoSphere data supplied to ING-094", None)
+
+    dates = pd.to_datetime(geosphere_daily["date"])
+    n_actual = int(dates.dt.normalize().nunique())
+    span_days = int((dates.max() - dates.min()).days) + 1
+    coverage = (n_actual / span_days) if span_days else 0.0
+    coverage_ok = coverage >= _GEOSPHERE_COVERAGE_MIN
+
+    temps = geosphere_daily["tl_mittel_c"]
+    out_of_range = geosphere_daily.loc[(temps < _TL_MITTEL_MIN_C) | (temps > _TL_MITTEL_MAX_C)]
+    range_ok = out_of_range.empty
+
+    month = dates.dt.month
+    july_mean = float(temps.loc[month == 7].mean()) if (month == 7).any() else None
+    january_mean = float(temps.loc[month == 1].mean()) if (month == 1).any() else None
+    july_ok = july_mean is None or (_JULY_MEAN_RANGE_C[0] <= july_mean <= _JULY_MEAN_RANGE_C[1])
+    january_ok = january_mean is None or (
+        _JANUARY_MEAN_RANGE_C[0] <= january_mean <= _JANUARY_MEAN_RANGE_C[1]
+    )
+
+    all_ok = coverage_ok and range_ok and july_ok and january_ok
+
+    evidence = pd.DataFrame(
+        [
+            {
+                "check": "coverage",
+                "expected": f">={_GEOSPHERE_COVERAGE_MIN:.0%}",
+                "actual": f"{coverage:.4f} ({n_actual}/{span_days} days)",
+                "ok": coverage_ok,
+            },
+            {
+                "check": "range",
+                "expected": f"[{_TL_MITTEL_MIN_C}, {_TL_MITTEL_MAX_C}] degC",
+                "actual": f"{len(out_of_range)} row(s) out of range",
+                "ok": range_ok,
+            },
+            {
+                "check": "july_mean",
+                "expected": str(_JULY_MEAN_RANGE_C),
+                "actual": "n/a (no July data)" if july_mean is None else f"{july_mean:.2f}",
+                "ok": july_ok,
+            },
+            {
+                "check": "january_mean",
+                "expected": str(_JANUARY_MEAN_RANGE_C),
+                "actual": (
+                    "n/a (no January data)" if january_mean is None else f"{january_mean:.2f}"
+                ),
+                "ok": january_ok,
+            },
+        ]
+    )
+    failing = evidence.loc[~evidence["ok"]]
+    summary = (
+        "coverage/range/seasonal-mean checks all pass"
+        if all_ok
+        else f"{len(failing)} ING-094 check(s) failed (see evidence)"
+    )
+    return GateResult("ING-094", all_ok, summary, evidence)
 
 
 # ---------------------------------------------------------------------------
