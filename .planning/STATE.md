@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: m2-auxiliary-data
 status: executing
-stopped_at: Completed EPRA-03-05-PLAN.md
-last_updated: "2026-07-23T09:43:47.480Z"
+stopped_at: Completed EPRA-03-06-PLAN.md (phase EPRA-03 all 6 plans executed; ready for verification)
+last_updated: "2026-07-23T18:26:29.946Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase EPRA-03 execution started
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
 ---
 
 # Project State
@@ -32,7 +32,7 @@ Plan: 6 of 6
 Status: Executing Phase EPRA-03
 Last activity: 2026-07-22 — Phase EPRA-03 execution started
 
-Progress: [█████████░] 93%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Progress: [█████████░] 93%
 | Phase 03 P03 | 45min | 2 tasks | 8 files |
 | Phase EPRA-03 P04 | 55min | 3 tasks | 9 files |
 | Phase EPRA-03 P05 | 18min | 3 tasks | 9 files |
+| Phase EPRA-03 P06 | 15min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Progress: [█████████░] 93%
 - [Phase ?]: [03-04] geosphere_graz_daily_2024-01.parquet fixture generated via the real parse_geojson+write_month path against klima_2019-01.geojson, with dates remapped 2019->2024 only to follow the repo's <dataset>_2024-01.parquet naming convention
 - [Phase ?]: [03-05] ADR-008 pins the AEA continuously-published strompreisindex page as the sole 2019-latest OSPI transcription source, pending human confirmation at T2.05 (D-01/D-04)
 - [Phase ?]: [03-05] load_oespi's peak_available signal lives in frame.attrs (not a second return value or column); gate_ing_103's crisis/MoM checks use oespi_base only so behavior is identical under the ING-104 base-only fallback
+- [Phase ?]: [03-06] gate_ing_111 is a thin wrapper reusing the 03-02 calendar assertions verbatim; a missing real ÖSPI CSV degrades run_gates' ING-103 to a non-crashing informational PASS (D-06)
+- [Phase ?]: [03-06] ÖSPI double-entry reconciliation (ING-101) deliberately deferred past this close-out -- entry1/entry2 CSVs unreconciled; documented in LIMITATIONS.md sec 6 + deferred-items.md, REQ-ING-01 closure left to phase verification
 
 ### Pending Todos
 
@@ -100,6 +103,7 @@ None yet.
 - INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
 - ~~test_config.py::test_entsoe_token_fails_fast_when_unset fails (.env token repopulated by load_dotenv)~~ — RESOLVED 2026-07-22: test now stubs load_dotenv to isolate from real .env (commit dc14314)
 - ~~M1 live-data gate pending operator~~ — DONE 2026-07-22. Live backfill run on real ENTSO-E (token in .env); found + fixed two data-loss bugs (100-doc response cap → pagination; chunk-boundary month overwrite → accumulate-then-write) and one domain bug (gates bucketed by UTC year → ADR-006 scopes them to complete Vienna-local years). `make validate-ingest` now exits 0 — ALL GATES PASSED (ING-080..085) on real 2019→2024-01 data. All three ROADMAP Phase 2 criteria met; M1 complete. See docs/BUILD_LOG.md 2026-07-22 entry.
+- ÖSPI double-entry reconciliation pending: data/manual/oespi_monthly_entry1.csv + entry2.csv exist unreconciled; ING-103 soft-passes informationally (D-06). Resolve via uv run python scripts/oespi_reconcile.py, delete entry files, re-run make validate-ingest. See LIMITATIONS.md sec 6.
 
 ## Deferred Verification
 
@@ -117,7 +121,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-23T09:43:38.777Z
-Stopped at: Completed EPRA-03-05-PLAN.md
+Last session: 2026-07-23T18:26:29.937Z
+Stopped at: Completed EPRA-03-06-PLAN.md (phase EPRA-03 all 6 plans executed; ready for verification)
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
