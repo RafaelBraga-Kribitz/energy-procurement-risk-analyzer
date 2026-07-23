@@ -119,7 +119,15 @@ january_mean       (-10.0, 8.0)                    1.90 True
 
 ### ING-103 — PASS
 
-real ÖSPI data not yet transcribed (data\manual\oespi_monthly.csv absent) -- ING-101 double-entry human checkpoint pending (D-06), not a gate failure
+continuity/positivity/crisis-visibility/MoM checks all pass
+
+```
+            check          expected                                             actual   ok
+       continuity           no gaps                                               none True
+       positivity               > 0                              0 non-positive row(s) True
+crisis_visibility >= 3.0x 2019 mean 2022 max=660.44 vs 2019 mean=103.54 (need >= 3.0x) True
+       mom_change            <= 60%                     0 month(s) exceeding threshold True
+```
 
 ### ING-111 — PASS
 
