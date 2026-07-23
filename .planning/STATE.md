@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: m2-auxiliary-data
 status: executing
-stopped_at: Completed EPRA-03-04-PLAN.md
-last_updated: "2026-07-23T09:24:10.601Z"
+stopped_at: Completed EPRA-03-05-PLAN.md
+last_updated: "2026-07-23T09:43:47.480Z"
 last_activity: 2026-07-22
 last_activity_desc: Phase EPRA-03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-03 (m2-auxiliary-data) — EXECUTING
-Plan: 5 of 6
+Plan: 6 of 6
 Status: Executing Phase EPRA-03
 Last activity: 2026-07-22 — Phase EPRA-03 execution started
 
-Progress: [█████████░] 86%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [█████████░] 86%
 | Phase EPRA-03 P02 | 35min | 2 tasks | 4 files |
 | Phase 03 P03 | 45min | 2 tasks | 8 files |
 | Phase EPRA-03 P04 | 55min | 3 tasks | 9 files |
+| Phase EPRA-03 P05 | 18min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Progress: [█████████░] 86%
 - [Phase ?]: [03-04] gate_ing_094 coverage denominator is calendar days spanned by the data itself (min..max date), never an hours-based constant (RESEARCH Pitfall 6)
 - [Phase ?]: [03-04] _fetch_geosphere is a small GeoSphere-scoped transport with its own cache/politeness logic, not forced through _fetch.fetch_entsoe (typed around EntsoeQuery/EntsoeRawClient, ADR-003)
 - [Phase ?]: [03-04] geosphere_graz_daily_2024-01.parquet fixture generated via the real parse_geojson+write_month path against klima_2019-01.geojson, with dates remapped 2019->2024 only to follow the repo's <dataset>_2024-01.parquet naming convention
+- [Phase ?]: [03-05] ADR-008 pins the AEA continuously-published strompreisindex page as the sole 2019-latest OSPI transcription source, pending human confirmation at T2.05 (D-01/D-04)
+- [Phase ?]: [03-05] load_oespi's peak_available signal lives in frame.attrs (not a second return value or column); gate_ing_103's crisis/MoM checks use oespi_base only so behavior is identical under the ING-104 base-only fallback
 
 ### Pending Todos
 
@@ -114,7 +117,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-23T09:24:10.593Z
-Stopped at: Completed EPRA-03-04-PLAN.md
+Last session: 2026-07-23T09:43:38.777Z
+Stopped at: Completed EPRA-03-05-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
