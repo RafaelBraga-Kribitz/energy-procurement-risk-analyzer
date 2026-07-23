@@ -14,12 +14,15 @@ Gate summary (fail-fast per EN-061 — a failed gate raises, never warns):
 - ING-084 load plausibility 3000-13000 MW hourly, 6000-9000 MW annual mean
 - ING-085 price↔load join coverage ≥ 99.5% per year
 - ING-094 GeoSphere coverage ≥99% of days; −30..42°C range; Jul/Jan seasonal means
-- ING-101/103 ÖSPI reconciliation + series gates (M2, not yet implemented)
+- ING-103 ÖSPI continuity, positivity, crisis visibility (2022≥3×2019), MoM ≤60%
+  (ING-101 double-entry reconciliation lives in ``scripts/oespi_reconcile.py``,
+  not run through this framework — its own CLI + exit code is the gate)
 
 A-2 applies verbatim: on failure, investigate the pipeline — never adjust data
 to pass, never widen a gate without an ADR.
 
-Implements: ING-080, ING-081, ING-082, ING-083, ING-084, ING-085 (M1), ING-094 (M2).
+Implements: ING-080, ING-081, ING-082, ING-083, ING-084, ING-085 (M1), ING-094,
+ING-103 (M2).
 """
 
 from __future__ import annotations
@@ -153,6 +156,11 @@ _TL_MITTEL_MIN_C = -30.0
 _TL_MITTEL_MAX_C = 42.0
 _JULY_MEAN_RANGE_C = (15.0, 30.0)
 _JANUARY_MEAN_RANGE_C = (-10.0, 8.0)
+
+#: SPEC-01 §10 ING-103 ÖSPI series-gate constants. Widening either needs an
+#: ADR (A-2, EN-061) -- never edit to make a gate pass.
+_OESPI_CRISIS_MULTIPLIER = 3.0
+_OESPI_MOM_MAX_ABS_CHANGE = 0.60
 
 
 def _last_sunday(year: int, month: int) -> date:
@@ -550,6 +558,109 @@ def gate_ing_094(geosphere_daily: pd.DataFrame) -> GateResult:
         else f"{len(failing)} ING-094 check(s) failed (see evidence)"
     )
     return GateResult("ING-094", all_ok, summary, evidence)
+
+
+def gate_ing_103(oespi: pd.DataFrame) -> GateResult:
+    """ING-103: ÖSPI series gates -- continuity, positivity, crisis visibility, MoM stability.
+
+    Args:
+        oespi: the ING-100 month-indexed frame from
+            `epra.ingest.oespi.load_oespi` (a `PeriodIndex` named ``month``,
+            plus ``oespi_base``/``oespi_peak`` columns -- ``oespi_peak`` may
+            be all-NaN under the ING-104 base-only fallback).
+
+    Four independent sub-checks, aggregated into one `GateResult` (mirrors
+    `gate_ing_094`'s multi-check style):
+
+    - continuity: every month between the series' min and max is present
+      (a gap fails, A-2 -- never silently interpolated).
+    - positivity: ``oespi_base`` (and ``oespi_peak`` where present) strictly
+      positive throughout.
+    - crisis visibility: the max ``oespi_base`` value in 2022 is
+      >= 3x the mean ``oespi_base`` value in 2019 -- the crisis must be
+      visible in the series a downstream simulator would use.
+    - month-over-month change: ``oespi_base``'s relative change between
+      consecutive months stays within +/-60% (a bigger jump signals a
+      transcription error or a spliced methodology, D-01/ING-102).
+
+    Empty input returns ``passed=False`` (A-2 -- no vacuous pass).
+    """
+    if oespi.empty:
+        return GateResult("ING-103", False, "no ÖSPI data supplied to ING-103", None)
+
+    base = oespi["oespi_base"]
+    peak = oespi["oespi_peak"]
+    months = pd.PeriodIndex(oespi.index)
+
+    # Continuity -- every month between min and max must be present.
+    expected_months = pd.period_range(months.min(), months.max(), freq="M")
+    missing_months = sorted(str(m) for m in set(expected_months) - set(months))
+    continuity_ok = not missing_months
+
+    # Positivity -- base always; peak only where present (ING-104 fallback).
+    negative_base = oespi.loc[base <= 0]
+    negative_peak = oespi.loc[peak.notna() & (peak <= 0)]
+    n_non_positive = len(negative_base) + len(negative_peak)
+    positivity_ok = n_non_positive == 0
+
+    # Crisis visibility -- 2022 max base >= 3x the 2019 mean base.
+    year = months.year
+    base_2019 = base.loc[year == 2019]
+    base_2022 = base.loc[year == 2022]
+    if base_2019.empty or base_2022.empty:
+        crisis_ok = False
+        crisis_detail = "2019 and/or 2022 not present in series -- cannot assert crisis visibility"
+    else:
+        mean_2019 = float(base_2019.mean())
+        max_2022 = float(base_2022.max())
+        crisis_ok = max_2022 >= _OESPI_CRISIS_MULTIPLIER * mean_2019
+        crisis_detail = (
+            f"2022 max={max_2022:.2f} vs 2019 mean={mean_2019:.2f} "
+            f"(need >= {_OESPI_CRISIS_MULTIPLIER}x)"
+        )
+
+    # Month-over-month change -- ordered by month, base column only.
+    pct_change = base.sort_index().pct_change().abs()
+    mom_violations = pct_change.loc[pct_change > _OESPI_MOM_MAX_ABS_CHANGE]
+    mom_ok = mom_violations.empty
+
+    all_ok = continuity_ok and positivity_ok and crisis_ok and mom_ok
+
+    evidence = pd.DataFrame(
+        [
+            {
+                "check": "continuity",
+                "expected": "no gaps",
+                "actual": "none" if continuity_ok else f"missing={missing_months}",
+                "ok": continuity_ok,
+            },
+            {
+                "check": "positivity",
+                "expected": "> 0",
+                "actual": f"{n_non_positive} non-positive row(s)",
+                "ok": positivity_ok,
+            },
+            {
+                "check": "crisis_visibility",
+                "expected": f">= {_OESPI_CRISIS_MULTIPLIER}x 2019 mean",
+                "actual": crisis_detail,
+                "ok": crisis_ok,
+            },
+            {
+                "check": "mom_change",
+                "expected": f"<= {_OESPI_MOM_MAX_ABS_CHANGE:.0%}",
+                "actual": f"{len(mom_violations)} month(s) exceeding threshold",
+                "ok": mom_ok,
+            },
+        ]
+    )
+    failing = evidence.loc[~evidence["ok"]]
+    summary = (
+        "continuity/positivity/crisis-visibility/MoM checks all pass"
+        if all_ok
+        else f"{len(failing)} ING-103 check(s) failed (see evidence)"
+    )
+    return GateResult("ING-103", all_ok, summary, evidence)
 
 
 # ---------------------------------------------------------------------------
