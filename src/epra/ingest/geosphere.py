@@ -1,8 +1,6 @@
 """GeoSphere Austria ingestion — daily mean temperature, Graz (M2).
 
-Station discovery (ING-090..092) is implemented in this plan; the monthly
-`tl_mittel` ingest (ING-093/094) lands in 03-04. Binding contract: SPEC-01 §9.
-Key points:
+Binding contract: SPEC-01 §9. Key points:
 
 - MANDATORY first step is station discovery (ING-091): fetch
   ``/station/historical/klima-v2-1d/metadata``, pick the Graz station with the
@@ -17,10 +15,20 @@ Key points:
   ``/metadata``; `_load_metadata` still defensively accepts a GeoJSON-style
   ``features`` list too, since the metadata endpoint's exact shape is not
   independently pinned by an OpenAPI schema.
+- The data endpoint (``/station/historical/klima-v2-1d?...&output_format=
+  geojson``) returns a ``FeatureCollection``-shaped payload: a top-level
+  ``timestamps`` array running parallel to
+  ``features[0].properties.parameters.tl_mittel.data[]`` (one feature per
+  requested station) — confirmed against the committed fixture
+  ``tests/fixtures/geosphere/klima_2019-01.geojson`` (D-07). `parse_geojson`
+  validates this shape before any deep indexing and raises `ContractError` on
+  a mismatch — it never returns a silently-empty frame on a mis-parse
+  (RESEARCH Pitfall 5).
 - Parameter ``tl_mittel`` (daily mean air temperature, °C); resolve renames via
   metadata + ADR (ING-092). No auth needed; cache per ING-009; ≥ 0.2 s sleep.
 - Raw contract (§7): ``date, station_id, tl_mittel_c, parameter_raw`` + ING-004
-  columns.
+  columns. Written via ``_io.write_month(..., key_column="date")`` — GeoSphere
+  is date-keyed, not ``ts_utc``-keyed (Pattern 1 / RESEARCH Pitfall 1).
 - Gates (ING-094): coverage ≥ 99% of days; −30 ≤ tl_mittel ≤ 42; July mean in
   [15, 30]; January mean in [−10, 8].
 
@@ -30,12 +38,14 @@ Implements (when built, 03-04): ING-093, ING-094.
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
+import pandas as pd
 import requests
 
 from epra.common.config import Settings
@@ -176,6 +186,109 @@ def discover_station(
         station.record_start.isoformat(),
     )
     return station
+
+
+# ---------------------------------------------------------------------------
+# parse_geojson — GeoSphere daily response -> the §7 date-keyed frame (ING-092)
+# ---------------------------------------------------------------------------
+
+#: The §7 raw contract's own columns (before ING-004 provenance is appended).
+_RAW_COLUMNS = ("date", "station_id", "tl_mittel_c", "parameter_raw")
+
+
+def parse_geojson(payload: Any, station_id: str) -> pd.DataFrame:
+    """Parse a GeoSphere ``klima-v2-1d`` daily GeoJSON response into the §7 frame.
+
+    Implements: ING-092.
+
+    The response shape is a top-level ``timestamps`` array running parallel
+    to ``features[0].properties.parameters.tl_mittel.data[]`` (one feature
+    per requested station) — confirmed against the committed fixture
+    ``tests/fixtures/geosphere/klima_2019-01.geojson``.
+
+    Validates the top-level shape BEFORE any nested indexing (RESEARCH
+    Pitfall 5): a malformed/mismatched payload raises `ContractError`, never
+    a silently-empty frame — that would be indistinguishable from a
+    genuinely empty window. A payload with an empty (but present) top-level
+    ``timestamps``/``features`` pair IS a genuinely empty window and returns
+    an empty (correctly-typed) frame.
+
+    Args:
+        payload: parsed JSON response (``response.json()`` shape).
+        station_id: the requesting station id — stamped onto every row (not
+            re-derived from the response body).
+
+    Returns:
+        DataFrame with columns ``date`` (python `date`), ``station_id``
+        (str), ``tl_mittel_c`` (float64), ``parameter_raw`` (the raw JSON
+        literal of the value as provided, str). One row per day present in
+        the response — missing days are absent, never filled (A-2).
+
+    Raises:
+        ContractError: the payload's top-level shape does not match the
+            expected GeoJSON structure, or ``tl_mittel.data`` length does not
+            match ``timestamps`` length.
+    """
+    if not isinstance(payload, dict):
+        raise ContractError(
+            "geosphere_graz_daily", expected="top-level JSON object", actual=type(payload).__name__
+        )
+    timestamps = payload.get("timestamps")
+    features = payload.get("features")
+    if not isinstance(timestamps, list) or not isinstance(features, list):
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected="'timestamps' and 'features' lists at the top level",
+            actual=f"keys={sorted(payload.keys())}",
+        )
+
+    if not timestamps and not features:
+        # Genuinely empty window (e.g. a future/not-yet-published range) --
+        # not a mis-parse, so this does NOT raise (A-2 distinguishes the two).
+        return pd.DataFrame(
+            {
+                "date": pd.Series([], dtype="object"),
+                "station_id": pd.Series([], dtype="object"),
+                "tl_mittel_c": pd.Series([], dtype="float64"),
+                "parameter_raw": pd.Series([], dtype="object"),
+            }
+        )
+
+    if not features:
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected="a non-empty 'features' list (timestamps present but no feature)",
+            actual="features=[]",
+        )
+
+    feature = features[0]
+    properties = feature.get("properties") if isinstance(feature, dict) else None
+    parameters = properties.get("parameters") if isinstance(properties, dict) else None
+    tl_mittel = parameters.get("tl_mittel") if isinstance(parameters, dict) else None
+    data = tl_mittel.get("data") if isinstance(tl_mittel, dict) else None
+    if not isinstance(data, list):
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected="features[0].properties.parameters.tl_mittel.data list",
+            actual=f"features[0]={feature!r}"[:200],
+        )
+    if len(data) != len(timestamps):
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected=f"tl_mittel.data length matching timestamps length ({len(timestamps)})",
+            actual=f"{len(data)}",
+        )
+
+    dates = pd.to_datetime(timestamps, utc=True).date
+    frame = pd.DataFrame(
+        {
+            "date": dates,
+            "station_id": station_id,
+            "tl_mittel_c": pd.Series(data, dtype="float64"),
+            "parameter_raw": [json.dumps(v) for v in data],
+        }
+    )
+    return frame
 
 
 def ingest(settings: Settings, start: date, end: date) -> None:
