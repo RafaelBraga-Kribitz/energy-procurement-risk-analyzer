@@ -5,7 +5,6 @@ empty by M7.
 """
 
 from collections.abc import Callable
-from datetime import date
 from typing import Any
 
 import pandas as pd
@@ -14,15 +13,13 @@ import pytest
 from epra.analytics import descriptive, regimes, spread, weather
 from epra.common.config import load_consumer_profile, load_settings, load_strategy_config
 from epra.consumer import profile
-from epra.ingest import geosphere, oespi
+from epra.ingest import oespi
 from epra.report import charts
 from epra.strategies import calibration, forward_risk, retrospective
 
 SETTINGS = load_settings()
 
 STUBS: list[tuple[str, Callable[..., Any], tuple[Any, ...]]] = [
-    ("M2", geosphere.ingest, (SETTINGS, date(2019, 1, 1), date(2019, 2, 1))),
-    ("M2", geosphere.main, ([],)),
     ("M2", oespi.load_oespi, (SETTINGS,)),
     ("M2", oespi.main, ([],)),
     ("M4", profile.build_profile, (pd.DataFrame(), load_consumer_profile())),

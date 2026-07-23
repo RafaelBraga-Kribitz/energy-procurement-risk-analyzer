@@ -25,6 +25,7 @@ from typing import Any
 import pandas as pd
 import pytest
 
+import epra.ingest.geosphere as geosphere_module
 from epra.common.config import Settings, load_settings
 from epra.ingest.exceptions import ContractError, DiscoveryError
 from epra.ingest.geosphere import (
@@ -274,3 +275,85 @@ def test_ingest_fails_fast_when_station_id_unset(tmp_settings: Settings) -> None
 
     with pytest.raises(DiscoveryError):
         ingest(settings, date(2019, 1, 1), date(2019, 1, 31))
+
+
+# ---------------------------------------------------------------------------
+# main (ING-002)
+# ---------------------------------------------------------------------------
+
+
+def test_main_rejects_malformed_date() -> None:
+    with pytest.raises(SystemExit):
+        geosphere_module.main(["--start", "not-a-date"])
+
+
+def test_main_invokes_ingest_with_explicit_window(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(geosphere_module, "load_settings", lambda: tmp_settings)
+    captured: dict[str, object] = {}
+
+    def fake_ingest(settings: Settings, start: date, end: date, transport: Any = None) -> None:
+        captured["settings"] = settings
+        captured["start"] = start
+        captured["end"] = end
+
+    monkeypatch.setattr(geosphere_module, "ingest", fake_ingest)
+
+    code = geosphere_module.main(["--start", "2019-01-01", "--end", "2019-02-01"])
+
+    assert code == 0
+    assert captured == {
+        "settings": tmp_settings,
+        "start": date(2019, 1, 1),
+        "end": date(2019, 2, 1),
+    }
+
+
+def test_main_defaults_start_and_end(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(geosphere_module, "load_settings", lambda: tmp_settings)
+    captured: dict[str, object] = {}
+
+    def fake_ingest(settings: Settings, start: date, end: date, transport: Any = None) -> None:
+        captured["start"] = start
+        captured["end"] = end
+
+    monkeypatch.setattr(geosphere_module, "ingest", fake_ingest)
+
+    code = geosphere_module.main([])
+
+    assert code == 0
+    assert captured["start"] == tmp_settings.window.start_date
+    assert captured["end"] == date.today()
+
+
+def test_main_rejects_inverted_window(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(geosphere_module, "load_settings", lambda: tmp_settings)
+
+    def fake_ingest(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("ingest should not be called on an inverted window")
+
+    monkeypatch.setattr(geosphere_module, "ingest", fake_ingest)
+
+    code = geosphere_module.main(["--start", "2020-02-01", "--end", "2020-01-01"])
+
+    assert code == 1
+
+
+def test_main_returns_1_when_station_id_unset(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(geosphere_module, "load_settings", lambda: tmp_settings)
+
+    def fake_ingest(settings: Settings, start: date, end: date, transport: Any = None) -> None:
+        raise DiscoveryError("geosphere", "station_id unset")
+
+    monkeypatch.setattr(geosphere_module, "ingest", fake_ingest)
+
+    code = geosphere_module.main(["--start", "2019-01-01", "--end", "2019-02-01"])
+
+    assert code == 1

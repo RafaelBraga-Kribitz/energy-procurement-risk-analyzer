@@ -4,8 +4,8 @@
 
 UV ?= uv
 
-.PHONY: setup backfill ingest validate-ingest calendar transform profile analyze simulate \
-        ssot export report test lint all refresh
+.PHONY: setup backfill ingest validate-ingest geosphere calendar transform profile analyze \
+        simulate ssot export report test lint all refresh
 
 setup:
 	$(UV) venv --allow-existing
@@ -28,6 +28,9 @@ ingest:              ## M1 — SPEC-01 §4: incremental 45-day refresh (ING-041)
 
 validate-ingest:     ## M1/M2 — SPEC-01 §§8-11 gates → reports/ingestion/
 	$(UV) run python -m epra.ingest.validate
+
+geosphere:           ## M2 — SPEC-01 §9: GeoSphere daily temperature 2019 → latest (ING-093)
+	$(UV) run python -m epra.ingest.geosphere
 
 calendar:            ## M2 — SPEC-01 §11: hourly UTC calendar spine (ING-110)
 	$(UV) run python -m epra.ingest.calendar

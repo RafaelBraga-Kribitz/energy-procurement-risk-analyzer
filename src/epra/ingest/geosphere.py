@@ -32,12 +32,12 @@ Binding contract: SPEC-01 §9. Key points:
 - Gates (ING-094): coverage ≥ 99% of days; −30 ≤ tl_mittel ≤ 42; July mean in
   [15, 30]; January mean in [−10, 8].
 
-Implements: ING-090, ING-091, ING-092, ING-093.
-Implements (when built, 03-04 task 3): ING-002 (CLI entrypoint).
+Implements: ING-090, ING-091, ING-092, ING-093, ING-002.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import os
@@ -54,14 +54,13 @@ from uuid import uuid4
 import pandas as pd
 import requests
 
-from epra.common.config import REPO_ROOT, Settings
+from epra.common import logging as common_logging
+from epra.common.config import REPO_ROOT, Settings, load_settings
 from epra.common.timeutil import iter_month_starts
 from epra.ingest._io import _now_utc, request_hash, write_month
-from epra.ingest.exceptions import ContractError, DiscoveryError
+from epra.ingest.exceptions import ContractError, DiscoveryError, IngestError
 
 logger = logging.getLogger(__name__)
-
-_MSG = "M2 not implemented yet — build per SPEC-01 §9 (see module docstring)"
 
 
 @dataclass(frozen=True)
@@ -465,9 +464,59 @@ def ingest(
         write_month(frame, "geosphere_graz_daily", month, req_hash, settings, key_column="date")
 
 
+def _parse_cli_date(text: str) -> date:
+    """`argparse` `type=` callback (T-02-10): reject anything not YYYY-MM-DD."""
+    try:
+        return date.fromisoformat(text)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"invalid date {text!r}; expected YYYY-MM-DD") from exc
+
+
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: ``python -m epra.ingest.geosphere --start YYYY-MM-DD --end YYYY-MM-DD`` (ING-002)."""
-    raise NotImplementedError(_MSG)
+    """CLI: ``python -m epra.ingest.geosphere [--start YYYY-MM-DD] [--end YYYY-MM-DD]`` (ING-002).
+
+    Defaults: ``--start`` to ``settings.window.start_date`` (2019-01-01),
+    ``--end`` to today — so a bare invocation (e.g. ``make geosphere``)
+    ingests the full 2019-latest window (ING-093), matching `entsoe.py`'s
+    mode-flag-only ergonomics (no required date args).
+
+    Returns 0 on success, 1 on a user/validation error (invalid window, or
+    `settings.geosphere.station_id` unset — run `discover_station()` first).
+    """
+    parser = argparse.ArgumentParser(
+        prog="python -m epra.ingest.geosphere",
+        description="GeoSphere daily temperature ingestion: 2019-01-01 -> latest (ING-093).",
+    )
+    parser.add_argument(
+        "--start",
+        type=_parse_cli_date,
+        default=None,
+        help="Override ingest start date (YYYY-MM-DD). Default: settings.window.start_date.",
+    )
+    parser.add_argument(
+        "--end",
+        type=_parse_cli_date,
+        default=None,
+        help="Override ingest end date (YYYY-MM-DD). Default: today.",
+    )
+    args = parser.parse_args(argv)
+
+    settings = load_settings()
+    logfile = settings.paths.reports / "ingestion" / f"geosphere_{date.today():%Y-%m-%d}.log"
+    common_logging.setup(logfile=logfile)
+
+    start = args.start if args.start is not None else settings.window.start_date
+    end = args.end if args.end is not None else date.today()
+
+    try:
+        if end <= start:
+            raise ValueError(f"invalid window: end ({end}) must be after start ({start})")
+        ingest(settings, start, end)
+    except (ValueError, IngestError) as exc:
+        logger.error("geosphere ingest failed: %s", exc)
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":
