@@ -18,6 +18,17 @@ supplier margins, credit terms, volume flexibility clauses). Direction of the
 likely bias unknown — this will be said plainly (R-5). Calibration anchors
 (p_ref_base, p_ref_peak, oespi_base_ref, oespi_peak_ref) quoted here per ST-204.
 
+**ÖSPI series pick is provisional.** ADR-008 pins the AEA continuously-published
+*strompreisindex* page as the sole 2019→latest transcription source, but that
+pick is explicitly flagged pending human confirmation at T2.05 transcription
+time (D-01/D-04) — it is a strong research-backed candidate, not a locked
+fact, until the human double-entry transcription (ING-101) actually happens.
+If monthly Peak values turn out to be unavailable/discontinuous for part of
+the 2019→latest window, the pipeline falls back to Base-only mode (ING-104,
+`load_oespi`'s `peak_available=False` signal) rather than failing outright —
+see ADR-008 for the mechanism and the crisis-visibility gate (ING-103) that
+still holds in that mode.
+
 ## 3. The fixed-price premium is an assumption
 *(finalized at M6)* — 5 EUR/MWh service premium is CALIBRATED, not observed;
 the 0 / 10 EUR/MWh sensitivity results (ST-303a) will be shown here.

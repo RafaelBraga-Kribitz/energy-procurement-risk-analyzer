@@ -24,18 +24,20 @@ scripts/oespi_reconcile.py).
 
 from __future__ import annotations
 
+import argparse
 import logging
 from collections.abc import Sequence
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
 
-from epra.common.config import Settings
+from epra.common import logging as common_logging
+from epra.common.config import Settings, load_settings
 from epra.ingest.exceptions import ContractError
+from epra.ingest.validate import gate_ing_103
 
 logger = logging.getLogger(__name__)
-
-_MSG = "M2 not implemented yet — build per SPEC-01 §10 (see module docstring)"
 
 #: ING-100 schema, in order. Mirrors `scripts/oespi_reconcile.EXPECTED_COLUMNS`
 #: (that script's own source of truth) — duplicated rather than imported
@@ -162,12 +164,35 @@ def load_oespi(settings: Settings, *, csv_path: Path | None = None) -> pd.DataFr
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: ``python -m epra.ingest.oespi`` — validate the committed CSV (ING-103).
+    """CLI: ``python -m epra.ingest.oespi`` — load + validate the committed CSV (ING-103).
 
-    Not yet implemented — wired in 03-05 Task 3 (loads settings, calls
-    `load_oespi`, runs `epra.ingest.validate.gate_ing_103`).
+    Loads ``settings.paths.data_manual / "oespi_monthly.csv"`` (the reconciled
+    double-entry file, ING-101), then runs `gate_ing_103` and prints the
+    result. Returns 0 if the CSV loads and the gate passes, 1 on a load error
+    (`ContractError`/`FileNotFoundError` — e.g. the real reconciled CSV isn't
+    committed yet, the 03-06 human checkpoint) or a failed gate.
     """
-    raise NotImplementedError(_MSG)
+    parser = argparse.ArgumentParser(
+        prog="python -m epra.ingest.oespi",
+        description="Load + validate the committed ÖSPI monthly CSV (ING-100/102/103/104).",
+    )
+    parser.parse_args(argv)
+
+    settings = load_settings()
+    logfile = settings.paths.reports / "ingestion" / f"oespi_{date.today():%Y-%m-%d}.log"
+    common_logging.setup(logfile=logfile)
+
+    try:
+        frame = load_oespi(settings)
+    except (ContractError, FileNotFoundError) as exc:
+        logger.error("ÖSPI load failed: %s", exc)
+        return 1
+
+    result = gate_ing_103(frame)
+    logger.info("gate=%s passed=%s summary=%s", result.gate_id, result.passed, result.summary)
+    print(result.render_markdown())
+
+    return 0 if result.passed else 1
 
 
 if __name__ == "__main__":

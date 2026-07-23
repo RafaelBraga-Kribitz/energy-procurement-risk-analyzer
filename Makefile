@@ -4,8 +4,8 @@
 
 UV ?= uv
 
-.PHONY: setup backfill ingest validate-ingest geosphere calendar transform profile analyze \
-        simulate ssot export report test lint all refresh
+.PHONY: setup backfill ingest validate-ingest geosphere calendar oespi transform profile \
+        analyze simulate ssot export report test lint all refresh
 
 setup:
 	$(UV) venv --allow-existing
@@ -34,6 +34,9 @@ geosphere:           ## M2 — SPEC-01 §9: GeoSphere daily temperature 2019 →
 
 calendar:            ## M2 — SPEC-01 §11: hourly UTC calendar spine (ING-110)
 	$(UV) run python -m epra.ingest.calendar
+
+oespi:               ## M2 — SPEC-01 §10: ÖSPI loader + series gates (ING-103)
+	$(UV) run python -m epra.ingest.oespi
 
 # ---------------------------------------------------------------- not yet implemented ----
 transform:           ## M3 — dbt build (models + tests)
