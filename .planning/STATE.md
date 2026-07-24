@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: m3-dbt-warehouse
 status: executing
-stopped_at: Completed 04-05-PLAN.md
-last_updated: "2026-07-24T09:22:47.818Z"
+stopped_at: Completed 04-06-PLAN.md
+last_updated: "2026-07-24T09:38:05.606Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase EPRA-04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-04 (m3-dbt-warehouse) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Executing Phase EPRA-04
 Last activity: 2026-07-24 — Phase EPRA-04 execution started
 
-Progress: [█████████░] 86%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [█████████░] 86%
 | Phase EPRA-04 P03 | 15min | 2 tasks | 2 files |
 | Phase EPRA-04 P04 | 20min | 3 tasks | 9 files |
 | Phase EPRA-04 P05 | 45min | 3 tasks | 6 files |
+| Phase EPRA-04 P06 | 35min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,8 @@ Progress: [█████████░] 86%
 - [Phase ?]: [04-05] D-04/ADR-010: generator synthesizes every raw/processed row programmatically (seeded numpy RNG), never copies committed fixture parquet -- a capped ~200-row sample cannot satisfy DM-062/DM-065 over a full multi-year window
 - [Phase ?]: [04-05] D-06 extension: added a --processed-only CLI mode (writes only data/processed, discovers the real local window from calendar.parquet, never touches data/raw/data/manual) -- used to safely verify Task 3 against this repo's real 2019-2024 ingested data, since --force would have overwritten real raw parquet
 - [Phase ?]: [04-05] fct_consumer_load_hourly/fct_procurement_cost_monthly are thin never-disabled loaders over source('raw_processed', ...) (SG-06); DM-063 relationships test (strategy_id -> dim_strategy) green
+- [Phase ?]: [04-06] DM-062 row-count test scoped to calendar-complete years (min/max date_local = local Jan-1/Dec-31) so dim_calendar's intentional forward-risk-horizon boundary artifact (a lone year_local=2028, 1-row edge) doesn't trip a false anomaly, mirroring ADR-006's complete-years-within-window convention; no-op for the fully-bounded CI fixture window
+- [Phase ?]: [04-06] marts_contract.yml is a flat mart-name-keyed mapping (no version/wrapper key) so test_marts_contract.py can parametrize via sorted(contract) directly; fct_procurement_cost_monthly.year_local/month_local captured as BIGINT (not INTEGER) since that mart loads straight off the processed stand-in parquet, not a dim_calendar join
 
 ### Pending Todos
 
@@ -138,7 +141,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-24T09:22:47.807Z
-Stopped at: Completed 04-05-PLAN.md
+Last session: 2026-07-24T09:38:05.597Z
+Stopped at: Completed 04-06-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md

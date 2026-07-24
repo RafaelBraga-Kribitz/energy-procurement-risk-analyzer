@@ -101,7 +101,7 @@ Plans:
   2. Mart schemas byte-match the committed SPEC-02 §5 contract YAML
   3. CI fixture bootstrap enables `dbt build` green without a full local backfill
 
-**Plans**: 5/8 plans executed
+**Plans**: 6/8 plans executed
 
 Plans:
 **Wave 1**
@@ -123,7 +123,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 04-06-PLAN.md — dbt test suite DM-050/062/064/065/066 + marts_contract.yml + schema-contract pytest (T3.05)
+- [x] 04-06-PLAN.md — dbt test suite DM-050/062/064/065/066 + marts_contract.yml + schema-contract pytest (T3.05)
 
 **Wave 6** *(blocked on Wave 5)*
 
@@ -196,7 +196,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
 | 2. M1 ENTSO-E | 7/7 | In Progress|  |
 | 3. M2 Auxiliary | 6/6 | Complete    | 2026-07-23 |
-| 4. M3 dbt | 5/8 | In Progress|  |
+| 4. M3 dbt | 6/8 | In Progress|  |
 | 5. M4 Profile | 0/TBD | Not started | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |
 | 7. M6 Strategies | 0/TBD | Not started | - |
