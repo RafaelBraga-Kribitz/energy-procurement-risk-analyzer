@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: m3-dbt-warehouse
 status: executing
-stopped_at: Completed 04-06-PLAN.md
-last_updated: "2026-07-24T09:38:05.606Z"
+stopped_at: Completed 04-07-PLAN.md
+last_updated: "2026-07-24T09:49:17.413Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase EPRA-04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-04 (m3-dbt-warehouse) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Executing Phase EPRA-04
 Last activity: 2026-07-24 — Phase EPRA-04 execution started
 
-Progress: [█████████░] 91%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [█████████░] 91%
 | Phase EPRA-04 P04 | 20min | 3 tasks | 9 files |
 | Phase EPRA-04 P05 | 45min | 3 tasks | 6 files |
 | Phase EPRA-04 P06 | 35min | 3 tasks | 7 files |
+| Phase EPRA-04 P07 | 30min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Progress: [█████████░] 91%
 - [Phase ?]: [04-05] fct_consumer_load_hourly/fct_procurement_cost_monthly are thin never-disabled loaders over source('raw_processed', ...) (SG-06); DM-063 relationships test (strategy_id -> dim_strategy) green
 - [Phase ?]: [04-06] DM-062 row-count test scoped to calendar-complete years (min/max date_local = local Jan-1/Dec-31) so dim_calendar's intentional forward-risk-horizon boundary artifact (a lone year_local=2028, 1-row edge) doesn't trip a false anomaly, mirroring ADR-006's complete-years-within-window convention; no-op for the fully-bounded CI fixture window
 - [Phase ?]: [04-06] marts_contract.yml is a flat mart-name-keyed mapping (no version/wrapper key) so test_marts_contract.py can parametrize via sorted(contract) directly; fct_procurement_cost_monthly.year_local/month_local captured as BIGINT (not INTEGER) since that mart loads straight off the processed stand-in parquet, not a dim_calendar join
+- [Phase ?]: [04-07] D-02 build-report writer (ModelBuildResult/BuildReport, GateResult/ValidationReport reuse) queries the marts schema read-only for DM-062/DM-050/DM-064 sanity numbers without re-implementing the 04-06 dbt tests' boundary logic -- purely presentation, not re-gating
+- [Phase ?]: [04-07] make transform un-stubbed to cd dbt && dbt build; make warehouse composes transform + python -m epra.warehouse.report, mirroring the ingest -> validate-ingest two-step Makefile convention
 
 ### Pending Todos
 
@@ -141,7 +144,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-24T09:38:05.597Z
-Stopped at: Completed 04-06-PLAN.md
+Last session: 2026-07-24T09:49:17.403Z
+Stopped at: Completed 04-07-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
