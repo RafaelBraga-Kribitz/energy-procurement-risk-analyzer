@@ -1,0 +1,31 @@
+# DM-060 unique/not_null generic tests on the two dimension grain keys.
+# Kept as a dedicated dims.yml, separate from the fct_* YAMLs added in
+# 04-04/04-05, to avoid cross-plan file conflicts.
+version: 2
+
+models:
+  - name: dim_calendar
+    description: >
+      SPEC-02 §4 / DM-011 hour-grain calendar dimension — single source of
+      local calendar truth every fct_* mart joins on via ts_utc. Local
+      attributes are loaded verbatim from the ING-110 calendar source
+      (never re-derived with a timezone-conversion call); season and
+      hdd_18/cdd_22 are added here from stg_weather_graz_daily.
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+
+seeds:
+  - name: dim_strategy
+    description: >
+      SPEC-02 §4 dim_strategy seed — the 6 committed procurement strategy
+      rows (S1, S2, S3, S4_30, S4_50, S4_70). DM-060 unique/not_null on
+      strategy_id makes this a trustworthy DM-063 FK target for
+      fct_procurement_cost_monthly (04-05).
+    columns:
+      - name: strategy_id
+        tests:
+          - unique
+          - not_null
