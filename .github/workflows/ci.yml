@@ -1,5 +1,5 @@
-# EN-080 — CI. Jobs 1 (lint) and 2 (test) are live from M0.
-# Job 3 (dbt fixture build) arrives with M3; job 4 (ssot-check) with M6.
+# EN-080 — CI. Jobs 1 (lint), 2 (test), and 3 (dbt-check) are live (M0/M3).
+# Job 4 (ssot-check) arrives with M6.
 # All four become required for merge as they land.
 name: ci
 
@@ -33,5 +33,18 @@ jobs:
       # EN-070: no network in CI tests; live suite excluded by marker.
       - run: uv run pytest -m "not live"
 
-  # dbt-check:   # M3 — dbt build against tests/fixtures mini-warehouse (EN-080 job 3)
+  dbt-check:          # M3 — dbt build against a synthesized fixture warehouse (EN-080 job 3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv venv && uv pip install -e ".[dev]"
+      # D-04: network-free synth of the 2022-2024 fixture warehouse (fresh
+      # checkout, empty data/ -- --force is safe here, never run locally
+      # against real ingested data).
+      - run: uv run python scripts/bootstrap_fixture_warehouse.py --force
+      - run: cd dbt && uv run dbt build
+
   # ssot-check:  # M6 — scripts/check_ssot_consistency.py (EN-080 job 4, GV-303)
