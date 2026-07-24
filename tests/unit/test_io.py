@@ -264,7 +264,9 @@ def test_write_month_date_key_happy_path(tmp_settings: Settings) -> None:
     atomically with no tz assertion applied to the key column."""
     month = date(2021, 3, 1)
     frame = _geosphere_daily_frame(month)
-    req_hash = _io.request_hash("https://dataset.api.hub.geosphere.at/v1/station/historical/klima-v2-1d")
+    req_hash = _io.request_hash(
+        "https://dataset.api.hub.geosphere.at/v1/station/historical/klima-v2-1d"
+    )
 
     path = _io.write_month(
         frame, "geosphere_graz_daily", month, req_hash, tmp_settings, key_column="date"

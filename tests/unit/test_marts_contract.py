@@ -19,7 +19,7 @@ import pytest
 import yaml
 
 from epra.common.config import REPO_ROOT, load_settings
-from epra.common.db import connect
+from epra.common.db import connect, warehouse_path
 
 CONTRACT_PATH = REPO_ROOT / "dbt" / "contracts" / "marts_contract.yml"
 
@@ -50,7 +50,11 @@ def _actual_columns(mart: str) -> list[tuple[str, str]]:
 
 def _marts_schema_populated() -> bool:
     """True once `dbt build` has materialized at least one `marts` table."""
-    con = connect(load_settings(), read_only=True)
+    settings = load_settings()
+    # Fresh CI checkouts have no epra.duckdb; read_only connect raises IOException.
+    if not warehouse_path(settings).exists():
+        return False
+    con = connect(settings, read_only=True)
     try:
         row = con.execute(
             "select count(*) from information_schema.tables where table_schema = 'marts'"

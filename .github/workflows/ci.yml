@@ -47,5 +47,7 @@ jobs:
       # against real ingested data).
       - run: uv run python scripts/bootstrap_fixture_warehouse.py --force
       - run: cd dbt && uv run dbt build
+      # D-07 / SC#2: schema contract is meaningful only after dbt build (skipped in test:).
+      - run: uv run pytest tests/unit/test_marts_contract.py -m "not live" --no-cov
 
   # ssot-check:  # M6 — scripts/check_ssot_consistency.py (EN-080 job 4, GV-303)
