@@ -1,0 +1,92 @@
+# D-07 hand-authored mart schema contract, per SPEC-02 §5 + the SG-05
+# frozen fct_price_hourly enumeration.
+#
+# This file deliberately lives OUTSIDE dbt_project.yml's model-paths
+# (["models"]), so dbt itself never discovers or validates it -- it exists
+# solely as the byte-exact diff target for tests/unit/test_marts_contract.py
+# (D-07 pytest information_schema.columns diff), not as a dbt-native
+# `contract: {enforced: true}` block (Pitfall 3, 04-RESEARCH.md).
+#
+# Top-level keys are exactly the 6 mart names (no wrapper key) -- consumed
+# directly as `sorted(contract)` by the pytest parametrize in
+# tests/unit/test_marts_contract.py. Column order matches ordinal_position
+# in the built warehouse (schema='marts'); `type` is the exact DuckDB
+# canonical information_schema.columns.data_type string read directly off
+# a real `dbt build` of this warehouse -- editing any mart's column name or
+# type without updating this file (or vice versa) breaks the D-07 test.
+
+fct_price_hourly:
+  # SG-05 frozen enumeration: 6 own columns + all 11 dim_calendar
+  # attributes (date_local, year_local, month_local, hour_local,
+  # dow_local, is_weekend, is_holiday_at, is_peak_hour, season, hdd_18,
+  # cdd_22) = 17 columns total.
+  columns:
+    - {name: ts_utc, type: "TIMESTAMP WITH TIME ZONE"}
+    - {name: price_at_eur_mwh, type: DOUBLE}
+    - {name: price_delu_eur_mwh, type: DOUBLE}
+    - {name: spread_at_delu_eur_mwh, type: DOUBLE}
+    - {name: load_at_mw, type: DOUBLE}
+    - {name: is_negative_price, type: BOOLEAN}
+    - {name: date_local, type: DATE}
+    - {name: year_local, type: INTEGER}
+    - {name: month_local, type: INTEGER}
+    - {name: hour_local, type: INTEGER}
+    - {name: dow_local, type: INTEGER}
+    - {name: is_weekend, type: BOOLEAN}
+    - {name: is_holiday_at, type: BOOLEAN}
+    - {name: is_peak_hour, type: BOOLEAN}
+    - {name: season, type: VARCHAR}
+    - {name: hdd_18, type: DOUBLE}
+    - {name: cdd_22, type: DOUBLE}
+
+fct_price_daily:
+  columns:
+    - {name: date_local, type: DATE}
+    - {name: price_base_eur_mwh, type: DOUBLE}
+    - {name: price_peak_eur_mwh, type: DOUBLE}
+    - {name: price_min, type: DOUBLE}
+    - {name: price_max, type: DOUBLE}
+    - {name: price_std, type: DOUBLE}
+    - {name: n_negative_hours, type: HUGEINT}
+    - {name: tavg_c, type: DOUBLE}
+    - {name: hdd_18, type: DOUBLE}
+    - {name: cdd_22, type: DOUBLE}
+
+fct_price_monthly:
+  columns:
+    - {name: year_local, type: INTEGER}
+    - {name: month_local, type: INTEGER}
+    - {name: price_base_eur_mwh, type: DOUBLE}
+    - {name: price_peak_eur_mwh, type: DOUBLE}
+    - {name: price_offpeak_eur_mwh, type: DOUBLE}
+    - {name: n_negative_hours, type: HUGEINT}
+    - {name: oespi_base, type: DOUBLE}
+    - {name: oespi_peak, type: DOUBLE}
+
+fct_generation_monthly:
+  columns:
+    - {name: year_local, type: INTEGER}
+    - {name: month_local, type: INTEGER}
+    - {name: psr_type, type: VARCHAR}
+    - {name: psr_name, type: VARCHAR}
+    - {name: gen_gwh, type: DOUBLE}
+    - {name: share_of_total, type: DOUBLE}
+
+fct_consumer_load_hourly:
+  columns:
+    - {name: ts_utc, type: "TIMESTAMP WITH TIME ZONE"}
+    - {name: load_mwh, type: DOUBLE}
+
+fct_procurement_cost_monthly:
+  # year_local/month_local are BIGINT here (unlike the INTEGER
+  # dim_calendar-derived year_local/month_local elsewhere) because this
+  # mart is a thin loader straight off the processed stand-in parquet
+  # (source('raw_processed', 'procurement_cost_monthly')), not a
+  # dim_calendar join -- confirmed against the real built warehouse.
+  columns:
+    - {name: year_local, type: BIGINT}
+    - {name: month_local, type: BIGINT}
+    - {name: strategy_id, type: VARCHAR}
+    - {name: volume_mwh, type: DOUBLE}
+    - {name: cost_eur, type: DOUBLE}
+    - {name: unit_cost_eur_mwh, type: DOUBLE}
