@@ -17,7 +17,8 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - run: uv venv && uv pip install -e ".[dev]"
+      # setup-uv may already create .venv; --clear avoids "venv already exists".
+      - run: uv venv --clear && uv pip install -e ".[dev]"
       - run: uv run ruff check src tests scripts
       - run: uv run ruff format --check src tests scripts
       - run: uv run mypy
@@ -29,7 +30,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - run: uv venv && uv pip install -e ".[dev]"
+      - run: uv venv --clear && uv pip install -e ".[dev]"
       # EN-070: no network in CI tests; live suite excluded by marker.
       - run: uv run pytest -m "not live"
 
@@ -40,7 +41,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.12"
-      - run: uv venv && uv pip install -e ".[dev]"
+      - run: uv venv --clear && uv pip install -e ".[dev]"
       # D-04: network-free synth of the 2022-2024 fixture warehouse (fresh
       # checkout, empty data/ -- --force is safe here, never run locally
       # against real ingested data).
