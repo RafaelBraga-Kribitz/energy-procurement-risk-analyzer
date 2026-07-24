@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: m3-dbt-warehouse
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-07-24T08:49:43.751Z"
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-07-24T08:59:44.163Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase EPRA-04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-04 (m3-dbt-warehouse) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Executing Phase EPRA-04
 Last activity: 2026-07-24 — Phase EPRA-04 execution started
 
-Progress: [████████░░] 77%
+Progress: [████████░░] 82%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [████████░░] 77%
 | Phase EPRA-04 P01 | 20min | 3 tasks | 6 files |
 | Phase EPRA-04 P02 | 30min | 3 tasks | 12 files |
 | Phase EPRA-04 P03 | 15min | 2 tasks | 2 files |
+| Phase EPRA-04 P04 | 20min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -101,6 +102,9 @@ Progress: [████████░░] 77%
 - [Phase ?]: [04-02] Rule 1 bug fix: dbt/profiles.yml pins settings.TimeZone=UTC -- DuckDB's default session TimeZone is the host OS local zone, so date_trunc('hour', ts_utc) on TIMESTAMPTZ silently truncated to Vienna-local hour boundaries, not UTC (caught via DST-transition n_subhours=8 anomaly)
 - [Phase ?]: [04-02] Rule 3: hand-rolled dbt/macros/test_unique_combination_of_columns.sql (zero dbt_utils dependency, ADR-001) for stg_gen_at_hourly's composite [ts_utc, psr_type] grain key
 - [Phase ?]: [04-03] No deviations — dim_calendar builds exactly per SPEC-02 §4 with zero timezone-conversion calls; DST edge hours (23/25) and dim_calendar.ts_utc/dim_strategy.strategy_id uniqueness verified on real data
+- [Phase ?]: [04-04] ADR-011: exactly one holiday-aware is_peak_hour (dim_calendar) drives price_peak_eur_mwh everywhere; NULL (not 0) on no-peak days -- verified on real Austrian holiday dates
+- [Phase ?]: [04-04] fct_price_daily sources tavg_c via direct join to stg_weather_graz_daily (dim_calendar only carries derived hdd_18/cdd_22, not raw temperature)
+- [Phase ?]: [04-04] Rule 1: nested new facts_price.yml generic-test args under dbt 1.12's arguments: property to fix MissingArgumentsPropertyInGenericTestDeprecation; pre-existing staging.yml occurrence logged to deferred-items.md (out of scope)
 
 ### Pending Todos
 
@@ -130,7 +134,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-24T08:49:43.741Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-07-24T08:59:44.154Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
