@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: m3-dbt-warehouse
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-07-24T08:59:44.163Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-07-24T09:22:47.818Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase EPRA-04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-04 (m3-dbt-warehouse) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Executing Phase EPRA-04
 Last activity: 2026-07-24 — Phase EPRA-04 execution started
 
-Progress: [████████░░] 82%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [████████░░] 82%
 | Phase EPRA-04 P02 | 30min | 3 tasks | 12 files |
 | Phase EPRA-04 P03 | 15min | 2 tasks | 2 files |
 | Phase EPRA-04 P04 | 20min | 3 tasks | 9 files |
+| Phase EPRA-04 P05 | 45min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Progress: [████████░░] 82%
 - [Phase ?]: [04-04] ADR-011: exactly one holiday-aware is_peak_hour (dim_calendar) drives price_peak_eur_mwh everywhere; NULL (not 0) on no-peak days -- verified on real Austrian holiday dates
 - [Phase ?]: [04-04] fct_price_daily sources tavg_c via direct join to stg_weather_graz_daily (dim_calendar only carries derived hdd_18/cdd_22, not raw temperature)
 - [Phase ?]: [04-04] Rule 1: nested new facts_price.yml generic-test args under dbt 1.12's arguments: property to fix MissingArgumentsPropertyInGenericTestDeprecation; pre-existing staging.yml occurrence logged to deferred-items.md (out of scope)
+- [Phase ?]: [04-05] D-04/ADR-010: generator synthesizes every raw/processed row programmatically (seeded numpy RNG), never copies committed fixture parquet -- a capped ~200-row sample cannot satisfy DM-062/DM-065 over a full multi-year window
+- [Phase ?]: [04-05] D-06 extension: added a --processed-only CLI mode (writes only data/processed, discovers the real local window from calendar.parquet, never touches data/raw/data/manual) -- used to safely verify Task 3 against this repo's real 2019-2024 ingested data, since --force would have overwritten real raw parquet
+- [Phase ?]: [04-05] fct_consumer_load_hourly/fct_procurement_cost_monthly are thin never-disabled loaders over source('raw_processed', ...) (SG-06); DM-063 relationships test (strategy_id -> dim_strategy) green
 
 ### Pending Todos
 
@@ -134,7 +138,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-24T08:59:44.154Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-07-24T09:22:47.807Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
