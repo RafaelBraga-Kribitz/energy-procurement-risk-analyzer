@@ -4,8 +4,8 @@
 
 UV ?= uv
 
-.PHONY: setup backfill ingest validate-ingest geosphere calendar oespi transform profile \
-        analyze simulate ssot export report test lint all refresh
+.PHONY: setup backfill ingest validate-ingest geosphere calendar oespi transform warehouse \
+        profile analyze simulate ssot export report test lint all refresh
 
 setup:
 	$(UV) venv --allow-existing
@@ -38,10 +38,14 @@ calendar:            ## M2 — SPEC-01 §11: hourly UTC calendar spine (ING-110)
 oespi:               ## M2 — SPEC-01 §10: ÖSPI loader + series gates (ING-103)
 	$(UV) run python -m epra.ingest.oespi
 
-# ---------------------------------------------------------------- not yet implemented ----
-transform:           ## M3 — dbt build (models + tests)
-	@echo "ERROR: 'make transform' not implemented yet (M3 — SPEC-02)." >&2; exit 1
+transform:           ## M3 — SPEC-02: dbt build (models + tests)
+	cd dbt && $(UV) run dbt build
 
+warehouse:           ## M3 — SPEC-02 D-02: dbt build + human-readable build report
+	$(MAKE) transform
+	$(UV) run python -m epra.warehouse.report
+
+# ---------------------------------------------------------------- not yet implemented ----
 profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_baseload)
 	@echo "ERROR: 'make profile' not implemented yet (M4 — SPEC-03)." >&2; exit 1
 

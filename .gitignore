@@ -30,6 +30,10 @@ exports/*.csv
 # operational ingest logs (EN-060); gate evidence is reports/ingestion/validation_*.md
 reports/ingestion/*.log
 
+# operational build-report logs (EN-060); the D-02 report itself is
+# reports/warehouse/dbt_build_*.md (committed at 04-08)
+reports/warehouse/*.log
+
 # graphify staging + caches (canonical SSOT: .planning/graphs/ — see CONTINUITY.md)
 graphify-out/
 .planning/graphs/.last-build-snapshot.json

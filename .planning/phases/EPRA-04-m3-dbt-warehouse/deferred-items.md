@@ -16,3 +16,16 @@ current task's changes).
   `unique_combination_of_columns` invocations. `staging.yml` is out of scope
   for 04-04 (owned by 04-02, already committed) — fix in a future
   housekeeping pass or the next time `staging.yml` is touched.
+
+## 04-07
+
+- **`scripts/bootstrap_fixture_warehouse.py` / `tests/unit/test_bootstrap_fixture_warehouse.py`
+  — ruff format drift.** `make lint`'s `ruff format --check src tests scripts`
+  reports both files "would be reformatted". Both files are owned by 04-05
+  (already committed) and are not in this plan's `files_modified`
+  (`src/epra/warehouse/__init__.py`, `src/epra/warehouse/report.py`,
+  `tests/unit/test_warehouse_report.py`, `Makefile`) — out of scope per the
+  executor's scope-boundary rule. `uv run ruff format --check
+  src/epra/warehouse tests/unit/test_warehouse_report.py` (this plan's own
+  files) reports "3 files already formatted", clean. Fix whenever
+  `bootstrap_fixture_warehouse.py`/its test is next touched.
