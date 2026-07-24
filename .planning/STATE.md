@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: m3-dbt-warehouse
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-07-24T08:45:01.523Z"
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-07-24T08:49:43.751Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase EPRA-04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-04 (m3-dbt-warehouse) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Executing Phase EPRA-04
 Last activity: 2026-07-24 — Phase EPRA-04 execution started
 
-Progress: [███████░░░] 73%
+Progress: [████████░░] 77%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [███████░░░] 73%
 | Phase EPRA-03 P06 | 15min | 2 tasks | 6 files |
 | Phase EPRA-04 P01 | 20min | 3 tasks | 6 files |
 | Phase EPRA-04 P02 | 30min | 3 tasks | 12 files |
+| Phase EPRA-04 P03 | 15min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,7 @@ Progress: [███████░░░] 73%
 - [Phase ?]: month_spine and accepted_range macros hand-rolled on DuckDB native generate_series -- no dbt_utils/packages.yml added (ADR-001 lean-repo)
 - [Phase ?]: [04-02] Rule 1 bug fix: dbt/profiles.yml pins settings.TimeZone=UTC -- DuckDB's default session TimeZone is the host OS local zone, so date_trunc('hour', ts_utc) on TIMESTAMPTZ silently truncated to Vienna-local hour boundaries, not UTC (caught via DST-transition n_subhours=8 anomaly)
 - [Phase ?]: [04-02] Rule 3: hand-rolled dbt/macros/test_unique_combination_of_columns.sql (zero dbt_utils dependency, ADR-001) for stg_gen_at_hourly's composite [ts_utc, psr_type] grain key
+- [Phase ?]: [04-03] No deviations — dim_calendar builds exactly per SPEC-02 §4 with zero timezone-conversion calls; DST edge hours (23/25) and dim_calendar.ts_utc/dim_strategy.strategy_id uniqueness verified on real data
 
 ### Pending Todos
 
@@ -128,7 +130,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-24T08:45:01.514Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-07-24T08:49:43.741Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
