@@ -221,3 +221,67 @@ ING-083 now checks the spec-required years that are *complete* in the data (toda
 reported as a boundary partial. All three ROADMAP Phase 2 success criteria are
 met end-to-end: ING-070 contract tests in CI, real backfill under `data/raw/`,
 and `make validate-ingest` green on real data. **M1 complete; M2 can start.**
+
+---
+
+## 2026-07-24 — M3 dbt Warehouse (SPEC-02) — both builds green, schema contract byte-matched
+
+**Shipped**
+
+- Full dbt project (`dbt/`): sources (`sources.yml`, all 9 raw/manual/processed
+  datasets via `../data/`-prefixed `read_parquet`/`read_csv` globs, DM-004),
+  `generate_schema_name` macro (ADR-009 — literal `staging`/`marts` schemas),
+  8 staging models, `dim_calendar` + `dim_strategy` (seed), 6 marts
+  (`fct_price_hourly`, `fct_price_daily`, `fct_price_monthly`,
+  `fct_generation_monthly`, plus the two D-05/SG-06 stand-in marts
+  `fct_consumer_load_hourly`/`fct_procurement_cost_monthly` feeding M4/M6),
+  the DM-060..066 test suite (generic + 5 singular tests: DM-062 row-count
+  boundary, DM-064 2022-08 reconciliation, DM-065 DST adjacency, DM-050
+  no-gap month spine, DM-066 var-gated freshness), and the D-07 hand-authored
+  `dbt/contracts/marts_contract.yml` schema contract.
+- `src/epra/warehouse/report.py` (D-02): reads the built warehouse read-only
+  and renders `reports/warehouse/dbt_build_<date>.md` (per-year row counts,
+  month coverage, 2022-08 reconciliation delta, stand-in-mart flags);
+  `make transform` un-stubbed to `dbt build`, new `make warehouse` composes
+  transform + report.
+- `scripts/bootstrap_fixture_warehouse.py` (D-04/SG-06/ADR-010): deterministic,
+  seeded synth of a contiguous 2022-2024 fixture warehouse (raw + manual +
+  processed) for CI, plus a `--processed-only` mode safe to run against real
+  local data.
+- `.github/workflows/ci.yml`: required `dbt-check` job (EN-080 job 3) —
+  `bootstrap_fixture_warehouse.py --force` then `cd dbt && dbt build`,
+  network-free, a genuinely separate job from `test:`.
+- `tests/unit/test_marts_contract.py` (D-07): `information_schema.columns`
+  diff vs. the hand-authored contract, all 6 marts.
+
+**Gate evidence — BOTH builds green (M3 exit gate, T3.07)**
+
+1. **Local real-data build (D-01, SC#1)** — `make warehouse` on real
+   `data/raw` 2019→latest (calendar horizon extends to 2028):
+   **`dbt build`: PASS=63 WARN=1 (pre-existing `predup_count_prices`,
+   informational, unrelated to this milestone) ERROR=0 SKIP=0 TOTAL=64**.
+   `reports/warehouse/dbt_build_2026-07-24.md` committed: 10 years of
+   `fct_price_hourly` row counts, 3 monthly marts' month coverage, the
+   2022-08 reconciliation delta = `0.0000` (`482.7263` both sides), and both
+   future marts flagged `stand-in (M4/M6 pending)`.
+2. **CI fixture build (D-03/D-04, SC#3)** — verified locally by cloning this
+   repository into an isolated, disposable checkout (empty `data/`) and
+   running the exact CI sequence: `bootstrap_fixture_warehouse.py --force`
+   then `cd dbt && dbt build` — **PASS=64 WARN=0 ERROR=0 SKIP=0 TOTAL=64**,
+   fully network-free. This repository's real `data/raw`/`data/manual` were
+   never touched (a separate, disposable clone was used, then deleted).
+3. **D-07 schema contract (SC#2)** — `uv run pytest
+   tests/unit/test_marts_contract.py -m "not live" --no-cov`: **6 passed**
+   (all 6 marts byte-match `dbt/contracts/marts_contract.yml`).
+4. **Full non-live suite** — `uv run pytest -m "not live"`: **259 passed, 2
+   skipped**, coverage 92.48% (gate: 80%).
+5. **`git status` clean of `data/`** — `epra.duckdb`, synthesized/real
+   `data/raw`, `data/processed` all remain gitignored (`!!` in
+   `git status --ignored`); only the markdown build report + this BUILD_LOG
+   entry are committed (DM-001/D-02). (Three pre-existing, unrelated manual
+   reference PDFs under `data/manual/` remain untracked from before this
+   plan — out of scope, not committed here.)
+
+**Open questions:** none on the automated side. The GitHub push, branch-
+protection required-check flip for `dbt-check` (TP.02), and M3 PR opening
+remain human-only per the phase-exit checkpoint (D-01/D-02).
