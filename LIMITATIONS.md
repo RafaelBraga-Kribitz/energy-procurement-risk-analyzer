@@ -29,6 +29,21 @@ the 2019→latest window, the pipeline falls back to Base-only mode (ING-104,
 see ADR-008 for the mechanism and the crisis-visibility gate (ING-103) that
 still holds in that mode.
 
+**ÖSPI's peak convention vs. this warehouse's internal peak definition
+(SG-14 / ADR-011, finalized at M3).** `fct_price_monthly.price_peak_eur_mwh`
+is computed from the ONE holiday-aware `is_peak_hour` flag (Mon-Fri, 08-20
+local, excluding Austrian public holidays — sourced from `dim_calendar`/
+ING-110) applied everywhere in this warehouse. `oespi_peak`, left-joined from
+the externally-transcribed ÖSPI index, is produced by AEA's own methodology
+and may classify holiday weekday hours differently (e.g. as peak regardless
+of the public-holiday calendar). This is a genuine discrepancy between an
+internally-computed column and an external reference series that this
+project does not resolve by recomputing either side — see ADR-011. Any
+calibration anchor derived from the `price_peak_eur_mwh`/`oespi_peak` ratio
+absorbs this level offset by construction, since the ratio is calibrated
+against the actual co-observed pair rather than an assumed-identical peak
+definition.
+
 ## 3. The fixed-price premium is an assumption
 *(finalized at M6)* — 5 EUR/MWh service premium is CALIBRATED, not observed;
 the 0 / 10 EUR/MWh sensitivity results (ST-303a) will be shown here.
