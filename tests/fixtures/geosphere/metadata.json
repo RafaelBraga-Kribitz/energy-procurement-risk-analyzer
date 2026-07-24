@@ -1,0 +1,68 @@
+{
+  "id": "klima-v2-1d",
+  "title": "Stationsdaten-v2 (1 d): Qualitätsgeprüfte Stationsdaten für Österreich in täglicher Auflösung",
+  "type": "Klima",
+  "response_formats": ["geojson", "csv"],
+  "stations": [
+    {
+      "type": "COMBINED",
+      "id": 999999,
+      "group_id": null,
+      "name": "Graz Nord Decoy",
+      "state": "Steiermark",
+      "lat": 47.09,
+      "lon": 15.45,
+      "altitude": 350.0,
+      "valid_from": "1894-01-01T00:00:00+00:00",
+      "valid_to": "2100-12-31T00:00:00+00:00",
+      "has_sunshine": true,
+      "has_global_radiation": true,
+      "is_active": true
+    },
+    {
+      "type": "COMBINED",
+      "id": 16413,
+      "group_id": null,
+      "name": "Graz Straßgang",
+      "state": "Steiermark",
+      "lat": 47.0333,
+      "lon": 15.4,
+      "altitude": 340.0,
+      "valid_from": "2007-11-27T00:00:00+00:00",
+      "valid_to": "2100-12-31T00:00:00+00:00",
+      "has_sunshine": true,
+      "has_global_radiation": true,
+      "is_active": true
+    },
+    {
+      "type": "COMBINED",
+      "id": 16412,
+      "group_id": null,
+      "name": "Graz Universität",
+      "state": "Steiermark",
+      "lat": 47.0782,
+      "lon": 15.4489,
+      "altitude": 366.0,
+      "valid_from": "1894-01-01T00:00:00+00:00",
+      "valid_to": "2100-12-31T00:00:00+00:00",
+      "has_sunshine": true,
+      "has_global_radiation": true,
+      "is_active": true
+    },
+    {
+      "type": "COMBINED",
+      "id": 11035,
+      "group_id": null,
+      "name": "Wien Hohe Warte",
+      "state": "Wien",
+      "lat": 48.2486,
+      "lon": 16.3564,
+      "altitude": 203.0,
+      "valid_from": "1872-01-01T00:00:00+00:00",
+      "valid_to": "2100-12-31T00:00:00+00:00",
+      "has_sunshine": true,
+      "has_global_radiation": true,
+      "is_active": true
+    }
+  ]
+}

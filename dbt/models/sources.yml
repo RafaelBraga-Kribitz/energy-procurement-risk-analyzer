@@ -1,0 +1,94 @@
+# DM-004 — every raw dataset exposed exactly once via a DuckDB external
+# location (read_parquet/read_csv). No other model touches data/raw,
+# data/manual, or data/processed directly. dbt's cwd is dbt/ (profiles.yml
+# path: ../data/warehouse/epra.duckdb), so every glob below is prefixed
+# ../data/ — a bare data/... glob silently resolves against dbt/ and
+# returns zero rows (RESEARCH Pitfall 1).
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      M1 ENTSO-E + M2 GeoSphere raw ingestion outputs (SPEC-01), one monthly
+      parquet file per dataset per calendar month, partitioned by year
+      (DM-004). union_by_name=true defends against any future column-order
+      drift across monthly files (RESEARCH Pitfall 6).
+    tables:
+      - name: entsoe_prices_at
+        description: >
+          SPEC-02 §3 stg_prices_at_native source grain: native MTU
+          ts_utc, price_eur_mwh, resolution, zone (DM-004).
+        meta:
+          external_location: "read_parquet('../data/raw/entsoe_prices_at/**/*.parquet', union_by_name=true)"
+      - name: entsoe_prices_delu
+        description: >
+          SPEC-02 §3 stg_prices_delu_native source grain: native MTU
+          ts_utc, price_eur_mwh, resolution, zone (DM-004).
+        meta:
+          external_location: "read_parquet('../data/raw/entsoe_prices_delu/**/*.parquet', union_by_name=true)"
+      - name: entsoe_load_at
+        description: >
+          SPEC-02 §3 stg_load_at_hourly source grain: sub-hourly ts_utc,
+          load_mw (DM-004).
+        meta:
+          external_location: "read_parquet('../data/raw/entsoe_load_at/**/*.parquet', union_by_name=true)"
+      - name: entsoe_gen_at
+        description: >
+          SPEC-02 §3 stg_gen_at_hourly source grain: sub-hourly ts_utc x
+          psr_type, gen_mw (DM-004).
+        meta:
+          external_location: "read_parquet('../data/raw/entsoe_gen_at/**/*.parquet', union_by_name=true)"
+      - name: geosphere_graz_daily
+        description: >
+          SPEC-02 §3 stg_weather_graz_daily source grain: daily date_local,
+          tavg_c (DM-004).
+        meta:
+          external_location: "read_parquet('../data/raw/geosphere_graz_daily/**/*.parquet', union_by_name=true)"
+
+  - name: raw_calendar
+    description: >
+      M2 calendar spine (ING-110), one committed parquet file, joined
+      everywhere local calendar attributes are needed (DM-011).
+    tables:
+      - name: calendar
+        description: >
+          dim_calendar (SPEC-02 §4) source grain: hour — ts_utc, date_local,
+          year_local, month_local, hour_local, dow_local, is_weekend,
+          is_holiday_at, is_peak_hour (DM-004).
+        meta:
+          external_location: "read_parquet('../data/raw/calendar/calendar.parquet')"
+
+  - name: raw_manual
+    description: >
+      Manually transcribed/reconciled monthly OESPI price index (SPEC-01
+      §10, ING-101), read via CSV — the one non-parquet raw source (DM-004).
+    tables:
+      - name: oespi_monthly
+        description: >
+          SPEC-02 §3 stg_oespi_monthly source grain: month_local,
+          oespi_base, oespi_peak (DM-004).
+        meta:
+          external_location: "read_csv('../data/manual/oespi_monthly.csv', header=true)"
+
+  - name: raw_processed
+    description: >
+      M4 (consumer profile, SPEC-03) and M6 (procurement strategy, SPEC-05)
+      module outputs, re-exposed to the warehouse (DM-004). Until those
+      milestones land, this phase's D-05/D-06 stand-in generator populates
+      these paths with environment-aligned synthetic data so
+      fct_consumer_load_hourly / fct_procurement_cost_monthly build
+      unmodified.
+    tables:
+      - name: consumer_load_hourly
+        description: >
+          fct_consumer_load_hourly (SPEC-02 §5) source grain: hourly
+          ts_utc, load_mwh (DM-004).
+        meta:
+          external_location: "read_parquet('../data/processed/consumer_load_hourly/**/*.parquet', union_by_name=true)"
+      - name: procurement_cost_monthly
+        description: >
+          fct_procurement_cost_monthly (SPEC-02 §5) source grain: local
+          month x strategy_id, volume_mwh, cost_eur, unit_cost_eur_mwh
+          (DM-004).
+        meta:
+          external_location: "read_parquet('../data/processed/procurement_cost_monthly/**/*.parquet', union_by_name=true)"

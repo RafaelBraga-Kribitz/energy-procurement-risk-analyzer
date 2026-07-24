@@ -4,8 +4,8 @@
 
 UV ?= uv
 
-.PHONY: setup backfill ingest validate-ingest transform profile analyze simulate \
-        ssot export report test lint all refresh
+.PHONY: setup backfill ingest validate-ingest geosphere calendar oespi transform warehouse \
+        profile analyze simulate ssot export report test lint all refresh
 
 setup:
 	$(UV) venv --allow-existing
@@ -20,19 +20,32 @@ lint:
 test:
 	$(UV) run pytest
 
-# ---------------------------------------------------------------- not yet implemented ----
 backfill:            ## M1 — SPEC-01 §4: full 2019→latest ingestion (all sources)
-	@echo "ERROR: 'make backfill' not implemented yet (M1 — SPEC-01 ING-040)." >&2; exit 1
+	$(UV) run python -m epra.ingest.entsoe --backfill
 
 ingest:              ## M1 — SPEC-01 §4: incremental 45-day refresh (ING-041)
-	@echo "ERROR: 'make ingest' not implemented yet (M1 — SPEC-01 ING-041)." >&2; exit 1
+	$(UV) run python -m epra.ingest.entsoe --incremental
 
 validate-ingest:     ## M1/M2 — SPEC-01 §§8-11 gates → reports/ingestion/
-	@echo "ERROR: 'make validate-ingest' not implemented yet (M1 — SPEC-01 §8)." >&2; exit 1
+	$(UV) run python -m epra.ingest.validate
 
-transform:           ## M3 — dbt build (models + tests)
-	@echo "ERROR: 'make transform' not implemented yet (M3 — SPEC-02)." >&2; exit 1
+geosphere:           ## M2 — SPEC-01 §9: GeoSphere daily temperature 2019 → latest (ING-093)
+	$(UV) run python -m epra.ingest.geosphere
 
+calendar:            ## M2 — SPEC-01 §11: hourly UTC calendar spine (ING-110)
+	$(UV) run python -m epra.ingest.calendar
+
+oespi:               ## M2 — SPEC-01 §10: ÖSPI loader + series gates (ING-103)
+	$(UV) run python -m epra.ingest.oespi
+
+transform:           ## M3 — SPEC-02: dbt build (models + tests)
+	cd dbt && $(UV) run dbt build
+
+warehouse:           ## M3 — SPEC-02 D-02: dbt build + human-readable build report
+	$(MAKE) transform
+	$(UV) run python -m epra.warehouse.report
+
+# ---------------------------------------------------------------- not yet implemented ----
 profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_baseload)
 	@echo "ERROR: 'make profile' not implemented yet (M4 — SPEC-03)." >&2; exit 1
 

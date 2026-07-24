@@ -14,6 +14,7 @@ dependencies = [
     "dbt-core>=1.8,<2",
     "dbt-duckdb>=1.8,<2",
     "entsoe-py>=0.6",
+    "pyarrow>=18,<26",
     "requests>=2.32",
     "tenacity>=8.3",
     "holidays>=0.50",

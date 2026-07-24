@@ -1,0 +1,103 @@
+# DM-005/§3 staging model contracts + DM-060 unique/not_null generic tests on
+# every staging grain key.
+version: 2
+
+models:
+  - name: stg_prices_at_native
+    description: >
+      SPEC-02 §3 / DM-005 native MTU grain, Austrian day-ahead price:
+      ts_utc, price_eur_mwh, resolution, zone. Deduped by the single
+      sanctioned DM-020 rule (qualify row_number() over (partition by
+      ts_utc order by ingested_at_utc desc) = 1) — the ONLY place
+      duplicate ts_utc rows are resolved in this warehouse.
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_prices_delu_native
+    description: >
+      SPEC-02 §3 / DM-005 native MTU grain, DE-LU day-ahead price: ts_utc,
+      price_eur_mwh, resolution, zone. Deduped by the single sanctioned
+      DM-020 rule, identical to stg_prices_at_native.
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_prices_at_hourly
+    description: >
+      SPEC-02 §3 / DM-005 hour grain, Austrian day-ahead price: ts_utc,
+      price_eur_mwh, n_subhours. n_subhours records how many native MTU
+      rows fed the mean (1 for PT60M, 4 for PT15M — Pitfall 4), so partial
+      aggregation is always detectable downstream (DM-064 reconciliation
+      guard).
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_prices_delu_hourly
+    description: >
+      SPEC-02 §3 / DM-005 hour grain, DE-LU day-ahead price: ts_utc,
+      price_eur_mwh, n_subhours. Identical contract to
+      stg_prices_at_hourly.
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_load_at_hourly
+    description: >
+      SPEC-02 §3 / DM-005 hour grain, Austrian load: ts_utc, load_mw (MW
+      stays MW — no MWh conversion here, ING-051).
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_gen_at_hourly
+    description: >
+      SPEC-02 §3 / DM-005 hour x psr_type grain, Austrian generation:
+      ts_utc, psr_type, psr_name, gen_mw. Filters raw kind='aggregated'
+      only (SG-17 — raw 'consumption' rows are persisted upstream but
+      have no SSOT value derived from them at this layer).
+    tests:
+      - unique_combination_of_columns:
+          combination_of_columns: [ts_utc, psr_type]
+    columns:
+      - name: ts_utc
+        tests:
+          - not_null
+      - name: psr_type
+        tests:
+          - not_null
+
+  - name: stg_weather_graz_daily
+    description: >
+      SPEC-02 §3 / DM-005 day grain, Graz daily mean temperature:
+      date_local, tavg_c. GeoSphere's raw `date` column is already the
+      LOCAL civil date (not derived from a UTC timestamp), so this rename
+      performs no timezone conversion (DM-011) — it is a straight column
+      rename, nothing more.
+    columns:
+      - name: date_local
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_oespi_monthly
+    description: >
+      SPEC-02 §3 / DM-005 month grain, manually-transcribed OESPI price
+      index: month_local (first-of-month DATE), oespi_base, oespi_peak
+      (ING-101).
+    columns:
+      - name: month_local
+        tests:
+          - unique
+          - not_null

@@ -17,8 +17,8 @@ Requirements for initial release. Each maps to exactly one roadmap phase (Charte
 ### Pipeline Capabilities
 
 - [x] **REQ-ENG-01**: Fresh clone runs `make setup && make lint && make test` green locally and in CI; Makefile skeleton, ruff/pre-commit, pytest smoke, pinned deps per SPEC-07 (M0)
-- [ ] **REQ-ING-01**: ENTSO-E (AT + DE-LU prices, AT load, AT generation), GeoSphere temperature, ÖSPI manual CSV (double-entry), and calendar/holidays ingested with validation gates green for 2019→latest (SPEC-01, M1+M2)
-- [ ] **REQ-DWH-01**: `dbt build` green on real data and CI fixtures; mart schemas byte-match SPEC-02 §5 contract YAML (M3)
+- [x] **REQ-ING-01**: ENTSO-E (AT + DE-LU prices, AT load, AT generation), GeoSphere temperature, ÖSPI manual CSV (double-entry), and calendar/holidays ingested with validation gates green for 2019→latest (SPEC-01, M1+M2)
+- [x] **REQ-DWH-01**: `dbt build` green on real data and CI fixtures; mart schemas byte-match SPEC-02 §5 contract YAML (M3)
 - [ ] **REQ-LP-01**: Deterministic consumer load profile with golden test; annual sum = 50,000.00 MWh ± 0.01 per local year; `consumer_peak_share` in SSOT inputs (SPEC-03, M4)
 - [ ] **REQ-ANA-01**: Analytics modules A1–A4 complete with SPEC-04 §7 exit gates including crisis-regime sanity gate AN-304 (M5)
 - [ ] **REQ-ST-01**: Strategy simulator — calibration, retrospective S1–S4, forward block bootstrap, golden metrics and ST-602 sanity relations pass (SPEC-05, M6)
@@ -58,8 +58,8 @@ Explicitly excluded per Charter §4.2. Documented to prevent scope creep.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | REQ-ENG-01 | Phase 1 (M0) | Complete |
-| REQ-ING-01 | Phase 3 (M2) | Pending |
-| REQ-DWH-01 | Phase 4 (M3) | Pending |
+| REQ-ING-01 | Phase 3 (M2) | Complete (2026-07-23 — M1 ENTSO-E + M2 GeoSphere/ÖSPI/calendar; all 9 gates green on real data 2019→latest) |
+| REQ-DWH-01 | Phase 4 (M3) | Complete |
 | REQ-LP-01 | Phase 5 (M4) | Pending |
 | REQ-ANA-01 | Phase 6 (M5) | Pending |
 | REQ-Q2 | Phase 6 (M5) | Pending |
@@ -71,6 +71,7 @@ Explicitly excluded per Charter §4.2. Documented to prevent scope creep.
 | REQ-GOV-01 | Phase 8 (M7) | Pending |
 
 **Coverage:**
+
 - v1 requirements: 12 total
 - Mapped to phases: 12
 - Unmapped: 0 ✓

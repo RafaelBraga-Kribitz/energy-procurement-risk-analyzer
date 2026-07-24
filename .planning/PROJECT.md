@@ -48,7 +48,7 @@ Quantify the euro cost of wrong electricity procurement for a 50 GWh/year Styria
 
 **Ingest warnings (informational):** SG-01 (EntsoeRawClient vs entsoe-py raw cache) and SG-14 (holiday-aware peak definition) pending ADR adoption at implementation time — see `.planning/INGEST-CONFLICTS.md`.
 
-**Runtime:** Cursor + Claude Code; batch Python pipeline orchestrated via Makefile; human builds Power BI `.pbix` at M7.
+**Runtime:** Cursor + Claude Code; batch Python pipeline orchestrated via Makefile; human builds Power BI `.pbix` at M7. Cross-runtime continuity: `.planning/CONTINUITY.md` (SSOT = `.planning/`; pause with `/gsd-pause-work`, resume with `/gsd-resume-work`).
 
 **Reference consumer:** StyriaMetal GmbH — 50,000 MWh/year, parameters in `config/consumer_profile.yaml` only.
 

@@ -4,6 +4,11 @@ You are an AI coding agent (Sonnet-class or better) building the Energy Procurem
 Analyzer. This file tells you HOW to work. WHAT to build is in `PROJECT_CHARTER.md` and
 `docs/SPEC-01…08`. Read them in the Charter §9 order before writing any code.
 
+**Claude Code ↔ Cursor:** progress and intent live only under `.planning/` (not chat history).
+Before switching runtimes run `/gsd-pause-work`; after a limit/crash open the other runtime and
+run `/gsd-resume-work` or `/gsd-next`. Prefer `.planning/graphs/GRAPH_REPORT.md` /
+`/gsd-graphify query` for codebase orientation. Full playbook: `.planning/CONTINUITY.md`.
+
 ---
 
 ## 1. Non-negotiable rules
