@@ -9,7 +9,8 @@
         columns:
           - name: price_at_eur_mwh
             tests:
-              - accepted_range: {min_value: -500, max_value: 5000}
+              - accepted_range:
+                  arguments: {min_value: -500, max_value: 5000}
 #}
 {% test accepted_range(model, column_name, min_value=none, max_value=none) %}
 

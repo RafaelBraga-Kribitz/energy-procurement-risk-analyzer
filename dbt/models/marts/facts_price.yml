@@ -1,0 +1,85 @@
+# SPEC-02 §5 price/generation mart contracts + DM-060 unique/not_null +
+# DM-061 accepted-range generic tests. Kept as a dedicated facts_price.yml,
+# separate from dims.yml and the facts_future.yml added in 04-05, to avoid
+# cross-plan file conflicts.
+version: 2
+
+models:
+  - name: fct_price_hourly
+    description: >
+      SPEC-02 §5 / SG-05 hour-grain price mart: ts_utc, price_at_eur_mwh,
+      price_delu_eur_mwh, spread_at_delu_eur_mwh, load_at_mw,
+      is_negative_price, plus every dim_calendar attribute. dim_calendar is
+      the spine (DM-050 — ts_utc is never NULL); no timezone-conversion
+      call (DM-011).
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+      - name: price_at_eur_mwh
+        tests:
+          - accepted_range:
+              arguments: {min_value: -500, max_value: 5000}
+      - name: load_at_mw
+        tests:
+          - accepted_range:
+              arguments: {min_value: 3000, max_value: 13000}
+
+  - name: fct_price_daily
+    description: >
+      SPEC-02 §5 local day-grain aggregation of fct_price_hourly:
+      price_base_eur_mwh (mean 24h), price_peak_eur_mwh (mean of peak
+      hours; NULL on days without peak hours per SG-14/ADR-011), price_min,
+      price_max, price_std, n_negative_hours, tavg_c, hdd_18, cdd_22.
+    columns:
+      - name: date_local
+        tests:
+          - unique
+          - not_null
+      - name: tavg_c
+        tests:
+          - accepted_range:
+              arguments: {min_value: -30, max_value: 42}
+
+  - name: fct_price_monthly
+    description: >
+      SPEC-02 §5 local month-grain aggregation of fct_price_hourly:
+      price_base_eur_mwh, price_peak_eur_mwh, price_offpeak_eur_mwh
+      (holiday-aware is_peak_hour, SG-14/ADR-011), n_negative_hours, plus
+      oespi_base/oespi_peak left-joined from stg_oespi_monthly.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [year_local, month_local]
+    columns:
+      - name: year_local
+        tests:
+          - not_null
+      - name: month_local
+        tests:
+          - not_null
+      - name: oespi_base
+        tests:
+          - accepted_range:
+              arguments: {min_value: 0.01}
+
+  - name: fct_generation_monthly
+    description: >
+      SPEC-02 §5 local month x psr_type generation mart: gen_gwh (=
+      sum(gen_mw)/1000 per hour count) and share_of_total (each psr_type's
+      share of that month's total generation). Strategy-free psr grain.
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [year_local, month_local, psr_type]
+    columns:
+      - name: year_local
+        tests:
+          - not_null
+      - name: month_local
+        tests:
+          - not_null
+      - name: psr_type
+        tests:
+          - not_null
