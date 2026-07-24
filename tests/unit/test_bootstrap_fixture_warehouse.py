@@ -84,7 +84,9 @@ def test_force_guard_refuses_populated_manual_oespi_without_force(tmp_path: Path
     (both data/raw and data/manual hold irreplaceable real data)."""
     manual_csv = tmp_path / "data" / "manual" / "oespi_monthly.csv"
     manual_csv.parent.mkdir(parents=True)
-    manual_csv.write_text("month,oespi_base,oespi_peak,source_url,retrieved_at\n2019-01,100.0,95.0,x,y\n")
+    manual_csv.write_text(
+        "month,oespi_base,oespi_peak,source_url,retrieved_at\n2019-01,100.0,95.0,x,y\n"
+    )
 
     result = _run(
         "--data-root",

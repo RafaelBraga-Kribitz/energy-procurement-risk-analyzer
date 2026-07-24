@@ -142,9 +142,7 @@ def _build_prices(rng: np.random.Generator, ts_utc: pd.DatetimeIndex, zone: str)
     local = ts_utc.tz_convert(VIENNA)
     crisis_mask = (local.year == 2022) & (local.month == 8)
     if crisis_mask.any():
-        price = np.where(
-            crisis_mask, price + rng.normal(loc=280.0, scale=40.0, size=n), price
-        )
+        price = np.where(crisis_mask, price + rng.normal(loc=280.0, scale=40.0, size=n), price)
     low, high = _PRICE_RANGE_EUR_MWH
     price = np.clip(price, low + 50.0, high - 500.0).astype("float64")
     return pd.DataFrame(
@@ -161,9 +159,7 @@ def _build_load(rng: np.random.Generator, ts_utc: pd.DatetimeIndex) -> pd.DataFr
     n = len(ts_utc)
     low, high = _LOAD_RANGE_MW
     load_mw = rng.uniform(low + 200.0, high - 500.0, size=n).astype("float64")
-    return pd.DataFrame(
-        {"ts_utc": ts_utc, "load_mw": load_mw, "resolution": "PT60M", "zone": "AT"}
-    )
+    return pd.DataFrame({"ts_utc": ts_utc, "load_mw": load_mw, "resolution": "PT60M", "zone": "AT"})
 
 
 def _build_gen(rng: np.random.Generator, ts_utc: pd.DatetimeIndex) -> pd.DataFrame:
