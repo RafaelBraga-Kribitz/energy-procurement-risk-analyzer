@@ -1,0 +1,45 @@
+# SPEC-02 §5 fct_consumer_load_hourly / fct_procurement_cost_monthly
+# contracts -- the two "future" marts fed by 04-05's D-04/D-05 stand-in
+# generator until M4/M6 land (ADR-010). Kept as a dedicated facts_future.yml,
+# separate from facts_price.yml (04-04) and dims.yml (04-03), to avoid
+# cross-plan file conflicts.
+version: 2
+
+models:
+  - name: fct_consumer_load_hourly
+    description: >
+      SPEC-02 §5 / SG-06 hour-grain consumer-load mart: ts_utc, load_mwh.
+      Thin loader over the SPEC-03 (M4) module output -- stand-in until M4
+      (ADR-010). Never disabled or forked by build-order (SG-06).
+    columns:
+      - name: ts_utc
+        tests:
+          - unique
+          - not_null
+
+  - name: fct_procurement_cost_monthly
+    description: >
+      SPEC-02 §5 / DM-063 local month x strategy procurement-cost mart:
+      year_local, month_local, strategy_id, volume_mwh, cost_eur,
+      unit_cost_eur_mwh. Thin loader over the SPEC-05 (M6) strategy
+      simulator output -- stand-in until M6 (ADR-010). Never disabled or
+      forked by build-order (SG-06). Every strategy_id must exist in
+      dim_strategy (DM-063).
+    tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [year_local, month_local, strategy_id]
+    columns:
+      - name: year_local
+        tests:
+          - not_null
+      - name: month_local
+        tests:
+          - not_null
+      - name: strategy_id
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_strategy')
+                field: strategy_id
