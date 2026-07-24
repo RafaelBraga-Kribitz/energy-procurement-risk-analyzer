@@ -173,3 +173,7 @@ All 8 SPEC-02 §3 staging views build green on real local data with exact grains
 ---
 *Phase: EPRA-04-m3-dbt-warehouse*
 *Completed: 2026-07-24*
+
+## Self-Check: PASSED
+
+All 13 created/modified files found on disk; all 4 commit hashes (`07f7d7b`, `49a84f9`, `ee7e125`, `330eb85`) found in git log.
