@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: M3 dbt Warehouse
+current_phase: 04
+current_phase_name: m3-dbt-warehouse
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-07-23T23:54:55.540Z"
-last_activity: 2026-07-23
-last_activity_desc: Phase EPRA-03 complete, transitioned to Phase 4
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-07-24T08:31:14.789Z"
+last_activity: 2026-07-24
+last_activity_desc: Phase EPRA-04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 22
+  completed_plans: 15
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-03 — m2-auxiliary-data
+**Current focus:** Phase EPRA-04 — m3-dbt-warehouse
 
 ## Current Position
 
-Phase: 4 — M3 dbt Warehouse
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-07-23 — Phase EPRA-03 complete, transitioned to Phase 4
+Phase: EPRA-04 (m3-dbt-warehouse) — EXECUTING
+Plan: 2 of 8
+Status: Executing Phase EPRA-04
+Last activity: 2026-07-24 — Phase EPRA-04 execution started
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 68%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100%
 | Phase EPRA-03 P04 | 55min | 3 tasks | 9 files |
 | Phase EPRA-03 P05 | 18min | 3 tasks | 9 files |
 | Phase EPRA-03 P06 | 15min | 2 tasks | 6 files |
+| Phase EPRA-04 P01 | 20min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Progress: [██████████] 100%
 - [Phase ?]: [03-05] load_oespi's peak_available signal lives in frame.attrs (not a second return value or column); gate_ing_103's crisis/MoM checks use oespi_base only so behavior is identical under the ING-104 base-only fallback
 - [Phase ?]: [03-06] gate_ing_111 is a thin wrapper reusing the 03-02 calendar assertions verbatim; a missing real ÖSPI CSV degrades run_gates' ING-103 to a non-crashing informational PASS (D-06)
 - [Phase ?]: [03-06] ÖSPI double-entry reconciliation (ING-101) deliberately deferred past this close-out -- entry1/entry2 CSVs unreconciled; documented in LIMITATIONS.md sec 6 + deferred-items.md, REQ-ING-01 closure left to phase verification
+- [Phase ?]: ADR-009: generate_schema_name omits default_schema prefix so DuckDB schemas are literally staging/marts (single-operator local warehouse, DM-003/SG-13)
+- [Phase ?]: sources.yml exposes all 9 raw/manual/processed datasets via a single ../data/-prefixed read_parquet/read_csv glob each (DM-004), zero direct file access from later models
+- [Phase ?]: month_spine and accepted_range macros hand-rolled on DuckDB native generate_series -- no dbt_utils/packages.yml added (ADR-001 lean-repo)
 
 ### Pending Todos
 
@@ -121,7 +125,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-23T19:27:03.616Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/EPRA-04-m3-dbt-warehouse/04-CONTEXT.md
+Last session: 2026-07-24T08:31:14.781Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
