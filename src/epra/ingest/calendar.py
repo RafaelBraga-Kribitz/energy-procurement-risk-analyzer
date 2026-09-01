@@ -77,7 +77,9 @@ def build_calendar(settings: Settings, end: date | None = None) -> pd.DataFrame:
 
     at_holidays = Austria(subdiv="6", years=range(2019, resolved_end.year + 1))
     holiday_dates = set(at_holidays.keys())
-    is_holiday_at = pd.Index(date_local).isin(holiday_dates)
+    # Avoid Index.isin: pandas-stubs types DatetimeIndex.date → Index as MultiIndex,
+    # so isin(set[date]) fails mypy --strict (arg-type). Same predicate via membership.
+    is_holiday_at = [d in holiday_dates for d in date_local]
 
     # Never re-derive the Mon-Fri 08-20 rule locally (D-10) — call the
     # sanctioned timeutil helper per row.
