@@ -20,6 +20,7 @@ Implements: LP-001, LP-002, SPEC-03 §2 steps 1-4, ADR-012.
 
 from __future__ import annotations
 
+import hashlib
 import os
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
@@ -360,3 +361,19 @@ def write_profile_outputs(
         ]
     )
     _atomic_write_parquet(ssot, root / "ssot_inputs_profile.parquet")
+
+
+def year_slice_checksum(
+    profile_df: pd.DataFrame, calendar_df: pd.DataFrame, *, year: int = 2023
+) -> str:
+    """SHA-256 of sorted ``load_mwh`` float64 bytes for one local year (LP-040).
+
+    Implements: LP-040, LP-042.
+    """
+    years = calendar_df[["ts_utc", "year_local"]]
+    merged = profile_df.merge(years, on="ts_utc", how="inner")
+    sl = merged.loc[merged["year_local"] == year, ["ts_utc", "load_mwh"]].sort_values("ts_utc")
+    if sl.empty:
+        raise ValueError(f"no profile rows for local year {year}")
+    payload = sl["load_mwh"].to_numpy(dtype="float64", copy=False)
+    return hashlib.sha256(payload.tobytes()).hexdigest()

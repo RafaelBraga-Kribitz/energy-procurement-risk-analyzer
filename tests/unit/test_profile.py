@@ -7,6 +7,7 @@ invented (A-2). Numerics under test are read from ``load_consumer_profile()``.
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -258,3 +259,76 @@ def test_write_profile_outputs_roundtrip(
     assert row["tag"] == "CALIBRATED"
     assert row["produced_by"] == "epra.consumer.profile"
     assert 0.42 <= float(row["value"]) < 0.50
+
+
+def _weekday14_sunday03_ratio(built: pd.DataFrame, cal: pd.DataFrame) -> float:
+    merged = built.merge(
+        cal[["ts_utc", "dow_local", "hour_local", "is_holiday_at", "date_local"]],
+        on="ts_utc",
+    )
+    christmas = [_is_xmas(v) for v in merged["date_local"]]
+    weekday_14 = (
+        (merged["dow_local"] < 5)
+        & (~merged["is_holiday_at"].astype(bool))
+        & (~pd.Series(christmas, index=merged.index))
+        & (merged["hour_local"] == 14)
+    )
+    sunday_03 = (merged["dow_local"] == 6) & (merged["hour_local"] == 3)
+    weekday_mean = float(merged.loc[weekday_14, "load_mwh"].mean())
+    sunday_mean = float(merged.loc[sunday_03, "load_mwh"].mean())
+    return weekday_mean / sunday_mean
+
+
+def _is_xmas(value: object) -> bool:
+    day = _as_date(value)
+    return (day.month, day.day) >= (12, 24) or (day.month, day.day) <= (1, 1)
+
+
+def test_lp040_2023_golden_ratio_aug_lt_jul_dec25_eq_dec26(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    cal = calendar_frame.loc[calendar_frame["year_local"] == 2023]
+    built = prof.build_profile(cal, cfg)
+    assert float(built["load_mwh"].sum()) == pytest.approx(cfg.annual_consumption_mwh, abs=0.01)
+    ratio = _weekday14_sunday03_ratio(built, cal)
+    assert 2.8 <= ratio <= 3.6, ratio
+    monthly = prof.monthly_volumes(built, cal)
+    jul = float(monthly.loc[monthly["month_local"] == 7, "volume_mwh"].iloc[0])
+    aug = float(monthly.loc[monthly["month_local"] == 8, "volume_mwh"].iloc[0])
+    assert aug < jul
+    merged = built.merge(cal[["ts_utc", "date_local"]], on="ts_utc")
+    d25 = merged.loc[[_as_date(v) == date(2023, 12, 25) for v in merged["date_local"]], "load_mwh"]
+    d26 = merged.loc[[_as_date(v) == date(2023, 12, 26) for v in merged["date_local"]], "load_mwh"]
+    pd.testing.assert_series_equal(
+        pd.Series(d25.to_numpy()), pd.Series(d26.to_numpy()), check_names=False
+    )
+    digest = prof.year_slice_checksum(built, cal, year=2023)
+    assert digest == prof.year_slice_checksum(built, cal, year=2023)
+    golden = Path(__file__).resolve().parents[1] / "golden" / "consumer_load_2023.sha256"
+    assert golden.read_text(encoding="utf-8").strip() == digest
+
+
+def test_lp041_properties_and_lp042_checksum_sensitivity(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    cal = calendar_frame.loc[calendar_frame["year_local"] == 2023]
+    built = prof.build_profile(cal, cfg)
+    assert built["load_mwh"].notna().all()
+    assert (built["load_mwh"] >= 0).all()
+    assert built["ts_utc"].nunique() == len(cal) == len(built)
+    mutated = cfg.model_copy(update={"annual_consumption_mwh": 50001.0})
+    other = prof.build_profile(cal, mutated)
+    assert prof.year_slice_checksum(built, cal) != prof.year_slice_checksum(other, cal)
+
+
+def test_flat_baseload_unit_weights_then_same_annual(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    cal = calendar_frame.loc[calendar_frame["year_local"] == 2023]
+    flat = cfg.model_copy(update={"profile_name": "flat_baseload"})
+    weights = prof.hourly_weights(cal, flat)
+    assert (weights.to_numpy() == 1.0).all()
+    built = prof.build_profile(cal, flat)
+    assert float(built["load_mwh"].sum()) == pytest.approx(cfg.annual_consumption_mwh, abs=0.01)
+    shaped = prof.build_profile(cal, cfg)
+    assert prof.year_slice_checksum(built, cal) != prof.year_slice_checksum(shaped, cal)
