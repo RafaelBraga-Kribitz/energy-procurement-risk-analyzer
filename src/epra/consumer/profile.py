@@ -31,7 +31,7 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 
-from epra.common.config import ConsumerProfileCfg, REPO_ROOT, Settings, load_settings
+from epra.common.config import REPO_ROOT, ConsumerProfileCfg, Settings, load_settings
 from epra.ingest.calendar import build_calendar
 
 _ALLOWED_PROFILES = frozenset({"styriametal_v1", "flat_baseload"})
@@ -273,15 +273,15 @@ def monthly_volumes(profile_df: pd.DataFrame, calendar_df: pd.DataFrame) -> pd.D
     Implements: LP-021.
     """
     if profile_df.empty:
-        raise ValueError("profile_df is empty — cannot aggregate monthly volumes")
+        raise ValueError("profile_df is empty - cannot aggregate monthly volumes")
     cols = calendar_df[["ts_utc", "year_local", "month_local"]]
     merged = profile_df.merge(cols, on="ts_utc", how="inner")
     if len(merged) != len(profile_df):
         raise ValueError("profile ts_utc must all be present on the calendar")
-    grouped = merged.groupby(
-        ["year_local", "month_local"], as_index=False, sort=True
-    )["load_mwh"].sum()
-    return grouped.rename(columns={"load_mwh": "volume_mwh"})
+    grouped = merged.groupby(["year_local", "month_local"], as_index=False, sort=True).agg(
+        volume_mwh=("load_mwh", "sum")
+    )
+    return pd.DataFrame(grouped)
 
 
 def peak_share_by_year(profile_df: pd.DataFrame, calendar_df: pd.DataFrame) -> pd.Series:
@@ -340,6 +340,7 @@ def write_profile_outputs(
 
     Implements: LP-003, LP-020, LP-021, ADR-013.
     """
+    _require_profile_name(cfg)
     root = _processed_root(settings)
     hourly = profile_df[["ts_utc", "load_mwh"]].copy()
     _atomic_write_parquet(hourly, root / "consumer_load_hourly.parquet")

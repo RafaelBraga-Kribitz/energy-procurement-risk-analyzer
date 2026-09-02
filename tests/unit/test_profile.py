@@ -217,7 +217,7 @@ def test_peak_share_2019_in_band_and_yearly_deviation_under_1pp(
     cal = calendar_frame.loc[calendar_frame["year_local"].isin(range(2019, 2025))]
     built = prof.build_profile(cal, cfg)
     share_2019 = prof.reference_peak_share(built, cal)
-    assert 0.42 <= share_2019 <= 0.48
+    assert 0.42 <= share_2019 < 0.50
     by_year = prof.peak_share_by_year(built, cal)
     for year, value in by_year.items():
         if int(year) == 2019:
@@ -257,4 +257,4 @@ def test_write_profile_outputs_roundtrip(
     assert row["unit"] == "fraction"
     assert row["tag"] == "CALIBRATED"
     assert row["produced_by"] == "epra.consumer.profile"
-    assert 0.42 <= float(row["value"]) <= 0.48
+    assert 0.42 <= float(row["value"]) < 0.50

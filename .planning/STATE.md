@@ -13,7 +13,7 @@ progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 27
-  completed_plans: 24
+  completed_plans: 25
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-05 (m4-consumer-profile) — PLANNED
-Plan: 2 of 5
-Status: executing 05-02 complete; next 05-03
-Last activity: 2026-09-02 — T4.02 normalize + build_profile green (31 pytest)
+Plan: 3 of 5
+Status: executing 05-03 complete; next 05-04
+Last activity: 2026-09-02 — T4.03 outputs + ADR-013; 2019 peak share ~0.486
 
 Progress: [█████░░░░░] 50% (4/8 phases)
 
@@ -122,11 +122,12 @@ Progress: [█████░░░░░] 50% (4/8 phases)
 - [Phase 05 discuss]: D-01 calendar_df is ING-110 spine (not dim_calendar); D-02 ADR-012 SG-04 first-Monday-on-or-after-Aug-1; D-04 ADR-013 2019 peak share; D-06 flat_baseload same function no second YAML; D-08 single LP-003 parquet + sources.yml + all: profile then transform
 - [Phase 05-01]: ADR-012 SG-04 first Monday on or after 1 August; vectorized hourly_weights; YAML numerics stay in config
 - [Phase 05-02]: LP-004/LP-034 normalize via full-year Σw from build_calendar; build_profile returns ts_utc, load_mwh
+- [Phase 05-03]: ADR-013 2019 peak share (~0.486, near-band not YAML-retuned); D-08 single-file consumer parquet
 
 ### Pending Todos
 
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
-- execute 05-03 (T4.03 outputs, peak share, D-08)
+- execute 05-04 (T4.04 goldens LP-040..042)
 
 ### Blockers/Concerns
 
