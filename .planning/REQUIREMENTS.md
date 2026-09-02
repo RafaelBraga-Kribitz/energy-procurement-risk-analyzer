@@ -19,7 +19,7 @@ Requirements for initial release. Each maps to exactly one roadmap phase (Charte
 - [x] **REQ-ENG-01**: Fresh clone runs `make setup && make lint && make test` green locally and in CI; Makefile skeleton, ruff/pre-commit, pytest smoke, pinned deps per SPEC-07 (M0)
 - [x] **REQ-ING-01**: ENTSO-E (AT + DE-LU prices, AT load, AT generation), GeoSphere temperature, ÖSPI manual CSV (double-entry), and calendar/holidays ingested with validation gates green for 2019→latest (SPEC-01, M1+M2)
 - [x] **REQ-DWH-01**: `dbt build` green on real data and CI fixtures; mart schemas byte-match SPEC-02 §5 contract YAML (M3)
-- [ ] **REQ-LP-01**: Deterministic consumer load profile with golden test; annual sum = 50,000.00 MWh ± 0.01 per local year; `consumer_peak_share` in SSOT inputs (SPEC-03, M4)
+- [x] **REQ-LP-01**: Deterministic consumer load profile with golden test; annual sum = 50,000.00 MWh ± 0.01 per local year; `consumer_peak_share` in SSOT inputs (SPEC-03, M4)
 - [ ] **REQ-ANA-01**: Analytics modules A1–A4 complete with SPEC-04 §7 exit gates including crisis-regime sanity gate AN-304 (M5)
 - [ ] **REQ-ST-01**: Strategy simulator — calibration, retrospective S1–S4, forward block bootstrap, golden metrics and ST-602 sanity relations pass (SPEC-05, M6)
 - [ ] **REQ-RPT-01**: Exports to `exports/`, executive charts, Power BI handoff docs, README per SPEC-06 §6 leading with euro answer, monthly refresh cron live (SPEC-06, M7; DL-1, DL-6, DL-8, DL-10)
@@ -60,7 +60,7 @@ Explicitly excluded per Charter §4.2. Documented to prevent scope creep.
 | REQ-ENG-01 | Phase 1 (M0) | Complete |
 | REQ-ING-01 | Phase 3 (M2) | Complete (2026-07-23 — M1 ENTSO-E + M2 GeoSphere/ÖSPI/calendar; all 9 gates green on real data 2019→latest) |
 | REQ-DWH-01 | Phase 4 (M3) | Complete |
-| REQ-LP-01 | Phase 5 (M4) | Pending |
+| REQ-LP-01 | Phase 5 (M4) | Complete (2026-09-02) |
 | REQ-ANA-01 | Phase 6 (M5) | Pending |
 | REQ-Q2 | Phase 6 (M5) | Pending |
 | REQ-ST-01 | Phase 7 (M6) | Pending |
@@ -80,4 +80,4 @@ Explicitly excluded per Charter §4.2. Documented to prevent scope creep.
 
 ---
 *Requirements defined: 2026-07-21*
-*Last updated: 2026-07-21 after roadmap creation*
+*Last updated: 2026-09-02 after Phase 5 verify-work*
