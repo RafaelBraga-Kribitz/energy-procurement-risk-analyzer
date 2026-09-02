@@ -22,12 +22,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
+from functools import cache
 from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
 
-from epra.common.config import ConsumerProfileCfg
+from epra.common.config import ConsumerProfileCfg, load_settings
+from epra.ingest.calendar import build_calendar
 
 _MSG = "M4 not implemented yet — build per SPEC-03 §2 (see module docstring)"
 
@@ -187,9 +189,78 @@ def hourly_weights(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> pd.Ser
     return pd.Series(_styriametal_weights(calendar_df, cfg), index=index, name="weight")
 
 
+_REQUIRED_CALENDAR_COLS = (
+    "ts_utc",
+    "date_local",
+    "hour_local",
+    "dow_local",
+    "is_holiday_at",
+    "year_local",
+    "month_local",
+)
+
+
+@cache
+def _full_year_calendar(year: int) -> pd.DataFrame:
+    """ING-110 hours whose ``year_local`` equals ``year`` (LP-034 denominator)."""
+    frame = build_calendar(load_settings(), end=date(year, 12, 31))
+    masked = frame.loc[frame["year_local"].to_numpy() == year]
+    return pd.DataFrame(masked).reset_index(drop=True)
+
+
+def _year_is_complete(year_rows: pd.DataFrame, year: int) -> bool:
+    full = _full_year_calendar(year)
+    if len(year_rows) != len(full):
+        return False
+    return bool(year_rows["ts_utc"].isin(full["ts_utc"]).all())
+
+
+def normalize_by_local_year(
+    weights: pd.Series, calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> pd.Series:
+    """Scale weights so each full local year sums to ``annual_consumption_mwh``.
+
+    Partial years use hypothetical full-year Σw (LP-034).
+
+    Implements: LP-004, LP-034, SPEC-03 §2 step 5.
+    """
+    years = calendar_df["year_local"].to_numpy()
+    w = weights.to_numpy(dtype="float64")
+    out = np.empty(len(w), dtype="float64")
+    annual = cfg.annual_consumption_mwh
+    for year in np.unique(years):
+        year_i = int(year)
+        mask = years == year
+        year_rows = calendar_df.loc[mask]
+        if _year_is_complete(year_rows, year_i):
+            denom = float(w[mask].sum())
+        else:
+            denom = float(hourly_weights(_full_year_calendar(year_i), cfg).sum())
+        if denom == 0.0:
+            raise ValueError(f"zero weight sum for local year {year_i}")
+        out[mask] = annual * w[mask] / denom
+    return pd.Series(out, index=weights.index, name="load_mwh")
+
+
+def _validate_calendar(calendar_df: pd.DataFrame) -> None:
+    if calendar_df.empty:
+        raise ValueError("calendar_df is empty — cannot build a load profile")
+    missing = [c for c in _REQUIRED_CALENDAR_COLS if c not in calendar_df.columns]
+    if missing:
+        raise ValueError(f"calendar_df missing required columns: {missing}")
+    if calendar_df["ts_utc"].duplicated().any():
+        raise ValueError("calendar_df has duplicate ts_utc values")
+
+
 def build_profile(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> pd.DataFrame:
-    """SPEC-03 §2 entrypoint: hourly ``ts_utc, load_mwh`` frame, deterministic."""
-    raise NotImplementedError(_MSG)
+    """SPEC-03 §2 entrypoint: hourly ``ts_utc, load_mwh`` frame, deterministic.
+
+    Implements: LP-001, LP-004, LP-034, SPEC-03 §2.
+    """
+    _validate_calendar(calendar_df)
+    weights = hourly_weights(calendar_df, cfg)
+    load = normalize_by_local_year(weights, calendar_df, cfg)
+    return pd.DataFrame({"ts_utc": calendar_df["ts_utc"].to_numpy(), "load_mwh": load.to_numpy()})
 
 
 def monthly_volumes(profile_df: pd.DataFrame) -> pd.DataFrame:
