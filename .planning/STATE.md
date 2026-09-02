@@ -4,15 +4,15 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 05
 current_phase_name: m4-consumer-profile
-status: ready
-stopped_at: Completed /gsd-research-phase 5
-last_updated: "2026-09-02T12:00:00Z"
+status: executing
+stopped_at: Completed /gsd-plan-phase 5; next execute 05-01
+last_updated: "2026-09-02T12:20:00Z"
 last_activity: 2026-09-02
-last_activity_desc: Phase EPRA-05 research complete; next is /gsd-plan-phase
+last_activity_desc: Phase EPRA-05 plans T4.01–T4.05 written; next execute 05-01
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 22
+  total_plans: 27
   completed_plans: 22
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-05 — m4-consumer-profile (research done; plan next)
+**Current focus:** Phase EPRA-05 — m4-consumer-profile (plans ready; executing 05-01)
 
 ## Current Position
 
-Phase: EPRA-05 (m4-consumer-profile) — RESEARCHED
-Plan: 0 of TBD
-Status: `/gsd-research-phase` complete (`05-RESEARCH.md`); next `/gsd-plan-phase`
-Last activity: 2026-09-02 — research: vectorized weights, LP-034 via build_calendar Σw, payload SHA-256, D-08 single-file analog
+Phase: EPRA-05 (m4-consumer-profile) — PLANNED
+Plan: 0 of 5
+Status: `/gsd-plan-phase` complete (05-01..05-05 PLAN.md); next execute 05-01 (T4.01)
+Last activity: 2026-09-02 — five execute plans for T4.01–T4.05
 
 Progress: [█████░░░░░] 50% (4/8 phases)
 
@@ -124,7 +124,7 @@ Progress: [█████░░░░░] 50% (4/8 phases)
 ### Pending Todos
 
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
-- `/gsd-plan-phase` then execute T4.01–T4.05 (REQ-LP-01)
+- execute 05-01 (T4.01 weight engine + ADR-012) then 05-02..05-05
 
 ### Blockers/Concerns
 
@@ -150,8 +150,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-02T12:00:00Z
-Stopped at: Completed /gsd-research-phase 5
+Last session: 2026-09-02T12:20:00Z
+Stopped at: Completed /gsd-plan-phase 5; next execute 05-01
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: `/gsd-plan-phase` (M4 consumer profile)
+Next: execute `.planning/phases/EPRA-05-m4-consumer-profile/05-01-PLAN.md`

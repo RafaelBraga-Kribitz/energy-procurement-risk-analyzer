@@ -144,7 +144,15 @@ Plans:
   2. Each local calendar year sums to 50,000.00 MWh ± 0.01 after normalization
   3. `consumer_peak_share` is computed and ready for SSOT inputs
 
-**Plans**: TBD (CONTEXT locked 2026-09-02; research/plan next)
+**Plans**: 0/5 executed
+
+Plans:
+
+- [ ] 05-01-PLAN.md — T4.01 weight engine (steps 1–4) + ADR-012 (SG-04)
+- [ ] 05-02-PLAN.md — T4.02 normalization LP-004/LP-034 + build_profile
+- [ ] 05-03-PLAN.md — T4.03 outputs, peak share ADR-013, D-08 single-file path
+- [ ] 05-04-PLAN.md — T4.04 flat_baseload + LP-040..042 goldens
+- [ ] 05-05-PLAN.md — T4.05 CLI, Makefile, BUILD_LOG, stand-in flag
 
 ### Phase 6: M5 Analytics
 
@@ -197,7 +205,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | 2. M1 ENTSO-E | 7/7 | In Progress|  |
 | 3. M2 Auxiliary | 6/6 | Complete    | 2026-07-23 |
 | 4. M3 dbt | 8/8 | Complete | 2026-09-01 |
-| 5. M4 Profile | 0/TBD | Discussed | - |
+| 5. M4 Profile | 0/5 | Planned | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |
 | 7. M6 Strategies | 0/TBD | Not started | - |
 | 8. M7 Reporting | 0/TBD | Not started | - |
