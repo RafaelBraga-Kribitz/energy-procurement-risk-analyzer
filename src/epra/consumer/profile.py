@@ -20,9 +20,9 @@ Implements: LP-001, LP-002, SPEC-03 §2 steps 1-4, ADR-012.
 
 from __future__ import annotations
 
-from functools import cache
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
+from functools import cache
 from typing import Any, Literal, cast
 
 import numpy as np
@@ -204,7 +204,8 @@ _REQUIRED_CALENDAR_COLS = (
 def _full_year_calendar(year: int) -> pd.DataFrame:
     """ING-110 hours whose ``year_local`` equals ``year`` (LP-034 denominator)."""
     frame = build_calendar(load_settings(), end=date(year, 12, 31))
-    return frame.loc[frame["year_local"].to_numpy() == year].copy()
+    masked = frame.loc[frame["year_local"].to_numpy() == year]
+    return pd.DataFrame(masked).reset_index(drop=True)
 
 
 def _year_is_complete(year_rows: pd.DataFrame, year: int) -> bool:
