@@ -88,23 +88,15 @@ def test_reconciliation_2022_08_row_renders_with_delta() -> None:
 
 
 def test_stand_in_marts_flagged_in_render() -> None:
-    evidence = pd.DataFrame(
-        [
-            {"mart": "fct_consumer_load_hourly", "status": "stand-in (M4/M6 pending)"},
-            {"mart": "fct_procurement_cost_monthly", "status": "stand-in (M4/M6 pending)"},
-        ]
-    )
-    result = ModelBuildResult(
-        "future marts",
-        True,
-        "fct_consumer_load_hourly and fct_procurement_cost_monthly are thin loaders over "
-        "synthetic/stand-in data, not real module output yet",
-        evidence,
-    )
+    from epra.warehouse.report import _STAND_IN_MARTS, _stand_in_flag
+
+    assert _STAND_IN_MARTS == ("fct_procurement_cost_monthly",)
+    result = _stand_in_flag()
     rendered = result.render_markdown()
-    assert "stand-in (M4/M6 pending)" in rendered
-    assert "fct_consumer_load_hourly" in rendered
     assert "fct_procurement_cost_monthly" in rendered
+    assert "stand-in (M6 pending)" in rendered
+    assert "fct_consumer_load_hourly (stand-in" not in rendered
+    assert "M4 consumer profile pending" not in rendered
 
 
 # ---------------------------------------------------------------------------
