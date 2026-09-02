@@ -144,3 +144,68 @@ def test_hourly_weights_length_matches_calendar(
     assert len(weights) == len(calendar_frame)
     assert not weights.isna().any()
     assert (weights > 0).all()
+
+
+def _monthly_volumes(profile: pd.DataFrame, calendar: pd.DataFrame) -> pd.DataFrame:
+    merged = profile.merge(calendar[["ts_utc", "year_local", "month_local"]], on="ts_utc")
+    grouped = merged.groupby(["year_local", "month_local"], as_index=False)["load_mwh"].sum()
+    return grouped.rename(columns={"load_mwh": "volume_mwh"})
+
+
+@pytest.mark.parametrize("year", [2019, 2020, 2023, 2024])
+def test_full_local_year_sums_to_annual(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg, year: int
+) -> None:
+    year_cal = calendar_frame.loc[calendar_frame["year_local"] == year]
+    profile = prof.build_profile(year_cal, cfg)
+    total = float(profile["load_mwh"].sum())
+    assert total == pytest.approx(cfg.annual_consumption_mwh, abs=0.01)
+
+
+def test_lp034_partial_h1_2023_matches_full_year_months(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    cal_2023 = calendar_frame.loc[calendar_frame["year_local"] == 2023]
+    full = prof.build_profile(cal_2023, cfg)
+    h1_cal = cal_2023.loc[cal_2023["month_local"] <= 6]
+    partial = prof.build_profile(h1_cal, cfg)
+    full_m = _monthly_volumes(full, cal_2023)
+    part_m = _monthly_volumes(partial, h1_cal)
+    for month in range(1, 7):
+        f = float(full_m.loc[full_m["month_local"] == month, "volume_mwh"].iloc[0])
+        p = float(part_m.loc[part_m["month_local"] == month, "volume_mwh"].iloc[0])
+        assert p == pytest.approx(f, abs=0.01)
+
+
+def test_build_profile_no_nan_or_negative(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    slice_2023 = calendar_frame.loc[calendar_frame["year_local"] == 2023]
+    profile = prof.build_profile(slice_2023, cfg)
+    assert list(profile.columns) == ["ts_utc", "load_mwh"]
+    assert profile["load_mwh"].notna().all()
+    assert (profile["load_mwh"] >= 0).all()
+    assert len(profile) == len(slice_2023)
+    assert profile["ts_utc"].nunique() == len(profile)
+
+
+def test_dst_days_match_calendar_row_counts(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    cal_2024 = calendar_frame.loc[calendar_frame["year_local"] == 2024]
+    profile = prof.build_profile(cal_2024, cfg)
+    merged = profile.merge(cal_2024[["ts_utc", "date_local"]], on="ts_utc")
+    spring = merged.loc[[_as_date(v) == date(2024, 3, 31) for v in merged["date_local"]]]
+    fall = merged.loc[[_as_date(v) == date(2024, 10, 27) for v in merged["date_local"]]]
+    assert len(spring) == 23
+    assert len(fall) == 25
+
+
+def test_build_profile_rejects_empty_and_duplicate_ts(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    with pytest.raises(ValueError, match="empty"):
+        prof.build_profile(calendar_frame.iloc[0:0], cfg)
+    dup = pd.concat([calendar_frame.iloc[:2], calendar_frame.iloc[:1]], ignore_index=True)
+    with pytest.raises(ValueError, match="duplicate ts_utc"):
+        prof.build_profile(dup, cfg)
