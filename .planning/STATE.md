@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: m5-analytics
 status: planning
-stopped_at: Completed /gsd-discuss-phase 6; next /gsd-research-phase 6
-last_updated: "2026-09-02T15:00:00Z"
+stopped_at: Completed /gsd-research-phase 6; next /gsd-plan-phase 6
+last_updated: "2026-09-02T15:20:00Z"
 last_activity: 2026-09-02
-last_activity_desc: Phase EPRA-06 discuss locked (D-01..D-14); next research-phase 6
+last_activity_desc: Phase EPRA-06 research (mart NULL-drop, HMM BLAS, AN-304 skip)
 progress:
   total_phases: 8
   completed_phases: 5
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-06 — m5-analytics (discuss locked; next research)
+**Current focus:** Phase EPRA-06 — m5-analytics (research done; next plan)
 
 ## Current Position
 
-Phase: EPRA-06 (m5-analytics) — DISCUSSED
-Plan: n/a (research next)
-Status: 06-CONTEXT D-01..D-14 locked; next /gsd-research-phase 6
-Last activity: 2026-09-02 — discuss-phase 6 (AN-304 skip-if-incomplete; no fixture PNGs)
+Phase: EPRA-06 (m5-analytics) — RESEARCHED
+Plan: n/a (plan-phase next)
+Status: 06-RESEARCH/PATTERNS/VALIDATION written; next /gsd-plan-phase 6
+Last activity: 2026-09-02 — research-phase 6
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -129,7 +129,7 @@ Progress: [██████░░░░] 62% (5/8 phases)
 
 ### Pending Todos
 
-- `/gsd-research-phase 6` (M5 analytics A1→A2→A4→A3)
+- `/gsd-plan-phase 6` (T5.01–T5.07)
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
 - EN-072: human approval before regenerating `tests/golden/consumer_load_2023.sha256`
 
@@ -157,8 +157,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-02T15:00:00Z
-Stopped at: Completed /gsd-discuss-phase 6; next /gsd-research-phase 6
+Last session: 2026-09-02T15:20:00Z
+Stopped at: Completed /gsd-research-phase 6; next /gsd-plan-phase 6
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: `/gsd-research-phase 6` then `/gsd-plan-phase 6` (T5.01–T5.07)
+Next: `/gsd-plan-phase 6` (T5.01–T5.07 PLAN.md)
