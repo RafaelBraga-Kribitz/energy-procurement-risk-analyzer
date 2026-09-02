@@ -165,11 +165,11 @@ Plans:
   2. Crisis-regime sanity gate AN-304 passes on real 2021–2023 data
   3. Charts carry epistemic tags and obey SPEC-06 §7 caption rules
 
-**Plans**: 0/7 executed
+**Plans**: 1/7 executed
 
 Plans:
 
-- [ ] 06-01-PLAN.md — T5.01 analytics shared kit + CLI shell
+- [x] 06-01-PLAN.md — T5.01 analytics shared kit + CLI shell
 - [ ] 06-02-PLAN.md — T5.02 A1 descriptive
 - [ ] 06-03-PLAN.md — T5.03 A2 spread
 - [ ] 06-04-PLAN.md — T5.04 A4 weather
