@@ -15,14 +15,17 @@ Non-negotiables:
   (LP-004); partial years normalize against the full hypothetical-year shape
   sum (LP-034).
 
-Implements: LP-001, LP-002, SPEC-03 §2 steps 1-4, ADR-012.
+Implements: LP-001, LP-002, SPEC-03 §2 steps 1-4, ADR-012, EN-050.
 """
 
 from __future__ import annotations
 
+import argparse
 import hashlib
+import logging
 import os
-from collections.abc import Mapping
+import sys
+from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta
 from functools import cache
 from pathlib import Path
@@ -32,8 +35,17 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 
-from epra.common.config import REPO_ROOT, ConsumerProfileCfg, Settings, load_settings
+from epra.common.config import (
+    REPO_ROOT,
+    ConsumerProfileCfg,
+    Settings,
+    load_consumer_profile,
+    load_settings,
+)
+from epra.ingest._io import _dataset_root
 from epra.ingest.calendar import build_calendar
+
+logger = logging.getLogger(__name__)
 
 _ALLOWED_PROFILES = frozenset({"styriametal_v1", "flat_baseload"})
 _DayType = Literal["shutdown", "weekend", "weekday"]
@@ -377,3 +389,53 @@ def year_slice_checksum(
         raise ValueError(f"no profile rows for local year {year}")
     payload = sl["load_mwh"].to_numpy(dtype="float64", copy=False)
     return hashlib.sha256(payload.tobytes()).hexdigest()
+
+
+def _calendar_parquet_path(settings: Settings) -> Path:
+    return _dataset_root("calendar", settings) / "calendar.parquet"
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """CLI: ``python -m epra.consumer.profile [--profile NAME]``.
+
+    Reads the ING-110 calendar parquet (D-01), builds the load profile, and
+    writes processed hourly/monthly/SSOT files. Missing calendar exits 1.
+
+    Implements: EN-050, LP-003, D-08.
+    """
+    parser = argparse.ArgumentParser(
+        prog="python -m epra.consumer.profile",
+        description="Build the StyriaMetal (or flat_baseload) hourly load profile.",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=sorted(_ALLOWED_PROFILES),
+        default=None,
+        help="Override config profile_name (styriametal_v1 or flat_baseload).",
+    )
+    args = parser.parse_args(argv)
+
+    settings = load_settings()
+    cfg = load_consumer_profile()
+    if args.profile is not None:
+        cfg = cfg.model_copy(update={"profile_name": args.profile})
+
+    path = _calendar_parquet_path(settings)
+    if not path.is_file():
+        msg = (
+            f"calendar parquet not found at {path}. "
+            "Run `make calendar` first (ING-110 spine required by D-01)."
+        )
+        print(f"ERROR: {msg}", file=sys.stderr)
+        logger.error(msg)
+        return 1
+
+    calendar_df = pd.read_parquet(path)
+    profile_df = build_profile(calendar_df, cfg)
+    write_profile_outputs(profile_df, calendar_df, cfg, settings)
+    logger.info("profile: wrote outputs under %s", _processed_root(settings))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

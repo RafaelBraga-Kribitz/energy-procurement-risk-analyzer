@@ -45,10 +45,10 @@ warehouse:           ## M3 — SPEC-02 D-02: dbt build + human-readable build re
 	$(MAKE) transform
 	$(UV) run python -m epra.warehouse.report
 
-# ---------------------------------------------------------------- not yet implemented ----
 profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_baseload)
-	@echo "ERROR: 'make profile' not implemented yet (M4 — SPEC-03)." >&2; exit 1
+	$(UV) run python -m epra.consumer.profile
 
+# ---------------------------------------------------------------- not yet implemented ----
 analyze:             ## M5 — SPEC-04 modules → reports/analytics/
 	@echo "ERROR: 'make analyze' not implemented yet (M5 — SPEC-04)." >&2; exit 1
 
@@ -64,6 +64,6 @@ export:              ## M7 — scripts/export_marts.py → exports/
 report:              ## M7 — executive charts
 	@echo "ERROR: 'make report' not implemented yet (M7 — SPEC-06 §2)." >&2; exit 1
 
-all: transform profile analyze simulate ssot export report
+all: profile transform analyze simulate ssot export report
 
 refresh: ingest validate-ingest all
