@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: m4-consumer-profile
 status: ready
-stopped_at: Completed /gsd-verify-work Phase EPRA-04
-last_updated: "2026-09-01T17:10:00Z"
-last_activity: 2026-09-01
-last_activity_desc: Phase EPRA-04 verified; next is discuss-phase 5 (M4)
+stopped_at: Completed /gsd-discuss-phase 5
+last_updated: "2026-09-02T11:30:00Z"
+last_activity: 2026-09-02
+last_activity_desc: Phase EPRA-05 CONTEXT locked; next is /gsd-research-phase
 progress:
   total_phases: 8
   completed_phases: 4
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-05 — m4-consumer-profile (discuss/plan not started)
+**Current focus:** Phase EPRA-05 — m4-consumer-profile (CONTEXT locked; research/plan next)
 
 ## Current Position
 
-Phase: EPRA-05 (m4-consumer-profile) — NOT STARTED
+Phase: EPRA-05 (m4-consumer-profile) — DISCUSSED
 Plan: 0 of TBD
-Status: Phase EPRA-04 verified; next `/gsd-discuss-phase 5`
-Last activity: 2026-09-01 — `/gsd-verify-work` Phase 4 passed (TP.02 GitHub settings deferred)
+Status: `/gsd-discuss-phase 5` complete (`05-CONTEXT.md`); next `/gsd-research-phase`
+Last activity: 2026-09-02 — discuss-phase 5 locked D-01..D-10 (SG-04/SG-03 ADRs, single-file parquet, 2019 peak share)
 
 Progress: [█████░░░░░] 50% (4/8 phases)
 
@@ -119,11 +119,12 @@ Progress: [█████░░░░░] 50% (4/8 phases)
 - [Phase 04-08]: dbt-check is a separate EN-080 job 3 (bootstrap --force then dbt build then D-07 pytest); never folded into test:
 - [Phase 04-08]: SC#3 proven in an isolated --data-root so --force cannot clobber committed oespi_monthly.csv
 - [Phase 04-08]: TP.02 (mark dbt-check required on main) remains operator GitHub settings — not auto-approved
+- [Phase 05 discuss]: D-01 calendar_df is ING-110 spine (not dim_calendar); D-02 ADR-012 SG-04 first-Monday-on-or-after-Aug-1; D-04 ADR-013 2019 peak share; D-06 flat_baseload same function no second YAML; D-08 single LP-003 parquet + sources.yml + all: profile then transform
 
 ### Pending Todos
 
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
-- `/gsd-discuss-phase 5` then research/plan/execute M4 consumer profile (REQ-LP-01)
+- `/gsd-research-phase` then `/gsd-plan-phase` then execute T4.01–T4.05 (REQ-LP-01)
 
 ### Blockers/Concerns
 
@@ -149,8 +150,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-01T17:10:00Z
-Stopped at: Completed /gsd-verify-work Phase EPRA-04
+Last session: 2026-09-02T11:30:00Z
+Stopped at: Completed /gsd-discuss-phase 5
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: `/gsd-discuss-phase 5` (M4 consumer profile)
+Next: `/gsd-research-phase` (M4 consumer profile)
