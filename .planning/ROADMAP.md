@@ -144,7 +144,7 @@ Plans:
   2. Each local calendar year sums to 50,000.00 MWh ± 0.01 after normalization
   3. `consumer_peak_share` is computed and ready for SSOT inputs
 
-**Plans**: 1/5 executed
+**Plans**: 2/5 executed
 
 Plans:
 

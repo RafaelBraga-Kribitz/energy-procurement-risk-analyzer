@@ -11,7 +11,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from epra.common.config import ConsumerProfileCfg, load_consumer_profile, load_settings
+from epra.common.config import ConsumerProfileCfg, Settings, load_consumer_profile, load_settings
 from epra.consumer import profile as prof
 from epra.ingest.calendar import build_calendar
 
@@ -209,3 +209,52 @@ def test_build_profile_rejects_empty_and_duplicate_ts(
     dup = pd.concat([calendar_frame.iloc[:2], calendar_frame.iloc[:1]], ignore_index=True)
     with pytest.raises(ValueError, match="duplicate ts_utc"):
         prof.build_profile(dup, cfg)
+
+
+def test_peak_share_2019_in_band_and_yearly_deviation_under_1pp(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    cal = calendar_frame.loc[calendar_frame["year_local"].isin(range(2019, 2025))]
+    built = prof.build_profile(cal, cfg)
+    share_2019 = prof.reference_peak_share(built, cal)
+    assert 0.42 <= share_2019 <= 0.48
+    by_year = prof.peak_share_by_year(built, cal)
+    for year, value in by_year.items():
+        if int(year) == 2019:
+            continue
+        assert abs(float(value) - share_2019) < 0.01, (year, value, share_2019)
+
+
+def test_monthly_volumes_2023_grain_and_annual_sum(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg
+) -> None:
+    cal = calendar_frame.loc[calendar_frame["year_local"] == 2023]
+    built = prof.build_profile(cal, cfg)
+    monthly = prof.monthly_volumes(built, cal)
+    assert list(monthly.columns) == ["year_local", "month_local", "volume_mwh"]
+    assert set(monthly["month_local"].tolist()) == set(range(1, 13))
+    assert float(monthly["volume_mwh"].sum()) == pytest.approx(cfg.annual_consumption_mwh, abs=0.01)
+
+
+def test_write_profile_outputs_roundtrip(
+    calendar_frame: pd.DataFrame, cfg: ConsumerProfileCfg, tmp_settings: Settings
+) -> None:
+    cal = calendar_frame.loc[calendar_frame["year_local"].isin(range(2019, 2024))]
+    built = prof.build_profile(cal, cfg)
+    prof.write_profile_outputs(built, cal, cfg, tmp_settings)
+    root = tmp_settings.paths.data_processed
+    hourly = pd.read_parquet(root / "consumer_load_hourly.parquet")
+    assert list(hourly.columns) == ["ts_utc", "load_mwh"]
+    pd.testing.assert_frame_equal(
+        hourly.reset_index(drop=True), built.reset_index(drop=True), check_dtype=False
+    )
+    monthly = pd.read_parquet(root / "consumer_load_monthly.parquet")
+    assert list(monthly.columns) == ["year_local", "month_local", "volume_mwh"]
+    ssot = pd.read_parquet(root / "ssot_inputs_profile.parquet")
+    assert list(ssot.columns) == ["key", "value", "unit", "tag", "produced_by"]
+    row = ssot.iloc[0]
+    assert row["key"] == "consumer_peak_share"
+    assert row["unit"] == "fraction"
+    assert row["tag"] == "CALIBRATED"
+    assert row["produced_by"] == "epra.consumer.profile"
+    assert 0.42 <= float(row["value"]) <= 0.48

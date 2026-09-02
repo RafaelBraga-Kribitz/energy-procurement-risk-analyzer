@@ -20,18 +20,19 @@ Implements: LP-001, LP-002, SPEC-03 §2 steps 1-4, ADR-012.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
 from functools import cache
+from pathlib import Path
 from typing import Any, Literal, cast
+from uuid import uuid4
 
 import numpy as np
 import pandas as pd
 
-from epra.common.config import ConsumerProfileCfg, load_settings
+from epra.common.config import ConsumerProfileCfg, REPO_ROOT, Settings, load_settings
 from epra.ingest.calendar import build_calendar
-
-_MSG = "M4 not implemented yet — build per SPEC-03 §2 (see module docstring)"
 
 _ALLOWED_PROFILES = frozenset({"styriametal_v1", "flat_baseload"})
 _DayType = Literal["shutdown", "weekend", "weekday"]
@@ -263,6 +264,98 @@ def build_profile(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> pd.Data
     return pd.DataFrame({"ts_utc": calendar_df["ts_utc"].to_numpy(), "load_mwh": load.to_numpy()})
 
 
-def monthly_volumes(profile_df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate to ``year_local, month_local, volume_mwh`` (LP-021)."""
-    raise NotImplementedError(_MSG)
+_REFERENCE_YEAR = 2019  # ADR-013 / SG-03; not a YAML load-shape numeric
+
+
+def monthly_volumes(profile_df: pd.DataFrame, calendar_df: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate to ``year_local, month_local, volume_mwh`` (LP-021).
+
+    Implements: LP-021.
+    """
+    if profile_df.empty:
+        raise ValueError("profile_df is empty — cannot aggregate monthly volumes")
+    cols = calendar_df[["ts_utc", "year_local", "month_local"]]
+    merged = profile_df.merge(cols, on="ts_utc", how="inner")
+    if len(merged) != len(profile_df):
+        raise ValueError("profile ts_utc must all be present on the calendar")
+    grouped = merged.groupby(
+        ["year_local", "month_local"], as_index=False, sort=True
+    )["load_mwh"].sum()
+    return grouped.rename(columns={"load_mwh": "volume_mwh"})
+
+
+def peak_share_by_year(profile_df: pd.DataFrame, calendar_df: pd.DataFrame) -> pd.Series:
+    """Peak-hour volume fraction by local year (LP-020, ADR-013).
+
+    Implements: LP-020, ADR-013.
+    """
+    cols = calendar_df[["ts_utc", "year_local", "is_peak_hour"]]
+    merged = profile_df.merge(cols, on="ts_utc", how="inner")
+    if len(merged) != len(profile_df):
+        raise ValueError("profile ts_utc must all be present on the calendar")
+    peak_mwh = np.where(merged["is_peak_hour"].to_numpy(dtype=bool), merged["load_mwh"], 0.0)
+    merged = merged.assign(peak_mwh=peak_mwh)
+    agg = merged.groupby("year_local", sort=True).agg(
+        peak_mwh=("peak_mwh", "sum"), total_mwh=("load_mwh", "sum")
+    )
+    return (agg["peak_mwh"] / agg["total_mwh"]).rename("peak_share")
+
+
+def reference_peak_share(
+    profile_df: pd.DataFrame,
+    calendar_df: pd.DataFrame,
+    *,
+    reference_year: int = _REFERENCE_YEAR,
+) -> float:
+    """2019 local-year peak share published to SSOT (ADR-013).
+
+    Implements: LP-020, ADR-013.
+    """
+    shares = peak_share_by_year(profile_df, calendar_df)
+    if reference_year not in shares.index:
+        raise ValueError(f"no profile rows for reference year {reference_year}")
+    return float(shares.loc[reference_year])
+
+
+def _processed_root(settings: Settings) -> Path:
+    path = settings.paths.data_processed
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def _atomic_write_parquet(frame: pd.DataFrame, path: Path) -> None:
+    """Temp-file + ``os.replace`` (same pattern as bootstrap calendar writer)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.parent / f"{path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
+    frame.to_parquet(tmp_path, index=False, engine="pyarrow")
+    os.replace(tmp_path, path)
+
+
+def write_profile_outputs(
+    profile_df: pd.DataFrame,
+    calendar_df: pd.DataFrame,
+    cfg: ConsumerProfileCfg,
+    settings: Settings,
+) -> None:
+    """Persist hourly, monthly, and SSOT-input parquet under ``data/processed``.
+
+    Implements: LP-003, LP-020, LP-021, ADR-013.
+    """
+    root = _processed_root(settings)
+    hourly = profile_df[["ts_utc", "load_mwh"]].copy()
+    _atomic_write_parquet(hourly, root / "consumer_load_hourly.parquet")
+    _atomic_write_parquet(
+        monthly_volumes(profile_df, calendar_df), root / "consumer_load_monthly.parquet"
+    )
+    share = reference_peak_share(profile_df, calendar_df)
+    ssot = pd.DataFrame(
+        [
+            {
+                "key": "consumer_peak_share",
+                "value": share,
+                "unit": "fraction",
+                "tag": "CALIBRATED",
+                "produced_by": "epra.consumer.profile",
+            }
+        ]
+    )
+    _atomic_write_parquet(ssot, root / "ssot_inputs_profile.parquet")
