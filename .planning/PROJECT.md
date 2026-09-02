@@ -24,7 +24,7 @@ Quantify the euro cost of wrong electricity procurement for a 50 GWh/year Styria
 - [ ] **REQ-Q4**: CFO recommendation — risk-averse vs cost-minimizing choice with price of risk reduction (Charter Q4, DL-5)
 - [ ] **REQ-ING-01**: Real market data ingestion with validation gates (D1–D4, SPEC-01)
 - [ ] **REQ-DWH-01**: DuckDB + dbt warehouse with contract-tested marts (SPEC-02)
-- [ ] **REQ-LP-01**: Deterministic calibrated consumer load profile (SPEC-03)
+- [x] **REQ-LP-01**: Deterministic calibrated consumer load profile (SPEC-03)
 - [ ] **REQ-ANA-01**: Market analytics modules A1–A4 with plausibility gates (SPEC-04)
 - [ ] **REQ-ST-01**: Procurement strategy simulator — retrospective + forward bootstrap (SPEC-05)
 - [ ] **REQ-RPT-01**: Executive reporting, exports, Power BI handoff, monthly refresh (SPEC-06, DL-1, DL-6, DL-8, DL-10)
