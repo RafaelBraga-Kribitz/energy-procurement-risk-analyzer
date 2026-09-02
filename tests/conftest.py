@@ -61,18 +61,10 @@ _ensure_entsoe_fixtures_dir()
 
 @pytest.fixture
 def tmp_settings(tmp_path: Path) -> Settings:
-    """`Settings` with `data_raw`, `data_cache`, `data_manual`, and `reports`
-    redirected to `tmp_path`.
+    """`Settings` with data/report/export paths redirected to `tmp_path`.
 
-    Ingest and validation tests inject this instead of the real `Settings` so
-    parquet writes, cache files, validation reports, and (03-06) the ÖSPI
-    manual CSV never touch the repo's real `data/` or `reports/` trees
-    (mirrors `test_db_connect_creates_warehouse` in
-    `tests/unit/test_logging_and_db.py`). Redirecting `data_manual` too keeps
-    `run_gates` aggregate tests deterministic regardless of whether the real
-    `data/manual/oespi_monthly.csv` (the 03-06 human checkpoint) has been
-    committed in the working tree yet -- a test must never pass or fail
-    depending on that external, human-driven file's presence.
+    Ingest, validation, and profile tests inject this instead of the real
+    `Settings` so parquet writes never touch the repo's real `data/` trees.
     """
     settings = load_settings()
     paths = settings.paths.model_copy(
@@ -80,6 +72,9 @@ def tmp_settings(tmp_path: Path) -> Settings:
             "data_raw": tmp_path / "data" / "raw",
             "data_cache": tmp_path / "data" / "cache",
             "data_manual": tmp_path / "data" / "manual",
+            "data_processed": tmp_path / "data" / "processed",
+            "warehouse": tmp_path / "data" / "warehouse",
+            "exports": tmp_path / "exports",
             "reports": tmp_path / "reports",
         }
     )

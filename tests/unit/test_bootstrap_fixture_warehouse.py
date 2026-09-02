@@ -41,6 +41,10 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
 
 
 def _read_dataset(data_root: Path, dataset: str, subdir: str) -> pd.DataFrame:
+    if dataset == "consumer_load_hourly" and subdir == "processed":
+        path = data_root / subdir / "consumer_load_hourly.parquet"
+        assert path.is_file(), f"missing single-file stand-in {path}"
+        return pd.read_parquet(path)
     pattern = str(data_root / subdir / dataset / "**" / "*.parquet")
     files = sorted(glob.glob(pattern, recursive=True))
     assert files, f"no parquet files written for {dataset} under {data_root / subdir}"
@@ -182,8 +186,12 @@ def test_determinism_same_seed_identical_data_across_two_runs(tmp_path: Path) ->
         ("consumer_load_hourly", "processed"),
         ("procurement_cost_monthly", "processed"),
     ]:
-        f1 = _read_dataset(root1, dataset, subdir).drop(columns=["ingested_at_utc"])
-        f2 = _read_dataset(root2, dataset, subdir).drop(columns=["ingested_at_utc"])
+        f1 = _read_dataset(root1, dataset, subdir).drop(
+            columns=["ingested_at_utc"], errors="ignore"
+        )
+        f2 = _read_dataset(root2, dataset, subdir).drop(
+            columns=["ingested_at_utc"], errors="ignore"
+        )
         pd.testing.assert_frame_equal(f1, f2)
 
     cal1 = pd.read_parquet(root1 / "raw" / "calendar" / "calendar.parquet")
