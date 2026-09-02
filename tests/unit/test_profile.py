@@ -1,4 +1,4 @@
-"""Consumer load-profile weight engine (SPEC-03 §2 steps 1–4, ADR-012).
+"""Consumer load-profile weight engine (SPEC-03 §2 steps 1-4, ADR-012).
 
 Uses a module-scoped ING-110 calendar so DST/holiday flags are real, not
 invented (A-2). Numerics under test are read from ``load_consumer_profile()``.
@@ -117,9 +117,7 @@ def test_march_weekday_hour14_matches_cfg_product(
     day = _rows_on(calendar_frame, date(2023, 3, 1))
     hour14 = day.loc[day["hour_local"] == 14].iloc[0]
     weights = prof.hourly_weights(calendar_frame, cfg)
-    expected = (
-        cfg.day_shapes["weekday"][14] * cfg.seasonal_factors[3] * 1.0
-    )
+    expected = cfg.day_shapes["weekday"][14] * cfg.seasonal_factors[3] * 1.0
     assert weights.loc[hour14.name] == pytest.approx(expected)
 
 
@@ -129,11 +127,7 @@ def test_maintenance_hour_is_shape_times_seasonal_times_factor(
     day = _rows_on(calendar_frame, date(2022, 8, 1))
     hour14 = day.loc[day["hour_local"] == 14].iloc[0]
     weights = prof.hourly_weights(calendar_frame, cfg)
-    expected = (
-        cfg.day_shapes["weekday"][14]
-        * cfg.seasonal_factors[8]
-        * cfg.maintenance.factor
-    )
+    expected = cfg.day_shapes["weekday"][14] * cfg.seasonal_factors[8] * cfg.maintenance.factor
     assert weights.loc[hour14.name] == pytest.approx(expected)
 
 

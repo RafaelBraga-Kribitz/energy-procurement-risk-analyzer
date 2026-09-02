@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -42,7 +42,9 @@ def _as_date(value: object) -> date:
         return value.date()
     if isinstance(value, date):
         return value
-    return pd.Timestamp(value).date()
+    if isinstance(value, pd.Timestamp):
+        return value.date()
+    return pd.Timestamp(cast(Any, value)).date()
 
 
 def _field(row: object, key: str) -> object:
@@ -59,7 +61,7 @@ def _parse_mmdd(token: str) -> tuple[int, int]:
 
 
 def _is_christmas_shutdown(day: date, cfg: ConsumerProfileCfg) -> bool:
-    """Dec 24–31 or Jan 1 (inclusive wrap) per cfg ``MM-DD`` bounds."""
+    """Dec 24-31 or Jan 1 (inclusive wrap) per cfg ``MM-DD`` bounds."""
     start = _parse_mmdd(cfg.christmas_shutdown.start)
     end = _parse_mmdd(cfg.christmas_shutdown.end)
     mmdd = (day.month, day.day)
@@ -104,7 +106,10 @@ def day_type(row: object, cfg: ConsumerProfileCfg) -> _DayType:
         return "shutdown"
     if bool(_field(row, "is_holiday_at")):
         return "weekend"
-    if int(_field(row, "dow_local")) in (5, 6):
+    dow_raw = _field(row, "dow_local")
+    if not isinstance(dow_raw, (int, np.integer)):
+        raise TypeError(f"dow_local must be int, got {type(dow_raw).__name__}")
+    if int(dow_raw) in (5, 6):
         return "weekend"
     return "weekday"
 
@@ -123,14 +128,14 @@ def special_factor(date_local: date, cfg: ConsumerProfileCfg) -> float:
 
 
 def _christmas_mask(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> np.ndarray:
-    """Vectorized Dec 24–Jan 1 wrap using month_local + day-of-month."""
+    """Vectorized Dec 24-Jan 1 wrap using month_local + day-of-month."""
     start_m, start_d = _parse_mmdd(cfg.christmas_shutdown.start)
     end_m, end_d = _parse_mmdd(cfg.christmas_shutdown.end)
     months = calendar_df["month_local"].to_numpy(dtype=int)
     days = pd.to_datetime(calendar_df["date_local"]).dt.day.to_numpy()
     ge_start = (months > start_m) | ((months == start_m) & (days >= start_d))
     le_end = (months < end_m) | ((months == end_m) & (days <= end_d))
-    return ge_start | le_end
+    return np.asarray(ge_start | le_end, dtype=bool)
 
 
 def _maintenance_mask(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> np.ndarray:
@@ -138,7 +143,9 @@ def _maintenance_mask(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> np.
     maint: set[date] = set()
     for year in years:
         maint |= maintenance_dates_for_year(year, cfg)
-    date_local = pd.Series(pd.to_datetime(calendar_df["date_local"]).dt.date, index=calendar_df.index)
+    date_local = pd.Series(
+        pd.to_datetime(calendar_df["date_local"]).dt.date, index=calendar_df.index
+    )
     return date_local.isin(maint).to_numpy()
 
 
@@ -162,11 +169,13 @@ def _styriametal_weights(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> 
     seasonal = np.array([cfg.seasonal_factors[month] for month in range(1, 13)], dtype="float64")
     months = calendar_df["month_local"].to_numpy(dtype=int)
     special = np.where(_maintenance_mask(calendar_df, cfg) & ~shutdown, cfg.maintenance.factor, 1.0)
-    return shape_table[day_code, hours] * seasonal[months - 1] * special
+    return np.asarray(
+        shape_table[day_code, hours] * seasonal[months - 1] * special, dtype="float64"
+    )
 
 
 def hourly_weights(calendar_df: pd.DataFrame, cfg: ConsumerProfileCfg) -> pd.Series:
-    """Raw per-hour weights (SPEC-03 §2 steps 1–4), not yet year-normalized.
+    """Raw per-hour weights (SPEC-03 §2 steps 1-4), not yet year-normalized.
 
     Implements: LP-001, LP-002, SPEC-03 §2 steps 1-4, ADR-012.
     """
