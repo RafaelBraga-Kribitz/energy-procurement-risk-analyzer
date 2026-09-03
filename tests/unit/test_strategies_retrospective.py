@@ -101,9 +101,6 @@ def test_peak_available_false_uses_base_only() -> None:
 
 
 def test_st602b_hybrid_between_legs() -> None:
-    monthly = pd.DataFrame(
-        {"year_local": [2022], "month_local": [1], "volume_mwh": [10.0]}
-    )
     s1 = pd.DataFrame(
         {
             "year_local": [2022],
@@ -138,9 +135,7 @@ def test_st502_sentence_mentions_oespi_and_limitations() -> None:
 
 def test_cost_s2_s3_use_volume_times_price() -> None:
     cfg = load_strategy_config().model_copy(update={"fixed_premium_eur_mwh": 0.0})
-    monthly = pd.DataFrame(
-        {"year_local": [2022], "month_local": [1], "volume_mwh": [2.0]}
-    )
+    monthly = pd.DataFrame({"year_local": [2022], "month_local": [1], "volume_mwh": [2.0]})
     oespi = pd.concat([_oespi_year(2021, 100.0, 100.0), _oespi_year(2022, 100.0, 100.0)])
     s2 = cost_s2(monthly, oespi, _ANCHORS, _W)
     s3 = cost_s3(monthly, oespi, _ANCHORS, cfg, w_peak=_W)

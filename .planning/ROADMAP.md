@@ -188,14 +188,14 @@ Plans:
   2. Two consecutive runs with the same seed produce identical SSOT numeric values
   3. `reports/NUMERIC_SSOT.md` contains the 5-year cost matrix and forward-risk table with correct epistemic tags
 
-**Plans**: 3/10 executed
+**Plans**: 4/10 executed
 
 Plans:
 
 - [x] 07-01-PLAN.md — T6.01 strategy aligner + w_peak loader
 - [x] 07-02-PLAN.md — T6.02 calibration anchors ST-201..204
 - [x] 07-03-PLAN.md — T6.03 retrospective S1
-- [ ] 07-04-PLAN.md — T6.04 S2/S3/S4 + ST-503
+- [x] 07-04-PLAN.md — T6.04 S2/S3/S4 + ST-503
 - [ ] 07-05-PLAN.md — T6.05 annual summary, charts, dual-write parquet
 - [ ] 07-06-PLAN.md — T6.06 ST-303 sensitivities
 - [ ] 07-07-PLAN.md — T6.07 forward cells + ADR-014/015

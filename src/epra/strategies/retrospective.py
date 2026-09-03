@@ -9,6 +9,7 @@ Implements: ST-101..107, ST-301, ST-502, ST-503 (run() still T6.05).
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any, cast
 
 import pandas as pd
 
@@ -32,6 +33,10 @@ ST502_SENTENCE = (
     "Contract prices proxied via ÖSPI (futures-based index); "
     "premiums are calibrated assumptions - see LIMITATIONS."
 )
+
+
+def _as_int(value: object) -> int:
+    return int(cast(Any, value))
 
 
 def cost_s1(hourly: pd.DataFrame) -> pd.DataFrame:
@@ -175,8 +180,8 @@ def cost_s2(
         _priced_month(
             chunk,
             p_s2(
-                int(chunk["year_local"].iloc[0]),
-                int(chunk["month_local"].iloc[0]),
+                _as_int(chunk["year_local"].iloc[0]),
+                _as_int(chunk["month_local"].iloc[0]),
                 oespi,
                 anchors,
                 w_peak,
@@ -203,7 +208,7 @@ def cost_s3(
     """
     rows: list[pd.DataFrame] = []
     for year, chunk in monthly.groupby("year_local", sort=True):
-        price = p_s3(int(year), oespi, anchors, cfg, w_peak=w_peak)
+        price = p_s3(_as_int(year), oespi, anchors, cfg, w_peak=w_peak)
         rows.append(_priced_month(chunk, price, S3_ID))
     return pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(columns=list(COST_COLS))
 
@@ -218,7 +223,7 @@ def cost_s4(s1: pd.DataFrame, s3: pd.DataFrame, h: float) -> pd.DataFrame:
     left = s1.rename(columns={"cost_eur": "c1", "volume_mwh": "v1", "unit_cost_eur_mwh": "u1"})
     right = s3.rename(columns={"cost_eur": "c3", "volume_mwh": "v3", "unit_cost_eur_mwh": "u3"})
     keys = ["year_local", "month_local"]
-    merged = left.merge(right[keys + ["c3", "v3"]], on=keys, how="inner")
+    merged = left.merge(right[[*keys, "c3", "v3"]], on=keys, how="inner")
     if len(merged) != len(s1) or not (merged["v1"] == merged["v3"]).all():
         raise ValueError("S4 requires identical S1/S3 monthly volumes (ST-501)")
     merged["volume_mwh"] = merged["v1"]
