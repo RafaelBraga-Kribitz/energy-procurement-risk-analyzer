@@ -48,10 +48,10 @@ warehouse:           ## M3 — SPEC-02 D-02: dbt build + human-readable build re
 profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_baseload)
 	$(UV) run python -m epra.consumer.profile
 
-# ---------------------------------------------------------------- not yet implemented ----
 analyze:             ## M5 — SPEC-04 modules → reports/analytics/
-	@echo "ERROR: 'make analyze' not implemented yet (M5 — SPEC-04)." >&2; exit 1
+	$(UV) run python -m epra.analytics
 
+# ---------------------------------------------------------------- not yet implemented ----
 simulate:            ## M6 — SPEC-05 retrospective + forward risk
 	@echo "ERROR: 'make simulate' not implemented yet (M6 — SPEC-05)." >&2; exit 1
 
