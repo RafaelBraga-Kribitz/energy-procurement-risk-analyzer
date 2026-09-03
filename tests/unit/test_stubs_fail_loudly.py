@@ -9,7 +9,6 @@ from typing import Any
 
 import pytest
 
-from epra.analytics import regimes
 from epra.common.config import load_settings, load_strategy_config
 from epra.report import charts
 from epra.strategies import calibration, forward_risk, retrospective
@@ -17,7 +16,6 @@ from epra.strategies import calibration, forward_risk, retrospective
 SETTINGS = load_settings()
 
 STUBS: list[tuple[str, Callable[..., Any], tuple[Any, ...]]] = [
-    ("M5", regimes.run, (SETTINGS,)),
     ("M6", calibration.compute_anchors, (SETTINGS, load_strategy_config())),
     ("M6", retrospective.run, (SETTINGS,)),
     ("M6", retrospective.main, ([],)),
