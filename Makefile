@@ -51,7 +51,7 @@ profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_bas
 analyze:             ## M5 — SPEC-04 modules → reports/analytics/
 	$(UV) run python -m epra.analytics
 
-simulate:            ## M6 — SPEC-05 retrospective then forward risk (no dbt)
+simulate:            ## M6 — SPEC-05 retrospective then forward risk
 	$(UV) run python -m epra.strategies.retrospective
 	$(UV) run python -m epra.strategies.forward_risk
 

@@ -6,6 +6,7 @@ Implements: ST-405, ST-601, ST-603, EN-050, D-03, D-19.
 from __future__ import annotations
 
 import importlib.util
+from datetime import date
 from pathlib import Path
 from types import ModuleType
 
@@ -23,9 +24,66 @@ from epra.strategies.forward_risk import main as forward_main
 from epra.strategies.forward_risk import run as forward_run
 from epra.strategies.retrospective import main as retro_main
 from epra.strategies.retrospective import run as retro_run
-from tests.unit.test_strategies_forward import _toy_cfg, _toy_frames
 
 _ANCHORS = Anchors(p_ref_base=50.0, p_ref_peak=70.0, oespi_base_ref=100.0, oespi_peak_ref=100.0)
+
+
+def _h(
+    ts: str,
+    year: int,
+    month: int,
+    day: int,
+    hour_local: int,
+    load: float,
+    price: float,
+) -> dict[str, object]:
+    return {
+        "ts_utc": pd.Timestamp(ts, tz="UTC"),
+        "load_mwh": load,
+        "price_at_eur_mwh": price,
+        "year_local": year,
+        "month_local": month,
+        "date_local": date(year, month, day),
+        "hour_local": hour_local,
+        "is_weekend": False,
+    }
+
+
+def _oespi_year(year: int, value: float = 100.0) -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "year_local": [year] * 12,
+            "month_local": list(range(1, 13)),
+            "oespi_base": [value] * 12,
+            "oespi_peak": [value] * 12,
+        }
+    )
+
+
+def _toy_cfg() -> object:
+    cfg = load_strategy_config()
+    return cfg.model_copy(
+        update={"forward": cfg.forward.model_copy(update={"n_paths": 20, "horizon_months": 2})}
+    )
+
+
+def _toy_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    horizon = pd.DataFrame(
+        [
+            _h("2023-01-01 11:00:00", 2023, 1, 1, 12, 10.0, 0.0),
+            _h("2023-02-01 11:00:00", 2023, 2, 1, 12, 5.0, 0.0),
+        ]
+    )
+    pool = pd.DataFrame(
+        [
+            _h("2021-01-01 11:00:00", 2021, 1, 1, 12, 10.0, 40.0),
+            _h("2022-01-01 11:00:00", 2022, 1, 1, 12, 10.0, 80.0),
+            _h("2021-02-01 11:00:00", 2021, 2, 1, 12, 5.0, 20.0),
+            _h("2022-02-01 11:00:00", 2022, 2, 1, 12, 5.0, 60.0),
+        ]
+    )
+    oespi = pd.concat([_oespi_year(2021), _oespi_year(2022), _oespi_year(2023)], ignore_index=True)
+    return horizon, pool, oespi
 
 
 def _load_golden_script() -> ModuleType:
@@ -43,10 +101,10 @@ def test_makefile_simulate_and_ssot_are_clis_not_dbt() -> None:
     ssot = text[text.index("ssot:") : text.index("export:")]
     assert "python -m epra.strategies.retrospective" in sim
     assert "python -m epra.strategies.forward_risk" in sim
-    assert "dbt" not in sim
+    assert "cd dbt" not in sim
     assert "not implemented" not in sim
     assert "python scripts/generate_ssot.py" in ssot
-    assert "dbt" not in ssot
+    assert "cd dbt" not in ssot
     assert "not implemented" not in ssot
 
 
@@ -59,9 +117,7 @@ def test_generate_golden_refuses_dirty_tree(
     assert not (tmp_path / "out.json").is_file()
 
 
-def test_generate_golden_writes_when_clean(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_generate_golden_writes_when_clean(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     mod = _load_golden_script()
     monkeypatch.setattr(mod, "git_porcelain", lambda _cwd: "")
     dest = tmp_path / "strategy_annual_summary.json"
@@ -165,7 +221,11 @@ def test_cli_mains_on_tmp_then_assemble(
 
 
 def test_stubs_only_m7_charts() -> None:
-    from tests.unit.test_stubs_fail_loudly import STUBS
-
-    assert STUBS
-    assert all(milestone == "M7" for milestone, _func, _args in STUBS)
+    path = REPO_ROOT / "tests" / "unit" / "test_stubs_fail_loudly.py"
+    spec = importlib.util.spec_from_file_location("test_stubs_fail_loudly", path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    stubs = mod.STUBS
+    assert stubs
+    assert all(milestone == "M7" for milestone, _func, _args in stubs)

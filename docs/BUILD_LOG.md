@@ -379,4 +379,57 @@ operator run (`make warehouse && make analyze`); this checkout has no `data/raw/
 - Do not commit CI-fixture `reports/analytics/*` as Q2 evidence (D-05).
 - TP.02 (`dbt-check` required on `main`) and EN-072 golden regen still human.
 
+---
+
+## 2026-09-03 — M6 Strategy simulator (T6.10 operator close-out)
+
+**Shipped**
+
+- Shared ST-101 aligner; ST-201..204 anchors; S1–S4 monthly costs; annual
+  summary, ST-304 charts, dual-write parquet; exactly three ST-303 sensitivities.
+- ST-406 cost cells + seeded bootstrap (ADR-014 day-map, ADR-015 quantile/CVaR).
+- SSOT assembler (GV-301/302, ADR-016 mtime `updated_at`) and GV-303 checker
+  (Decimal ROUND_HALF_UP) plus CI job `ssot-check` (not GitHub-required).
+- Synthetic ST-601 golden `tests/golden/strategy_annual_summary.json` — **engine
+  contract only, not Austrian market evidence** (D-19).
+- `make simulate` = `python -m epra.strategies.retrospective` then
+  `python -m epra.strategies.forward_risk`. `make ssot` =
+  `python scripts/generate_ssot.py`. Neither invokes dbt.
+- M6 loud stubs removed; M7 `render_executive_charts` remains.
+- No fixture-warehouse euros committed as Q1/Q3 evidence (D-04).
+  `reports/NUMERIC_SSOT.md` is not in this checkout.
+
+**Gate evidence**
+
+```
+make lint
+  ruff check: All checks passed
+  ruff format --check: 86 files already formatted
+  mypy: Success: no issues found in 40 source files
+
+uv run pytest tests/test_golden_strategies.py tests/unit/test_strategies_gates.py \
+  tests/unit/test_stubs_fail_loudly.py -m "not live" --no-cov -q
+  8 passed
+
+uv run pytest -m "not live"
+  392 passed, 2 skipped, 1 deselected
+  coverage 92.55% (gate: 80%)
+```
+
+No invented market EUR in this entry. The committed golden lists toy costs
+(S1=120, S3=100 EUR on 10 MWh) that exist only to pin `annual_summary`.
+
+**Open questions**
+
+- ST-602(a) on a real 2019+2022 warehouse remains operator (`make warehouse &&
+  make simulate`); this checkout has no `data/raw/`. If (a) fails, debug
+  calibration — do not widen the gate.
+- Human approval before replacing the synthetic ST-601 JSON with real-warehouse
+  euros (EN-072 / AGENTS §2.6).
+- Commit `reports/NUMERIC_SSOT.md` only from a real `make ssot` (D-04).
+- Mark GitHub `ssot-check` (and `dbt-check`) required on `main` (operator / TP.02).
+- Forward `run()` still needs an injected/SPEC-03 forward-window profile for a
+  live next-12-month horizon (production currently reuses pool hours when
+  `horizon_hours` is omitted).
+
 

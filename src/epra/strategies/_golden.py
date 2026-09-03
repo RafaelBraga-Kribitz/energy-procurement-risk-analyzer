@@ -15,9 +15,7 @@ import pandas as pd
 from epra.strategies.align import STRATEGY_IDS
 from epra.strategies.annual import annual_summary
 
-DISCLAIMER = (
-    "SYNTHETIC engine contract (D-19 / ST-601). Not Austrian market evidence."
-)
+DISCLAIMER = "SYNTHETIC engine contract (D-19 / ST-601). Not Austrian market evidence."
 # Hand costs for one 2022 month (EUR), volume 10 MWh.
 HAND_COST_EUR: dict[str, float] = {
     "S1": 120.0,
