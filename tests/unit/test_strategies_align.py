@@ -19,7 +19,9 @@ def _hour(i: int) -> pd.Timestamp:
     return pd.Timestamp(f"2022-01-01 {i:02d}:00:00", tz="UTC")
 
 
-def _load_prices(*, n_hours: int = 6, null_hours: tuple[int, ...] = ()) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _load_prices(
+    *, n_hours: int = 6, null_hours: tuple[int, ...] = ()
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     ts = [_hour(i) for i in range(n_hours)]
     load = pd.DataFrame({"ts_utc": ts, "load_mwh": [1.0] * n_hours})
     prices = pd.DataFrame(
@@ -84,7 +86,7 @@ def test_load_w_peak_reads_profile_parquet(tmp_settings: Settings) -> None:
 
 
 def test_load_w_peak_missing_file_names_path(tmp_settings: Settings) -> None:
-    with pytest.raises(FileNotFoundError, match="ssot_inputs_profile.parquet"):
+    with pytest.raises(FileNotFoundError, match=r"ssot_inputs_profile\.parquet"):
         align.load_w_peak(tmp_settings)
 
 

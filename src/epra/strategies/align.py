@@ -147,9 +147,7 @@ def load_w_peak(settings: Settings) -> float:
     """
     path = processed_dir(settings) / "ssot_inputs_profile.parquet"
     if not path.is_file():
-        raise FileNotFoundError(
-            f"missing {path} (key {W_PEAK_KEY}; run `make profile` first)"
-        )
+        raise FileNotFoundError(f"missing {path} (key {W_PEAK_KEY}; run `make profile` first)")
     frame = pd.read_parquet(path)
     rows = frame.loc[frame["key"] == W_PEAK_KEY]
     if rows.empty:
