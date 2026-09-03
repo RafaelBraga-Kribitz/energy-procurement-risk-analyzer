@@ -3,20 +3,22 @@
 Binding contract: SPEC-05 §3 (strategy formulas S1-S4), §5 (ST-301..304).
 S1 hourly join uses pre-aligned frames (NULL-price hours already dropped).
 
-Implements: ST-101..107, ST-301, ST-502, ST-503 (run() still T6.05).
+Implements: ST-101..107, ST-301..304, ST-502, ST-503, ST-602.
 """
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from typing import Any, cast
 
 import pandas as pd
 
 from epra.common.config import Settings, StrategyCfg
+from epra.strategies.align import AlignedVolumes
 from epra.strategies.calibration import Anchors
 
-_MSG = "M6 not implemented yet — build per SPEC-05 §§3-5 (see module docstring)"
+logger = logging.getLogger(__name__)
 S1_ID = "S1"
 S2_ID = "S2"
 S3_ID = "S3"
@@ -32,6 +34,10 @@ COST_COLS = (
 ST502_SENTENCE = (
     "Contract prices proxied via ÖSPI (futures-based index); "
     "premiums are calibrated assumptions - see LIMITATIONS."
+)
+LP050_SENTENCE = (
+    "Reference load profile is constructed (CALIBRATED), not measured; "
+    "construction rules in SPEC-03."
 )
 
 
@@ -233,14 +239,150 @@ def cost_s4(s1: pd.DataFrame, s3: pd.DataFrame, h: float) -> pd.DataFrame:
     return merged.loc[:, list(COST_COLS)]
 
 
-def run(settings: Settings) -> None:
-    """Compute cost(strategy, year, month) for 2021-2025 + sensitivities."""
-    raise NotImplementedError(_MSG)
+def run(
+    settings: Settings,
+    *,
+    aligned: AlignedVolumes | None = None,
+    monthly_oespi: pd.DataFrame | None = None,
+    anchors: Anchors | None = None,
+    w_peak: float | None = None,
+    cfg: StrategyCfg | None = None,
+) -> pd.DataFrame:
+    """Compute cost(strategy, year, month) for configured years.
+
+    Implements: ST-301, ST-302, ST-304, ST-602, D-03.
+    """
+    from epra.common.config import load_strategy_config
+    from epra.strategies.annual import (
+        annual_summary,
+        check_st602a,
+        render_annual_charts,
+        write_strategy_costs,
+        write_unit_cost_md,
+        wrong_strategy_costs,
+    )
+    from epra.strategies.align import (
+        align_hourly,
+        load_consumer_load,
+        load_price_hourly,
+        load_price_monthly,
+        load_w_peak,
+    )
+    from epra.strategies.calibration import compute_anchors
+
+    cfg = cfg or load_strategy_config()
+    if aligned is None:
+        aligned = align_hourly(load_consumer_load(settings), load_price_hourly(settings))
+    if monthly_oespi is None:
+        monthly_oespi = load_price_monthly(settings)
+    if w_peak is None:
+        w_peak = load_w_peak(settings)
+    if anchors is None:
+        frame = compute_anchors(
+            settings, cfg, aligned=aligned, monthly_oespi=monthly_oespi
+        )
+        anchors = _anchors_from_frame(frame)
+    years = set(cfg.retrospective_years)
+    retro = AlignedVolumes(
+        hourly=aligned.hourly.loc[aligned.hourly["year_local"].isin(years)],
+        monthly=aligned.monthly.loc[aligned.monthly["year_local"].isin(years)],
+        dropped_hours=aligned.dropped_hours,
+    )
+    stacked = _stack_costs(retro, monthly_oespi, anchors, w_peak, cfg)
+    annual = annual_summary(stacked)
+    gate = check_st602a(annual)
+    if gate.status == "skip":
+        logger.info("ST-602(a) skip: %s", gate.reason)
+    elif gate.status == "fail":
+        raise RuntimeError(gate.reason)
+    write_strategy_costs(stacked, settings)
+    render_annual_charts(annual, settings)
+    write_unit_cost_md(annual, settings)
+    _write_wrong_strategy_ssot(wrong_strategy_costs(annual), settings)
+    return stacked
+
+
+def _anchors_from_frame(frame: pd.DataFrame) -> Anchors:
+    row = frame.iloc[0]
+    return Anchors(
+        p_ref_base=float(row["p_ref_base"]),
+        p_ref_peak=float(row["p_ref_peak"]),
+        oespi_base_ref=float(row["oespi_base_ref"]),
+        oespi_peak_ref=float(row["oespi_peak_ref"]),
+    )
+
+
+def _stack_costs(
+    aligned: AlignedVolumes,
+    oespi: pd.DataFrame,
+    anchors: Anchors,
+    w_peak: float,
+    cfg: StrategyCfg,
+) -> pd.DataFrame:
+    s1 = cost_s1(aligned.hourly)
+    s3 = cost_s3(aligned.monthly, oespi, anchors, cfg, w_peak=w_peak)
+    s2 = cost_s2(
+        aligned.monthly, oespi, anchors, w_peak, peak_available=cfg.peak_available
+    )
+    hybrids = [cost_s4(s1, s3, h) for h in cfg.hybrid_ratios]
+    return pd.concat([s1, s2, s3, *hybrids], ignore_index=True)
+
+
+def _write_wrong_strategy_ssot(span: pd.DataFrame, settings: Settings) -> None:
+    from epra.strategies.align import processed_dir
+    from epra.strategies.annual import write_ssot_parquet
+
+    rows: list[dict[str, object]] = []
+    total = 0.0
+    for rec in span.itertuples(index=False):
+        year = _as_int(rec.year_local)
+        value = float(rec.wrong_strategy_cost_eur)
+        total += value
+        rows.append(
+            {
+                "key": f"wrong_strategy_cost_{year}",
+                "value": value,
+                "unit": "EUR",
+                "tag": "CALIBRATED",
+                "produced_by": "epra.strategies.retrospective",
+            }
+        )
+    rows.append(
+        {
+            "key": "wrong_strategy_cost_total",
+            "value": total,
+            "unit": "EUR",
+            "tag": "CALIBRATED",
+            "produced_by": "epra.strategies.retrospective",
+        }
+    )
+    path = processed_dir(settings) / "ssot_inputs_strategies.parquet"
+    write_ssot_parquet(pd.DataFrame(rows), path)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """CLI: ``python -m epra.strategies.retrospective`` (ST-002)."""
-    raise NotImplementedError(_MSG)
+    import argparse
+    import sys
+
+    from epra.common.config import load_settings
+    from epra.common.db import warehouse_path
+    from epra.common.logging import setup
+
+    parser = argparse.ArgumentParser(prog="python -m epra.strategies.retrospective")
+    parser.parse_args(argv)
+    setup()
+    settings = load_settings()
+    path = warehouse_path(settings)
+    if not path.is_file():
+        msg = (
+            f"warehouse not found at {path}. "
+            "Run `make warehouse` first (strategies read marts only, D-03)."
+        )
+        print(f"ERROR: {msg}", file=sys.stderr)
+        return 1
+    run(settings)
+    return 0
 
 
 if __name__ == "__main__":
