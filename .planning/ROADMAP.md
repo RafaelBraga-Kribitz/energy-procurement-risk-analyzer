@@ -188,7 +188,7 @@ Plans:
   2. Two consecutive runs with the same seed produce identical SSOT numeric values
   3. `reports/NUMERIC_SSOT.md` contains the 5-year cost matrix and forward-risk table with correct epistemic tags
 
-**Plans**: 6/10 executed
+**Plans**: 7/10 executed
 
 Plans:
 
@@ -198,7 +198,7 @@ Plans:
 - [x] 07-04-PLAN.md — T6.04 S2/S3/S4 + ST-503
 - [x] 07-05-PLAN.md — T6.05 annual summary, charts, dual-write parquet
 - [x] 07-06-PLAN.md — T6.06 ST-303 sensitivities
-- [ ] 07-07-PLAN.md — T6.07 forward cells + ADR-014/015
+- [x] 07-07-PLAN.md — T6.07 forward cells + ADR-014/015
 - [ ] 07-08-PLAN.md — T6.08 SSOT generator + ADR-016
 - [ ] 07-09-PLAN.md — T6.09 GV-303 checker + CI job 4
 - [ ] 07-10-PLAN.md — T6.10 goldens, Makefile, BUILD_LOG
@@ -230,5 +230,5 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | 4. M3 dbt | 8/8 | Complete | 2026-09-01 |
 | 5. M4 Profile | 5/5 | Complete | 2026-09-02 |
 | 6. M5 Analytics | 7/7 | Verified (SC#2 operator) | 2026-09-03 |
-| 7. M6 Strategies | 6/10 | Executing | - |
+| 7. M6 Strategies | 7/10 | Executing | - |
 | 8. M7 Reporting | 0/TBD | Not started | - |
