@@ -188,7 +188,20 @@ Plans:
   2. Two consecutive runs with the same seed produce identical SSOT numeric values
   3. `reports/NUMERIC_SSOT.md` contains the 5-year cost matrix and forward-risk table with correct epistemic tags
 
-**Plans**: TBD
+**Plans**: 0/10 planned (execute not started)
+
+Plans:
+
+- [ ] 07-01-PLAN.md — T6.01 strategy aligner + w_peak loader
+- [ ] 07-02-PLAN.md — T6.02 calibration anchors ST-201..204
+- [ ] 07-03-PLAN.md — T6.03 retrospective S1
+- [ ] 07-04-PLAN.md — T6.04 S2/S3/S4 + ST-503
+- [ ] 07-05-PLAN.md — T6.05 annual summary, charts, dual-write parquet
+- [ ] 07-06-PLAN.md — T6.06 ST-303 sensitivities
+- [ ] 07-07-PLAN.md — T6.07 forward cells + ADR-014/015
+- [ ] 07-08-PLAN.md — T6.08 SSOT generator + ADR-016
+- [ ] 07-09-PLAN.md — T6.09 GV-303 checker + CI job 4
+- [ ] 07-10-PLAN.md — T6.10 goldens, Makefile, BUILD_LOG
 
 ### Phase 8: M7 Reporting & Refresh
 
@@ -216,6 +229,6 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | 3. M2 Auxiliary | 6/6 | Complete    | 2026-07-23 |
 | 4. M3 dbt | 8/8 | Complete | 2026-09-01 |
 | 5. M4 Profile | 5/5 | Complete | 2026-09-02 |
-| 6. M5 Analytics | 0/TBD | Not started | - |
-| 7. M6 Strategies | 0/TBD | Not started | - |
+| 6. M5 Analytics | 7/7 | Verified (SC#2 operator) | 2026-09-03 |
+| 7. M6 Strategies | 0/10 | Planned | - |
 | 8. M7 Reporting | 0/TBD | Not started | - |
