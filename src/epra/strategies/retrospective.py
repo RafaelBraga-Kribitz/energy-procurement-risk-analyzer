@@ -3,7 +3,7 @@
 Binding contract: SPEC-05 §3 (strategy formulas S1-S4), §5 (ST-301..304).
 S1 hourly join uses pre-aligned frames (NULL-price hours already dropped).
 
-Implements (partial, T6.03): ST-101, ST-301. S2–S4 and run() follow in T6.04+.
+Implements (partial, T6.03): ST-101, ST-301. S2-S4 and run() follow in T6.04+.
 """
 
 from __future__ import annotations
