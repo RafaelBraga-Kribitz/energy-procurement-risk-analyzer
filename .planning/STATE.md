@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07
 current_phase_name: m6-strategy-simulator
 status: executing
-stopped_at: T6.09 GV-303 checker landed; next T6.10 goldens
-last_updated: "2026-09-03T18:00:00Z"
+stopped_at: T6.10 goldens/Makefile/BUILD_LOG landed; next GSD verify-work
+last_updated: "2026-09-03T19:00:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-07 execute 07-09 SSOT checker
+last_activity_desc: Phase EPRA-07 execute 07-10 goldens and BUILD_LOG
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 44
-  completed_plans: 43
+  completed_plans: 44
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-07 — m6-strategy-simulator (executing; T6.10 next)
+**Current focus:** Phase EPRA-07 — m6-strategy-simulator (executing; verify-work next)
 
 ## Current Position
 
 Phase: EPRA-07 (m6-strategy-simulator) — EXECUTING
-Plan: 9 of 10
-Status: executing 07-09 done; next 07-10
-Last activity: 2026-09-03 — T6.09 GV-303 checker
+Plan: 10 of 10
+Status: executing 07-10 done; next GSD verify-work
+Last activity: 2026-09-03 — T6.10 goldens + BUILD_LOG
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -142,10 +142,11 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 07-07]: ST-406 cells; ADR-014/015; simulate path-major; ST-602(c); no-crisis december_regime
 - [Phase 07-08]: ADR-016 SG-09 mtime updated_at + year-adaptive GV-302
 - [Phase 07-09]: GV-303 Decimal HALF_UP; ssot-check CI job; whitelist years; missing SSOT skip GV-302
+- [Phase 07-10]: synthetic ST-601 golden (D-19); Makefile simulate/ssot; BUILD_LOG M6; no market EUR
 
 ### Pending Todos
 
-- Execute 07-10 then GSD verify-work
+- GSD verify-work Phase 7 (do not tick ROADMAP SC until operator ST-602(a)/real SSOT)
 - AN-304 / ST-602(a) on real warehouse (operator)
 - TP.02: mark GitHub `dbt-check` and later `ssot-check` required on `main` (operator)
 - EN-072: human approval before regenerating consumer golden or replacing synthetic strategy golden with real euros
@@ -174,8 +175,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-03T18:00:00Z
-Stopped at: T6.09 GV-303 checker landed
+Last session: 2026-09-03T19:00:00Z
+Stopped at: T6.10 goldens/Makefile/BUILD_LOG landed
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: execute 07-10-PLAN.md (T6.10 goldens, Makefile, BUILD_LOG)
+Next: GSD verify-work for Phase 7 (M6) then Phase 8 M7 reporting code

@@ -51,12 +51,12 @@ profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_bas
 analyze:             ## M5 — SPEC-04 modules → reports/analytics/
 	$(UV) run python -m epra.analytics
 
-# ---------------------------------------------------------------- not yet implemented ----
-simulate:            ## M6 — SPEC-05 retrospective + forward risk
-	@echo "ERROR: 'make simulate' not implemented yet (M6 — SPEC-05)." >&2; exit 1
+simulate:            ## M6 — SPEC-05 retrospective then forward risk
+	$(UV) run python -m epra.strategies.retrospective
+	$(UV) run python -m epra.strategies.forward_risk
 
-ssot:                ## M6 — scripts/generate_ssot.py
-	@echo "ERROR: 'make ssot' not implemented yet (M6 — SPEC-08 GV-301)." >&2; exit 1
+ssot:                ## M6 — scripts/generate_ssot.py (GV-301; does not recompute costs)
+	$(UV) run python scripts/generate_ssot.py
 
 export:              ## M7 — scripts/export_marts.py → exports/
 	@echo "ERROR: 'make export' not implemented yet (M7 — SPEC-02 §7)." >&2; exit 1
