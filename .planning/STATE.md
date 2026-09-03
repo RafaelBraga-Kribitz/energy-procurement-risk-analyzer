@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07
 current_phase_name: m6-strategy-simulator
 status: executing
-stopped_at: T6.05 annual/charts/parquet landed; next T6.06 sensitivities
-last_updated: "2026-09-03T14:30:00Z"
+stopped_at: T6.06 sensitivities landed; next T6.07 forward risk
+last_updated: "2026-09-03T15:00:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-07 execute 07-05 annual summary
+last_activity_desc: Phase EPRA-07 execute 07-06 sensitivities
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 44
-  completed_plans: 39
+  completed_plans: 40
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-07 — m6-strategy-simulator (executing; T6.06 next)
+**Current focus:** Phase EPRA-07 — m6-strategy-simulator (executing; T6.07 next)
 
 ## Current Position
 
 Phase: EPRA-07 (m6-strategy-simulator) — EXECUTING
-Plan: 5 of 10
-Status: executing 07-05 done; next 07-06
-Last activity: 2026-09-03 — T6.05 annual/charts/parquet
+Plan: 6 of 10
+Status: executing 07-06 done; next 07-07
+Last activity: 2026-09-03 — T6.06 sensitivities
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -139,11 +139,11 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 07-01]: ST-101 aligner + w_peak from profile parquet; 6 unit tests green
 - [Phase 07-02]: ST-201..204 anchors; synthetic p_ref_base=70; IncompleteReferenceYearError
 - [Phase 07-03]: cost_s1 monthly FULL_SPOT; hand month 50 EUR / 3 MWh
-- [Phase 07-05]: annual_summary + ST-304 charts + dual-write int64 parquet; ST-602 skip/fail/pass; ST-204 SSOT rows; stand-in marts empty
+- [Phase 07-06]: ST-303 three headings only; flat via build_profile; lock window 1..12
 
 ### Pending Todos
 
-- Execute 07-06..07-10 (one PR each) then GSD verify-work
+- Execute 07-07..07-10 (one PR each) then GSD verify-work
 - AN-304 / ST-602(a) on real warehouse (operator)
 - TP.02: mark GitHub `dbt-check` and later `ssot-check` required on `main` (operator)
 - EN-072: human approval before regenerating consumer golden or replacing synthetic strategy golden with real euros
@@ -176,4 +176,4 @@ Last session: 2026-09-03T12:00:00Z
 Stopped at: T6.05 annual summary landed
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: execute 07-06-PLAN.md (T6.06 ST-303 sensitivities)
+Next: execute 07-07-PLAN.md (T6.07 forward cells + ADR-014/015)
