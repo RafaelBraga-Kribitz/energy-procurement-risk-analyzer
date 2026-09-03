@@ -1,23 +1,26 @@
-"""A3 — Volatility regimes: HMM + realized vol (SPEC-04 AN-301..304).
+"""A3 — Volatility regimes: HMM + GARCH complement (SPEC-04 AN-301..304).
 
 ``d_t`` is the arithmetic daily difference of ``price_base_eur_mwh`` (not log).
 HMM: GaussianHMM(3, full, n_iter=500), seeds 42..51, max LL, lower seed on
-tie, states labeled calm/elevated/crisis by ascending std. GARCH overlay is
-06-06.
+tie, states labeled calm/elevated/crisis by ascending std. GARCH(1,1)
+constant mean on ``d_t``; rescale ``d_t / 10`` only after an arch scale
+warning; never clamp α+β.
 
-Implements: AN-301, AN-302, AN-304, AN-705, D-06, D-09, D-10, T-3.
+Implements: AN-301, AN-302, AN-303, AN-304, AN-705, D-06, D-09, D-10, D-11, T-3.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import warnings
 from dataclasses import dataclass
 from datetime import date
 from typing import Any, Final, Literal, cast
 
 import numpy as np
 import pandas as pd
+from arch import arch_model
 from hmmlearn.hmm import GaussianHMM
 from matplotlib import pyplot as plt
 from matplotlib.dates import date2num
@@ -30,6 +33,7 @@ from epra.analytics._kit import (
     load_price_daily,
     save_png,
     write_markdown,
+    write_ssot_rows,
 )
 from epra.common.config import Settings
 from epra.report.format import format_eur_mwh, format_pct
@@ -84,6 +88,22 @@ class An304Result:
     reason: str
     crisis_window_top2_share: float | None
     calm_2019_share: float | None
+
+
+@dataclass(frozen=True)
+class GarchFit:
+    """GARCH(1,1) on arithmetic ``d_t``. Persistence is never clamped.
+
+    Implements: AN-303, D-11.
+    """
+
+    persistence: float
+    alpha: float
+    beta: float
+    scale: float
+    rescale_note: str
+    conditional_vol: np.ndarray
+    near_integrated: bool
 
 
 def _as_int(value: object) -> int:
@@ -439,20 +459,124 @@ def render_regime_stats_md(
     )
 
 
-def run(settings: Settings, *, daily: pd.DataFrame | None = None) -> None:
-    """Write AN-301/302 artifacts; AN-304 fail raises. GARCH is 06-06.
+def _scale_warning_seen(messages: list[str]) -> bool:
+    return any("scale" in msg.lower() for msg in messages)
 
-    Implements: AN-301, AN-302, AN-304, D-01, D-06.
+
+def _fit_arch_garch(series: np.ndarray) -> tuple[Any, list[str]]:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        model = arch_model(
+            series,
+            mean="Constant",
+            vol="GARCH",
+            p=1,
+            q=1,
+            rescale=False,
+        )
+        fitted = model.fit(disp="off")
+    messages = [str(w.message) for w in caught]
+    return fitted, messages
+
+
+def _garch_note(scale: float, persistence: float) -> str:
+    parts: list[str] = []
+    if scale == 10.0:
+        parts.append("rescaled d_t / 10 after arch scale warning")
+    else:
+        parts.append("unscaled d_t")
+    if persistence >= 1.0:
+        parts.append("near-integrated volatility (alpha+beta >= 1); not clamped")
+    return "; ".join(parts)
+
+
+def fit_garch(d_t: np.ndarray) -> GarchFit:
+    """GARCH(1,1) constant mean; rescale /10 only after a scale warning.
+
+    Implements: AN-303, D-11.
+    """
+    series = np.asarray(d_t, dtype=np.float64)
+    fitted, messages = _fit_arch_garch(series)
+    scale = 1.0
+    if _scale_warning_seen(messages):
+        fitted, _ = _fit_arch_garch(series / 10.0)
+        scale = 10.0
+    params = fitted.params
+    alpha = _as_float(params["alpha[1]"])
+    beta = _as_float(params["beta[1]"])
+    persistence = alpha + beta
+    cond = np.asarray(fitted.conditional_volatility, dtype=np.float64) * scale
+    return GarchFit(
+        persistence=persistence,
+        alpha=alpha,
+        beta=beta,
+        scale=scale,
+        rescale_note=_garch_note(scale, persistence),
+        conditional_vol=cond,
+        near_integrated=persistence >= 1.0,
+    )
+
+
+def figure_garch_vs_realized(frame: pd.DataFrame, garch: GarchFit) -> Figure:
+    """Overlay GARCH conditional vol and 30-day realized vol of ``d_t``.
+
+    Implements: AN-303.
+    """
+    fig, ax = plt.subplots(figsize=FIGSIZE)
+    dates = pd.to_datetime(frame["date_local"])
+    ax.plot(
+        dates,
+        realized_vol(frame["d_t"]),
+        color=OKABE_ITO["vermillion"],
+        label="30-day realized vol",
+    )
+    ax.plot(
+        dates,
+        garch.conditional_vol,
+        color=OKABE_ITO["blue"],
+        label="GARCH(1,1) conditional vol",
+        alpha=0.85,
+    )
+    ax.set_xlabel("date_local")
+    ax.set_ylabel("EUR/MWh")
+    ax.legend()
+    fig.text(0.01, 0.04, garch.rescale_note, fontsize=8)
+    fig.subplots_adjust(bottom=0.18)
+    return fig
+
+
+def garch_ssot_rows(garch: GarchFit) -> list[dict[str, object]]:
+    """``garch_persistence`` VERIFIED row.
+
+    Implements: AN-303, AN-703, D-03.
+    """
+    return [
+        {
+            "key": "garch_persistence",
+            "value": garch.persistence,
+            "unit": "1",
+            "tag": "VERIFIED",
+            "produced_by": PRODUCED_BY,
+        }
+    ]
+
+
+def run(settings: Settings, *, daily: pd.DataFrame | None = None) -> None:
+    """Write AN-301..303 artifacts; AN-304 fail raises.
+
+    Implements: AN-301, AN-302, AN-303, AN-304, D-01, D-06, D-11.
     """
     frame_in = daily if daily is not None else load_price_daily(settings)
     diffed = daily_diff(frame_in)
-    fit = fit_hmm(zscore(diffed["d_t"].to_numpy(dtype=np.float64)))
+    d_t = diffed["d_t"].to_numpy(dtype=np.float64)
+    fit = fit_hmm(zscore(d_t))
     stats = regime_stats_table(diffed, fit.labels)
     gate = check_an304(diffed["date_local"], pd.Series(fit.labels))
     if gate.status == "skip":
         logger.warning("%s", gate.reason)
     elif gate.status == "fail":
         raise RuntimeError(f"AN-304 failed: {gate.reason}")
+    garch = fit_garch(d_t)
     out = analytics_dir(settings)
     out.mkdir(parents=True, exist_ok=True)
     write_markdown(
@@ -461,9 +585,11 @@ def run(settings: Settings, *, daily: pd.DataFrame | None = None) -> None:
     )
     save_png(figure_realized_vol(diffed), out / "a3_realized_vol.png")
     save_png(figure_regimes(diffed, fit.labels), out / "a3_regimes.png")
+    save_png(figure_garch_vs_realized(diffed, garch), out / "a3_garch_vs_realized.png")
+    write_ssot_rows(garch_ssot_rows(garch), settings)
     logger.info(
-        "A3 wrote HMM artifacts under %s seed=%s produced_by=%s",
+        "A3 wrote HMM+GARCH artifacts under %s persistence=%s note=%s",
         out,
-        fit.restart_seed_used,
-        PRODUCED_BY,
+        garch.persistence,
+        garch.rescale_note,
     )
