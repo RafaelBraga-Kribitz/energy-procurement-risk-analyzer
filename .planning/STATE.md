@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: m5-analytics
 status: executing
-stopped_at: Completed 06-02; next execute 06-03
-last_updated: "2026-09-03T08:00:00Z"
+stopped_at: Completed 06-03; next execute 06-04
+last_updated: "2026-09-03T08:20:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-06 executing; 06-02 A1 descriptive shipped
+last_activity_desc: Phase EPRA-06 executing; 06-03 A2 spread shipped
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 34
-  completed_plans: 29
+  completed_plans: 30
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-06 — m5-analytics (executing 06-03)
+**Current focus:** Phase EPRA-06 — m5-analytics (executing 06-04)
 
 ## Current Position
 
 Phase: EPRA-06 (m5-analytics) — EXECUTING
-Plan: 3 of 7
-Status: 06-02 complete; next execute 06-03
-Last activity: 2026-09-03 — T5.02 A1 descriptive
+Plan: 4 of 7
+Status: 06-03 complete; next execute 06-04
+Last activity: 2026-09-03 — T5.03 A2 spread
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -128,10 +128,11 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 06 discuss]: D-01 marts-only + pure functions; D-03 ssot_inputs_analytics.parquet; D-06 AN-304 skip-if-incomplete fixture; D-09 BLAS pin; no fixture PNGs committed
 - [Phase 06-01]: kit loaders/PNG/SSOT + CLI missing-warehouse exit 1
 - [Phase 06-02]: A1 annual_summary/heatmap/duration/negatives; SSOT upsert by key; NULL prices dropped
+- [Phase 06-03]: A2 spread_stats on one hourly frame; axhline(0); spread_mean_<year>
 
 ### Pending Todos
 
-- execute 06-03 (T5.03 A2 spread)
+- execute 06-04 (T5.04 A4 weather OLS)
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
 - EN-072: human approval before regenerating `tests/golden/consumer_load_2023.sha256`
 
@@ -159,8 +160,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-03T08:00:00Z
-Stopped at: Completed 06-02 A1; next execute 06-03
+Last session: 2026-09-03T08:20:00Z
+Stopped at: Completed 06-03 A2; next execute 06-04
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: execute `.planning/phases/EPRA-06-m5-analytics/06-03-PLAN.md`
+Next: execute `.planning/phases/EPRA-06-m5-analytics/06-04-PLAN.md`
