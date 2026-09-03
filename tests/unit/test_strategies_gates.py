@@ -162,3 +162,10 @@ def test_cli_mains_on_tmp_then_assemble(
     assert "wrong_strategy_cost_total" in body
     assert "p95_next12m_S1" in body
     assert processed_dir(tmp_settings).joinpath("ssot_inputs_strategies.parquet").is_file()
+
+
+def test_stubs_only_m7_charts() -> None:
+    from tests.unit.test_stubs_fail_loudly import STUBS
+
+    assert STUBS
+    assert all(milestone == "M7" for milestone, _func, _args in STUBS)
