@@ -135,9 +135,7 @@ def anchors_from_frames(
     base = p_ref_base(hourly, reference_year)
     peak = p_ref_peak(hourly, reference_year, p_ref_base_value=base)
     o_base, o_peak = oespi_refs(monthly_oespi, reference_year)
-    out = Anchors(
-        p_ref_base=base, p_ref_peak=peak, oespi_base_ref=o_base, oespi_peak_ref=o_peak
-    )
+    out = Anchors(p_ref_base=base, p_ref_peak=peak, oespi_base_ref=o_base, oespi_peak_ref=o_peak)
     out.validate()
     return out
 
@@ -177,7 +175,5 @@ def compute_anchors(
         aligned = align_hourly(load_consumer_load(settings), load_price_hourly(settings))
     if monthly_oespi is None:
         monthly_oespi = load_price_monthly(settings)
-    anchors = anchors_from_frames(
-        aligned.hourly, monthly_oespi, reference_year=cfg.reference_year
-    )
+    anchors = anchors_from_frames(aligned.hourly, monthly_oespi, reference_year=cfg.reference_year)
     return anchors_to_frame(anchors)

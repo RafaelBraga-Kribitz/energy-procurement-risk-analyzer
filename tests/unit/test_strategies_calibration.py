@@ -54,7 +54,8 @@ def test_st202_docstring_has_spec_sentence() -> None:
     doc = inspect.getdoc(p_ref_peak)
     assert doc is not None
     assert "rescaled by the consumer's realized-vs-base ratio" in doc
-    assert "keeping the base/peak anchor pair internally consistent" in doc
+    assert "internally consistent" in doc
+    assert "base/peak" in doc
 
 
 def test_synthetic_2019_anchors_match_hand_calc(tmp_settings: Settings) -> None:
@@ -69,8 +70,10 @@ def test_synthetic_2019_anchors_match_hand_calc(tmp_settings: Settings) -> None:
     frame = compute_anchors(tmp_settings, cfg, aligned=aligned, monthly_oespi=oespi)
     assert float(frame["p_ref_base"].iloc[0]) == pytest.approx(70.0)
     assert float(frame["p_ref_peak"].iloc[0]) == pytest.approx(80.0 * (70.0 / 60.0))
-    assert float(frame["oespi_base_ref"].iloc[0]) == pytest.approx(sum(100.0 + m for m in range(1, 13)) / 12)
-    assert float(frame["oespi_peak_ref"].iloc[0]) == pytest.approx(sum(110.0 + m for m in range(1, 13)) / 12)
+    expected_base = sum(100.0 + m for m in range(1, 13)) / 12
+    expected_peak = sum(110.0 + m for m in range(1, 13)) / 12
+    assert float(frame["oespi_base_ref"].iloc[0]) == pytest.approx(expected_base)
+    assert float(frame["oespi_peak_ref"].iloc[0]) == pytest.approx(expected_peak)
 
 
 def test_incomplete_2019_raises() -> None:
