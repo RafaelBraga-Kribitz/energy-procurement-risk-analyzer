@@ -45,6 +45,10 @@ def _as_int(value: object) -> int:
     return int(cast(Any, value))
 
 
+def _as_float(value: object) -> float:
+    return float(cast(Any, value))
+
+
 def cost_s1(hourly: pd.DataFrame) -> pd.DataFrame:
     """Monthly FULL_SPOT cost: ``Σ load_mwh × price_at_eur_mwh``.
 
@@ -255,12 +259,48 @@ def run(
     from epra.common.config import load_strategy_config
     from epra.strategies.annual import (
         annual_summary,
-        check_st602a,
         render_annual_charts,
+        wipe_known_reports,
         write_strategy_costs,
         write_unit_cost_md,
         wrong_strategy_costs,
     )
+
+    cfg = cfg or load_strategy_config()
+    aligned, monthly_oespi, anchors, w_peak = _resolve_inputs(
+        settings,
+        cfg,
+        aligned=aligned,
+        monthly_oespi=monthly_oespi,
+        anchors=anchors,
+        w_peak=w_peak,
+    )
+    years = set(cfg.retrospective_years)
+    retro = AlignedVolumes(
+        hourly=aligned.hourly.loc[aligned.hourly["year_local"].isin(years)],
+        monthly=aligned.monthly.loc[aligned.monthly["year_local"].isin(years)],
+        dropped_hours=aligned.dropped_hours,
+    )
+    stacked = _stack_costs(retro, monthly_oespi, anchors, w_peak, cfg)
+    annual = annual_summary(stacked)
+    _enforce_st602(annual)
+    wipe_known_reports(settings)
+    write_strategy_costs(stacked, settings)
+    render_annual_charts(annual, settings)
+    write_unit_cost_md(annual, settings)
+    _write_strategy_ssot(wrong_strategy_costs(annual), anchors, settings)
+    return stacked
+
+
+def _resolve_inputs(
+    settings: Settings,
+    cfg: StrategyCfg,
+    *,
+    aligned: AlignedVolumes | None,
+    monthly_oespi: pd.DataFrame | None,
+    anchors: Anchors | None,
+    w_peak: float | None,
+) -> tuple[AlignedVolumes, pd.DataFrame, Anchors, float]:
     from epra.strategies.align import (
         align_hourly,
         load_consumer_load,
@@ -270,7 +310,6 @@ def run(
     )
     from epra.strategies.calibration import compute_anchors
 
-    cfg = cfg or load_strategy_config()
     if aligned is None:
         aligned = align_hourly(load_consumer_load(settings), load_price_hourly(settings))
     if monthly_oespi is None:
@@ -278,28 +317,20 @@ def run(
     if w_peak is None:
         w_peak = load_w_peak(settings)
     if anchors is None:
-        frame = compute_anchors(
-            settings, cfg, aligned=aligned, monthly_oespi=monthly_oespi
+        anchors = _anchors_from_frame(
+            compute_anchors(settings, cfg, aligned=aligned, monthly_oespi=monthly_oespi)
         )
-        anchors = _anchors_from_frame(frame)
-    years = set(cfg.retrospective_years)
-    retro = AlignedVolumes(
-        hourly=aligned.hourly.loc[aligned.hourly["year_local"].isin(years)],
-        monthly=aligned.monthly.loc[aligned.monthly["year_local"].isin(years)],
-        dropped_hours=aligned.dropped_hours,
-    )
-    stacked = _stack_costs(retro, monthly_oespi, anchors, w_peak, cfg)
-    annual = annual_summary(stacked)
-    gate = check_st602a(annual)
-    if gate.status == "skip":
-        logger.info("ST-602(a) skip: %s", gate.reason)
-    elif gate.status == "fail":
-        raise RuntimeError(gate.reason)
-    write_strategy_costs(stacked, settings)
-    render_annual_charts(annual, settings)
-    write_unit_cost_md(annual, settings)
-    _write_wrong_strategy_ssot(wrong_strategy_costs(annual), settings)
-    return stacked
+    return aligned, monthly_oespi, anchors, w_peak
+
+
+def _enforce_st602(annual: pd.DataFrame) -> None:
+    from epra.strategies.annual import check_st602a, check_st602b
+
+    for name, gate in (("ST-602(a)", check_st602a(annual)), ("ST-602(b)", check_st602b(annual))):
+        if gate.status == "skip":
+            logger.info("%s skip: %s", name, gate.reason)
+        elif gate.status == "fail":
+            raise RuntimeError(gate.reason)
 
 
 def _anchors_from_frame(frame: pd.DataFrame) -> Anchors:
@@ -321,14 +352,22 @@ def _stack_costs(
 ) -> pd.DataFrame:
     s1 = cost_s1(aligned.hourly)
     s3 = cost_s3(aligned.monthly, oespi, anchors, cfg, w_peak=w_peak)
-    s2 = cost_s2(
-        aligned.monthly, oespi, anchors, w_peak, peak_available=cfg.peak_available
-    )
+    s2 = cost_s2(aligned.monthly, oespi, anchors, w_peak, peak_available=cfg.peak_available)
     hybrids = [cost_s4(s1, s3, h) for h in cfg.hybrid_ratios]
     return pd.concat([s1, s2, s3, *hybrids], ignore_index=True)
 
 
-def _write_wrong_strategy_ssot(span: pd.DataFrame, settings: Settings) -> None:
+def _ssot_row(key: str, value: float, unit: str) -> dict[str, object]:
+    return {
+        "key": key,
+        "value": value,
+        "unit": unit,
+        "tag": "CALIBRATED",
+        "produced_by": "epra.strategies.retrospective",
+    }
+
+
+def _write_strategy_ssot(span: pd.DataFrame, anchors: Anchors, settings: Settings) -> None:
     from epra.strategies.align import processed_dir
     from epra.strategies.annual import write_ssot_parquet
 
@@ -336,25 +375,17 @@ def _write_wrong_strategy_ssot(span: pd.DataFrame, settings: Settings) -> None:
     total = 0.0
     for rec in span.itertuples(index=False):
         year = _as_int(rec.year_local)
-        value = float(rec.wrong_strategy_cost_eur)
+        value = _as_float(rec.wrong_strategy_cost_eur)
         total += value
-        rows.append(
-            {
-                "key": f"wrong_strategy_cost_{year}",
-                "value": value,
-                "unit": "EUR",
-                "tag": "CALIBRATED",
-                "produced_by": "epra.strategies.retrospective",
-            }
-        )
-    rows.append(
-        {
-            "key": "wrong_strategy_cost_total",
-            "value": total,
-            "unit": "EUR",
-            "tag": "CALIBRATED",
-            "produced_by": "epra.strategies.retrospective",
-        }
+        rows.append(_ssot_row(f"wrong_strategy_cost_{year}", value, "EUR"))
+    rows.append(_ssot_row("wrong_strategy_cost_total", total, "EUR"))
+    rows.extend(
+        [
+            _ssot_row("p_ref_base", anchors.p_ref_base, "EUR/MWh"),
+            _ssot_row("p_ref_peak", anchors.p_ref_peak, "EUR/MWh"),
+            _ssot_row("oespi_base_ref", anchors.oespi_base_ref, "index"),
+            _ssot_row("oespi_peak_ref", anchors.oespi_peak_ref, "index"),
+        ]
     )
     path = processed_dir(settings) / "ssot_inputs_strategies.parquet"
     write_ssot_parquet(pd.DataFrame(rows), path)
