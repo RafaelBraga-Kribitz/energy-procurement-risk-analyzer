@@ -202,6 +202,7 @@ def _run_fixture(tmp_settings: Settings) -> pd.DataFrame:
         anchors=_ANCHORS,
         w_peak=0.4,
         cfg=cfg,
+        sensitivities=False,
     )
 
 
