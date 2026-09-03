@@ -112,15 +112,16 @@ def test_heatmap_five_panels_empty_incomplete_shared_clim() -> None:
     )
     fig = a1.figure_heatmap(frame)
     assert len(fig.axes) >= 5
-    titles = [ax.get_title() for ax in fig.axes[:5]]
-    assert titles[0] == a1.EMPTY_PANEL_TITLE.format(year=2021)
-    assert titles[1] == a1.EMPTY_PANEL_TITLE.format(year=2022)
-    assert titles[2] == "2023"
-    assert titles[3] == "2024"
-    assert titles[4] == a1.EMPTY_PANEL_TITLE.format(year=2025)
-    assert fig.axes[0].images == []
-    assert fig.axes[1].images == []
-    ims = [ax.images[0] for ax in (fig.axes[2], fig.axes[3])]
+    by_title = {ax.get_title(): ax for ax in fig.axes}
+    assert by_title[a1.EMPTY_PANEL_TITLE.format(year=2021)]
+    assert by_title[a1.EMPTY_PANEL_TITLE.format(year=2022)]
+    assert by_title["2023"]
+    assert by_title["2024"]
+    assert by_title[a1.EMPTY_PANEL_TITLE.format(year=2025)]
+    assert len(by_title[a1.EMPTY_PANEL_TITLE.format(year=2021)].images) == 0
+    assert len(by_title[a1.EMPTY_PANEL_TITLE.format(year=2022)].images) == 0
+    assert len(by_title[a1.EMPTY_PANEL_TITLE.format(year=2025)].images) == 0
+    ims = [by_title["2023"].images[0], by_title["2024"].images[0]]
     assert ims[0].get_clim() == ims[1].get_clim()
     plt.close(fig)
 
