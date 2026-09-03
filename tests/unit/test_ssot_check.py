@@ -159,7 +159,7 @@ def test_unmatched_token_names_literal(
     assert _check_docs(tmp_path, ssot, "Wrong headline 99.0 EUR.\n") == 1
     err = capsys.readouterr().err
     assert "99.0 EUR" in err
-    assert "wrong_strategy_cost" in err or "p95_next12m" in err
+    assert "cost_S" in err or "cvar95" in err
 
 
 def test_ci_job_ssot_check_present() -> None:

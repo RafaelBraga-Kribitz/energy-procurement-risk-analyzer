@@ -14,7 +14,7 @@ import re
 import sys
 from collections.abc import Sequence
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 
 from epra.common.config import REPO_ROOT
@@ -180,8 +180,7 @@ def scan_docs(
         if hit is None:
             cand = ", ".join(_candidates(token, rows)) or "(no same-unit SSOT rows)"
             errors.append(
-                f"{token.source}: unmatched {token.literal} {token.unit}; "
-                f"candidates: {cand}"
+                f"{token.source}: unmatched {token.literal} {token.unit}; candidates: {cand}"
             )
     return errors
 
