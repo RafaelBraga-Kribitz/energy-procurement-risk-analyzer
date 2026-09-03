@@ -15,8 +15,8 @@ wants at a glance:
 - the 2022-08 ``fct_price_monthly`` vs mean-of-hourly reconciliation delta
   (DM-064)
 - an explicit flag on the mart still backed by a synthetic/thin-loader
-  stand-in (``fct_procurement_cost_monthly``; D-06, M6 pending).
-  ``fct_consumer_load_hourly`` is the M4 profile output (no longer a stand-in)
+  stand-in (none remaining; ``fct_procurement_cost_monthly`` is the M6
+  dual-write, D-05). ``fct_consumer_load_hourly`` is the M4 profile output.
 
 The DM-050/062/064/065/066 dbt tests (04-06) and the D-07 schema contract own
 pass/fail *enforcement* of these numbers -- this report is informational
@@ -114,7 +114,7 @@ class BuildReport:
 # Sanity-number queries -- read-only against the built `marts` schema.
 # ---------------------------------------------------------------------------
 
-_STAND_IN_MARTS: tuple[str, ...] = ("fct_procurement_cost_monthly",)
+_STAND_IN_MARTS: tuple[str, ...] = ()
 
 
 def _price_hourly_row_counts(con: duckdb.DuckDBPyConnection) -> ModelBuildResult:
@@ -224,10 +224,10 @@ def _stand_in_flag() -> ModelBuildResult:
     evidence = pd.DataFrame(
         [{"mart": mart, "status": "stand-in (M6 pending)"} for mart in _STAND_IN_MARTS]
     )
-    names = ", ".join(_STAND_IN_MARTS)
+    names = ", ".join(_STAND_IN_MARTS) if _STAND_IN_MARTS else "(none)"
     summary = (
-        f"{names} is a thin loader over synthetic/stand-in data "
-        "(M6 strategy simulator pending), not real module output yet (D-06). "
+        f"{names}: no synthetic stand-in marts remain. "
+        "fct_procurement_cost_monthly is the M6 strategy-simulator dual-write (D-05). "
         "fct_consumer_load_hourly is the M4 profile output."
     )
     return ModelBuildResult("future marts", True, summary, evidence)
