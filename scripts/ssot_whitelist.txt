@@ -1,0 +1,26 @@
+# GV-303 non-result numerics. Every data line MUST end with "# <reason>".
+# Years in prose must not be treated as result euros (D-17 / SPEC-08 §3).
+# Do not whitelist bare small integers (0-10): they can be result euros at M7.
+
+2019  # window start / calendar year in prose (not a result euro)
+2020  # calendar year in prose (not a result euro)
+2021  # Charter Q1 window start / calendar year in prose
+2022  # calendar year in prose (not a result euro)
+2023  # calendar year in prose (not a result euro)
+2024  # calendar year in prose (not a result euro)
+2025  # Charter Q1 window end / calendar year in prose
+2026  # BUILD_LOG / LIMITATIONS dates (not a result euro)
+3.12  # Python version pin (SPEC-07 / pyproject requires-python)
+50    # Charter consumer volume 50 GWh/year (not a result euro)
+80    # EN-071 coverage gate percent (not a result euro)
+12    # forward horizon months in the Charter question (not a result euro)
+95    # P95 label in the Charter question (not a result euro)
+00    # blueprint document numbering (00_MASTER_PLAN)
+01    # SPEC / plan section numbers
+02    # SPEC / plan section numbers
+03    # SPEC / plan section numbers
+04    # SPEC / plan section numbers
+05    # SPEC / plan section numbers
+06    # SPEC / plan section numbers
+07    # SPEC / plan section numbers
+08    # SPEC / plan section numbers
