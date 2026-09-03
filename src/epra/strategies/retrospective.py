@@ -267,7 +267,6 @@ def run(
         wipe_known_reports,
         write_strategy_costs,
         write_unit_cost_md,
-        wrong_strategy_costs,
     )
 
     cfg = cfg or load_strategy_config()
