@@ -13,7 +13,7 @@ progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 27
-  completed_plans: 22
+  completed_plans: 23
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-05 (m4-consumer-profile) — PLANNED
-Plan: 0 of 5
-Status: `/gsd-plan-phase` complete (05-01..05-05 PLAN.md); next execute 05-01 (T4.01)
-Last activity: 2026-09-02 — five execute plans for T4.01–T4.05
+Plan: 1 of 5
+Status: executing 05-01 complete; next 05-02
+Last activity: 2026-09-02 — T4.01 weights + ADR-012 green (24 pytest)
 
 Progress: [█████░░░░░] 50% (4/8 phases)
 
@@ -119,12 +119,12 @@ Progress: [█████░░░░░] 50% (4/8 phases)
 - [Phase 04-08]: dbt-check is a separate EN-080 job 3 (bootstrap --force then dbt build then D-07 pytest); never folded into test:
 - [Phase 04-08]: SC#3 proven in an isolated --data-root so --force cannot clobber committed oespi_monthly.csv
 - [Phase 04-08]: TP.02 (mark dbt-check required on main) remains operator GitHub settings — not auto-approved
-- [Phase 05 discuss]: D-01 calendar_df is ING-110 spine (not dim_calendar); D-02 ADR-012 SG-04 first-Monday-on-or-after-Aug-1; D-04 ADR-013 2019 peak share; D-06 flat_baseload same function no second YAML; D-08 single LP-003 parquet + sources.yml + all: profile then transform
+- [Phase 05-01]: ADR-012 SG-04 first Monday on or after 1 August; vectorized hourly_weights; YAML numerics stay in config
 
 ### Pending Todos
 
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
-- execute 05-01 (T4.01 weight engine + ADR-012) then 05-02..05-05
+- execute 05-02 (T4.02 normalization + build_profile)
 
 ### Blockers/Concerns
 
