@@ -115,8 +115,48 @@ def write_markdown(path: Path, body: str) -> None:
     path.write_text(body, encoding="utf-8")
 
 
+def _md_cell(value: object) -> str:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return ""
+    if isinstance(value, (pd.Timestamp, pd.Timedelta)):
+        return str(value)
+    text = str(value).replace("|", "/")
+    return text
+
+
+def frame_to_markdown(frame: pd.DataFrame) -> str:
+    """Hand-rolled pipe table (no tabulate).
+
+    Implements: AN-101, AN-704.
+    """
+    cols = [str(c) for c in frame.columns] or ["(empty)"]
+    header = "| " + " | ".join(cols) + " |"
+    sep = "| " + " | ".join("---" for _ in cols) + " |"
+    if frame.empty:
+        blank = "| " + " | ".join("" for _ in cols) + " |"
+        return "\n".join([header, sep, blank])
+    lines = [header, sep]
+    for row in frame.itertuples(index=False, name=None):
+        lines.append("| " + " | ".join(_md_cell(v) for v in row) + " |")
+    return "\n".join(lines)
+
+
+def prose_after_last_table(markdown: str) -> str:
+    """Characters after the last pipe-table row (AN-704).
+
+    Implements: AN-704.
+    """
+    lines = markdown.splitlines()
+    last_table = max((i for i, line in enumerate(lines) if line.startswith("|")), default=-1)
+    if last_table < 0:
+        return markdown.strip()
+    return "\n".join(lines[last_table + 1 :]).strip()
+
+
 def write_ssot_rows(rows: list[dict[str, object]], settings: Settings) -> Path:
-    """Atomic write of ``ssot_inputs_analytics.parquet``.
+    """Atomic upsert of ``ssot_inputs_analytics.parquet`` by ``key``.
+
+    Existing keys are replaced (keep last). Later A2-A4 modules must not wipe A1.
 
     Implements: AN-703, D-03.
     """
@@ -127,6 +167,11 @@ def write_ssot_rows(rows: list[dict[str, object]], settings: Settings) -> Path:
         raise ValueError("analytics SSOT rows must have tag=VERIFIED")
     path = processed_dir(settings) / "ssot_inputs_analytics.parquet"
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_file():
+        existing = pd.read_parquet(path)
+        frame = pd.concat([existing, frame], ignore_index=True)
+        frame = frame.drop_duplicates(subset=["key"], keep="last")
+        frame = frame.reset_index(drop=True)
     tmp_path = path.parent / f"{path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
     frame.to_parquet(tmp_path, index=False, engine="pyarrow")
     os.replace(tmp_path, path)

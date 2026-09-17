@@ -44,6 +44,52 @@ def test_save_png_writes_file(tmp_path: Path) -> None:
     assert dest.stat().st_size > 0
 
 
+def test_write_ssot_rows_upserts_by_key(tmp_settings: Settings) -> None:
+    kit.write_ssot_rows(
+        [
+            {
+                "key": "neg_hours_2022",
+                "value": 12.0,
+                "unit": "hours",
+                "tag": "VERIFIED",
+                "produced_by": "epra.analytics.descriptive",
+            }
+        ],
+        tmp_settings,
+    )
+    kit.write_ssot_rows(
+        [
+            {
+                "key": "spread_mean_2022",
+                "value": 3.5,
+                "unit": "EUR/MWh",
+                "tag": "VERIFIED",
+                "produced_by": "epra.analytics.spread",
+            },
+            {
+                "key": "neg_hours_2022",
+                "value": 99.0,
+                "unit": "hours",
+                "tag": "VERIFIED",
+                "produced_by": "epra.analytics.descriptive",
+            },
+        ],
+        tmp_settings,
+    )
+    out = pd.read_parquet(kit.processed_dir(tmp_settings) / "ssot_inputs_analytics.parquet")
+    by_key = {str(r.key): float(r.value) for r in out.itertuples(index=False)}
+    assert by_key["neg_hours_2022"] == 99.0
+    assert by_key["spread_mean_2022"] == 3.5
+    assert set(out.columns) == set(kit.SSOT_COLUMNS)
+
+
+def test_prose_after_last_table_counts_an704() -> None:
+    md = "| a | b |\n| --- | --- |\n| 1 | 2 |\n\nHello world paragraph follows the table.\n"
+    prose = kit.prose_after_last_table(md)
+    assert prose.startswith("Hello world")
+    assert "1 | 2" not in prose
+
+
 def test_write_ssot_rows_roundtrip(tmp_settings: Settings) -> None:
     rows: list[dict[str, object]] = [
         {
