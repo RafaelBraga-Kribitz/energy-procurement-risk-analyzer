@@ -13,7 +13,7 @@ progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 34
-  completed_plans: 27
+  completed_plans: 28
 ---
 
 # Project State
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-06 (m5-analytics) — PLANNED
-Plan: 0 of 7
-Status: plans T5.01–T5.07 ready; next execute 06-01
+Plan: 1 of 7
+Status: 06-01 complete; next execute 06-02
 Last activity: 2026-09-02 — /gsd-plan-phase 6
 
 Progress: [██████░░░░] 62% (5/8 phases)
@@ -125,11 +125,12 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 05-03]: ADR-013 2019 peak share (~0.486, near-band not YAML-retuned); D-08 single-file consumer parquet
 - [Phase 05-04]: LP-040 golden tests/golden/consumer_load_2023.sha256; flat_baseload via profile_name
 - [Phase 05-05]: CLI + Makefile profile; all: profile then transform; warehouse stand-in = procurement only; LP-051 confirmed
-- [Phase 06 plan]: T5.01 kit → A1/A2/A4 → A3 HMM → GARCH → make analyze
+- [Phase 06 discuss]: D-01 marts-only + pure functions; D-03 ssot_inputs_analytics.parquet; D-06 AN-304 skip-if-incomplete fixture; D-09 BLAS pin; no fixture PNGs committed
+- [Phase 06-01]: kit loaders/PNG/SSOT + CLI missing-warehouse exit 1
 
 ### Pending Todos
 
-- execute 06-01 (T5.01 analytics kit)
+- execute 06-02 (T5.02 A1 descriptive)
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
 - EN-072: human approval before regenerating `tests/golden/consumer_load_2023.sha256`
 
@@ -161,4 +162,4 @@ Last session: 2026-09-02T15:40:00Z
 Stopped at: Completed /gsd-plan-phase 6; next execute 06-01
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: execute `.planning/phases/EPRA-06-m5-analytics/06-01-PLAN.md`
+Next: execute `.planning/phases/EPRA-06-m5-analytics/06-02-PLAN.md`
