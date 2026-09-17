@@ -11,13 +11,11 @@ import pytest
 
 from epra.common.config import load_settings
 from epra.report import charts
-from epra.strategies import forward_risk, retrospective
+from epra.strategies import forward_risk
 
 SETTINGS = load_settings()
 
 STUBS: list[tuple[str, Callable[..., Any], tuple[Any, ...]]] = [
-    ("M6", retrospective.run, (SETTINGS,)),
-    ("M6", retrospective.main, ([],)),
     ("M6", forward_risk.run, (SETTINGS,)),
     ("M6", forward_risk.main, ([],)),
     ("M7", charts.render_executive_charts, (SETTINGS,)),

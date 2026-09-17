@@ -90,11 +90,10 @@ def test_reconciliation_2022_08_row_renders_with_delta() -> None:
 def test_stand_in_marts_flagged_in_render() -> None:
     from epra.warehouse.report import _STAND_IN_MARTS, _stand_in_flag
 
-    assert _STAND_IN_MARTS == ("fct_procurement_cost_monthly",)
+    assert _STAND_IN_MARTS == ()
     result = _stand_in_flag()
     rendered = result.render_markdown()
-    assert "fct_procurement_cost_monthly" in rendered
-    assert "stand-in (M6 pending)" in rendered
+    assert "fct_procurement_cost_monthly is the M6 strategy-simulator dual-write" in rendered
     assert "fct_consumer_load_hourly (stand-in" not in rendered
     assert "M4 consumer profile pending" not in rendered
 
