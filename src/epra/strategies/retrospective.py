@@ -14,7 +14,7 @@ from typing import Any, cast
 
 import pandas as pd
 
-from epra.common.config import Settings, StrategyCfg
+from epra.common.config import ConsumerProfileCfg, Settings, StrategyCfg
 from epra.strategies.align import AlignedVolumes
 from epra.strategies.calibration import Anchors
 
@@ -251,10 +251,14 @@ def run(
     anchors: Anchors | None = None,
     w_peak: float | None = None,
     cfg: StrategyCfg | None = None,
+    sensitivities: bool = True,
+    prices: pd.DataFrame | None = None,
+    calendar_df: pd.DataFrame | None = None,
+    consumer_cfg: ConsumerProfileCfg | None = None,
 ) -> pd.DataFrame:
     """Compute cost(strategy, year, month) for configured years.
 
-    Implements: ST-301, ST-302, ST-304, ST-602, D-03.
+    Implements: ST-301, ST-302, ST-303, ST-304, ST-602, D-03.
     """
     from epra.common.config import load_strategy_config
     from epra.strategies.annual import (
@@ -289,6 +293,20 @@ def run(
     render_annual_charts(annual, settings)
     write_unit_cost_md(annual, settings)
     _write_strategy_ssot(wrong_strategy_costs(annual), anchors, settings)
+    if sensitivities:
+        from epra.strategies.sensitivities import run_sensitivities
+
+        run_sensitivities(
+            settings,
+            aligned=aligned,
+            monthly_oespi=monthly_oespi,
+            anchors=anchors,
+            w_peak=w_peak,
+            cfg=cfg,
+            prices=prices,
+            calendar_df=calendar_df,
+            consumer_cfg=consumer_cfg,
+        )
     return stacked
 
 

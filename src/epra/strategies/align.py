@@ -24,9 +24,22 @@ SQL_PRICE_HOURLY = "select * from marts.fct_price_hourly"
 SQL_PRICE_DAILY = "select * from marts.fct_price_daily"
 SQL_PRICE_MONTHLY = "select * from marts.fct_price_monthly"
 SQL_CONSUMER_LOAD = "select * from marts.fct_consumer_load_hourly"
+SQL_CALENDAR = (
+    "select ts_utc, date_local, hour_local, dow_local, is_holiday_at, "
+    "year_local, month_local from marts.dim_calendar"
+)
 
 LOAD_COLS = ("ts_utc", "load_mwh")
 PRICE_COLS = ("ts_utc", "price_at_eur_mwh", "year_local", "month_local")
+CALENDAR_COLS = (
+    "ts_utc",
+    "date_local",
+    "hour_local",
+    "dow_local",
+    "is_holiday_at",
+    "year_local",
+    "month_local",
+)
 STRATEGY_IDS: tuple[str, ...] = ("S1", "S2", "S3", "S4_30", "S4_50", "S4_70")
 W_PEAK_KEY = "consumer_peak_share"
 
@@ -93,6 +106,14 @@ def load_consumer_load(settings: Settings) -> pd.DataFrame:
     Implements: ST-001, D-01.
     """
     return _fetch(settings, SQL_CONSUMER_LOAD)
+
+
+def load_calendar(settings: Settings) -> pd.DataFrame:
+    """Load ``marts.dim_calendar`` columns needed by ``build_profile``.
+
+    Implements: ST-303, D-01.
+    """
+    return _fetch(settings, SQL_CALENDAR)
 
 
 def _require_columns(frame: pd.DataFrame, cols: tuple[str, ...], name: str) -> None:
