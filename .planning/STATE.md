@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 05
-current_phase_name: m4-consumer-profile
-status: executing
-stopped_at: Completed execute 05-05; next /gsd-verify-work Phase 5
-last_updated: "2026-09-02T14:00:00Z"
+current_phase: 06
+current_phase_name: m5-analytics
+status: planning
+stopped_at: Completed /gsd-verify-work Phase 5; next /gsd-discuss-phase 6
+last_updated: "2026-09-02T14:30:00Z"
 last_activity: 2026-09-02
-last_activity_desc: T4.05 CLI/Makefile/BUILD_LOG shipped; next verify-work
+last_activity_desc: Phase EPRA-05 verified (REQ-LP-01); next discuss-phase 6 (M5 analytics)
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 27
   completed_plans: 27
 ---
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-05 — m4-consumer-profile (05-05 complete; next verify-work)
+**Current focus:** Phase EPRA-06 — m5-analytics (discuss next; M4 verified)
 
 ## Current Position
 
-Phase: EPRA-05 (m4-consumer-profile) — EXECUTED (awaiting verify-work)
-Plan: 5 of 5
-Status: 05-05 complete; next /gsd-verify-work Phase 5
-Last activity: 2026-09-02 — T4.05 CLI, Makefile all: profile then transform, BUILD_LOG
+Phase: EPRA-06 (m5-analytics) — next /gsd-discuss-phase 6
+Plan: n/a (Phase 5 verified 5/5)
+Status: Phase 5 passed; M5 not started
+Last activity: 2026-09-02 — /gsd-verify-work Phase 5 (LP-040×2, isolated dbt PASS=64)
 
-Progress: [█████░░░░░] 50% (4/8 phases verified; 5/8 plans-executed)
+Progress: [██████░░░░] 62% (5/8 phases)
 
 ## Performance Metrics
 
@@ -123,12 +123,15 @@ Progress: [█████░░░░░] 50% (4/8 phases verified; 5/8 plans-e
 - [Phase 05-01]: ADR-012 SG-04 first Monday on or after 1 August; vectorized hourly_weights; YAML numerics stay in config
 - [Phase 05-02]: LP-004/LP-034 normalize via full-year Σw from build_calendar; build_profile returns ts_utc, load_mwh
 - [Phase 05-03]: ADR-013 2019 peak share (~0.486, near-band not YAML-retuned); D-08 single-file consumer parquet
+- [Phase 05-04]: LP-040 golden tests/golden/consumer_load_2023.sha256; flat_baseload via profile_name
 - [Phase 05-05]: CLI + Makefile profile; all: profile then transform; warehouse stand-in = procurement only; LP-051 confirmed
+- [Phase 05 verify]: 3/3 ROADMAP SCs; isolated dbt PASS=64; REQ-LP-01 complete
 
 ### Pending Todos
 
-- `/gsd-verify-work` Phase 5 (LP-040..042, 50 GWh ±0.01, consumer_peak_share SSOT-ready; isolated dbt-check)
+- `/gsd-discuss-phase 6` (M5 analytics A1→A2→A4→A3)
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
+- EN-072: human approval before regenerating `tests/golden/consumer_load_2023.sha256`
 
 ### Blockers/Concerns
 
@@ -154,8 +157,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-02T14:00:00Z
-Stopped at: Completed execute 05-05; next /gsd-verify-work Phase 5
+Last session: 2026-09-02T14:30:00Z
+Stopped at: Completed /gsd-verify-work Phase 5; next /gsd-discuss-phase 6
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: `/gsd-verify-work` Phase 5 (then `/gsd-discuss-phase 6` M5 analytics)
+Next: `/gsd-discuss-phase 6` (M5 analytics; SPEC-04)
