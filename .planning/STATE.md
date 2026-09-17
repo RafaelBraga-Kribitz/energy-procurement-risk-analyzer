@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 07
 current_phase_name: m6-strategy-simulator
 status: executing
-stopped_at: T6.07 forward risk landed; next T6.08 SSOT
-last_updated: "2026-09-03T16:00:00Z"
+stopped_at: T6.08 SSOT assembler landed; next T6.09 checker
+last_updated: "2026-09-03T17:00:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-07 execute 07-07 forward risk
+last_activity_desc: Phase EPRA-07 execute 07-08 SSOT assembler
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 44
-  completed_plans: 41
+  completed_plans: 42
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-07 — m6-strategy-simulator (executing; T6.08 next)
+**Current focus:** Phase EPRA-07 — m6-strategy-simulator (executing; T6.09 next)
 
 ## Current Position
 
 Phase: EPRA-07 (m6-strategy-simulator) — EXECUTING
-Plan: 7 of 10
-Status: executing 07-07 done; next 07-08
-Last activity: 2026-09-03 — T6.07 forward risk
+Plan: 8 of 10
+Status: executing 07-08 done; next 07-09
+Last activity: 2026-09-03 — T6.08 SSOT assembler
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -140,10 +140,11 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 07-02]: ST-201..204 anchors; synthetic p_ref_base=70; IncompleteReferenceYearError
 - [Phase 07-03]: cost_s1 monthly FULL_SPOT; hand month 50 EUR / 3 MWh
 - [Phase 07-07]: ST-406 cells; ADR-014/015; simulate path-major; ST-602(c); no-crisis december_regime
+- [Phase 07-08]: ADR-016 SG-09 mtime updated_at + Decimal HALF_UP pin for T6.09; year-adaptive GV-302
 
 ### Pending Todos
 
-- Execute 07-08..07-10 (one PR each) then GSD verify-work
+- Execute 07-09..07-10 (one PR each) then GSD verify-work
 - AN-304 / ST-602(a) on real warehouse (operator)
 - TP.02: mark GitHub `dbt-check` and later `ssot-check` required on `main` (operator)
 - EN-072: human approval before regenerating consumer golden or replacing synthetic strategy golden with real euros
@@ -172,8 +173,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-03T12:00:00Z
-Stopped at: T6.05 annual summary landed
+Last session: 2026-09-03T17:00:00Z
+Stopped at: T6.08 SSOT assembler landed
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: execute 07-08-PLAN.md (T6.08 SSOT generator + ADR-016)
+Next: execute 07-09-PLAN.md (T6.09 GV-303 checker + CI job 4)

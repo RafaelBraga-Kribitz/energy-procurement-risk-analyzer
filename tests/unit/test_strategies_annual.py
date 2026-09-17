@@ -221,6 +221,8 @@ def test_run_writes_charts_and_ssot(tmp_settings: Settings) -> None:
     keys = set(ssot["key"].astype(str))
     assert "wrong_strategy_cost_2022" in keys
     assert "wrong_strategy_cost_total" in keys
+    assert "cost_S1_2022" in keys
+    assert "cost_S3_2022" in keys
     assert "p_ref_base" in keys
     assert "oespi_peak_ref" in keys
     assert (ssot["tag"] == "CALIBRATED").all()

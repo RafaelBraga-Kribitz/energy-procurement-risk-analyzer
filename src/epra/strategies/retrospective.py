@@ -267,7 +267,6 @@ def run(
         wipe_known_reports,
         write_strategy_costs,
         write_unit_cost_md,
-        wrong_strategy_costs,
     )
 
     cfg = cfg or load_strategy_config()
@@ -292,7 +291,7 @@ def run(
     write_strategy_costs(stacked, settings)
     render_annual_charts(annual, settings)
     write_unit_cost_md(annual, settings)
-    _write_strategy_ssot(wrong_strategy_costs(annual), anchors, settings)
+    _write_strategy_ssot(annual, anchors, settings)
     if sensitivities:
         from epra.strategies.sensitivities import run_sensitivities
 
@@ -385,10 +384,11 @@ def _ssot_row(key: str, value: float, unit: str) -> dict[str, object]:
     }
 
 
-def _write_strategy_ssot(span: pd.DataFrame, anchors: Anchors, settings: Settings) -> None:
+def _write_strategy_ssot(annual: pd.DataFrame, anchors: Anchors, settings: Settings) -> None:
     from epra.strategies.align import processed_dir
-    from epra.strategies.annual import write_ssot_parquet
+    from epra.strategies.annual import write_ssot_parquet, wrong_strategy_costs
 
+    span = wrong_strategy_costs(annual)
     rows: list[dict[str, object]] = []
     total = 0.0
     for rec in span.itertuples(index=False):
@@ -397,6 +397,10 @@ def _write_strategy_ssot(span: pd.DataFrame, anchors: Anchors, settings: Setting
         total += value
         rows.append(_ssot_row(f"wrong_strategy_cost_{year}", value, "EUR"))
     rows.append(_ssot_row("wrong_strategy_cost_total", total, "EUR"))
+    for rec in annual.itertuples(index=False):
+        year = _as_int(rec.year_local)
+        sid = str(rec.strategy_id)
+        rows.append(_ssot_row(f"cost_{sid}_{year}", _as_float(rec.cost_eur), "EUR"))
     rows.extend(
         [
             _ssot_row("p_ref_base", anchors.p_ref_base, "EUR/MWh"),
