@@ -353,8 +353,9 @@ def _write_processed_standins(
 ) -> None:
     settings = _settings_with_data_raw(processed_root)
     ts_utc = _vienna_hour_index(start, end)
-    _write_ts_utc_dataset(
-        _build_consumer_load_hourly(rng, ts_utc), "consumer_load_hourly", settings
+    _atomic_write_parquet(
+        _build_consumer_load_hourly(rng, ts_utc),
+        processed_root / "consumer_load_hourly.parquet",
     )
     _write_date_keyed_dataset(
         _build_procurement_cost_monthly(rng, start, end),

@@ -7,19 +7,16 @@ empty by M7.
 from collections.abc import Callable
 from typing import Any
 
-import pandas as pd
 import pytest
 
 from epra.analytics import descriptive, regimes, spread, weather
 from epra.common.config import load_settings, load_strategy_config
-from epra.consumer import profile
 from epra.report import charts
 from epra.strategies import calibration, forward_risk, retrospective
 
 SETTINGS = load_settings()
 
 STUBS: list[tuple[str, Callable[..., Any], tuple[Any, ...]]] = [
-    ("M4", profile.monthly_volumes, (pd.DataFrame(),)),
     ("M5", descriptive.run, (SETTINGS,)),
     ("M5", spread.run, (SETTINGS,)),
     ("M5", regimes.run, (SETTINGS,)),

@@ -84,7 +84,7 @@ sources:
           fct_consumer_load_hourly (SPEC-02 §5) source grain: hourly
           ts_utc, load_mwh (DM-004).
         meta:
-          external_location: "read_parquet('../data/processed/consumer_load_hourly/**/*.parquet', union_by_name=true)"
+          external_location: "read_parquet('../data/processed/consumer_load_hourly.parquet')"
       - name: procurement_cost_monthly
         description: >
           fct_procurement_cost_monthly (SPEC-02 §5) source grain: local
