@@ -11,7 +11,7 @@ Deliver a reproducible batch pipeline from real Austrian market data through dbt
 - [x] **Phase 1: M0 Bootstrap** — Repo layout, tooling, CI, smoke tests (shipped)
 - [ ] **Phase 2: M1 ENTSO-E Ingestion** — Prices, load, generation with validation
 - [x] **Phase 3: M2 Auxiliary Data** — GeoSphere, ÖSPI, calendar (completed 2026-07-23)
-- [ ] **Phase 4: M3 dbt Warehouse** — Staging + marts on DuckDB
+- [x] **Phase 4: M3 dbt Warehouse** — Staging + marts on DuckDB (plans complete 2026-09-01; pending verify-work)
 - [ ] **Phase 5: M4 Consumer Profile** — Deterministic StyriaMetal load
 - [ ] **Phase 6: M5 Analytics** — Market structure analytics A1–A4
 - [ ] **Phase 7: M6 Strategy Simulator** — Retrospective, forward risk, SSOT
@@ -101,7 +101,7 @@ Plans:
   2. Mart schemas byte-match the committed SPEC-02 §5 contract YAML
   3. CI fixture bootstrap enables `dbt build` green without a full local backfill
 
-**Plans**: 7/8 plans executed
+**Plans**: 8/8 plans executed
 
 Plans:
 **Wave 1**
@@ -131,7 +131,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6)*
 
-- [ ] 04-08-PLAN.md — CI dbt-check job + phase close-out (real+CI builds green, BUILD_LOG, M3 PR) (T3.06/T3.07)
+- [x] 04-08-PLAN.md — CI dbt-check job + phase close-out (real+CI builds green, BUILD_LOG, M3 PR) (T3.06/T3.07)
 
 ### Phase 5: M4 Consumer Profile
 
@@ -196,7 +196,7 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
 | 2. M1 ENTSO-E | 7/7 | In Progress|  |
 | 3. M2 Auxiliary | 6/6 | Complete    | 2026-07-23 |
-| 4. M3 dbt | 7/8 | In Progress|  |
+| 4. M3 dbt | 8/8 | Plans complete (pending verify-work) | 2026-09-01 |
 | 5. M4 Profile | 0/TBD | Not started | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |
 | 7. M6 Strategies | 0/TBD | Not started | - |

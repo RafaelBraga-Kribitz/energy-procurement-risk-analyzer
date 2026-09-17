@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: m3-dbt-warehouse
 status: executing
-stopped_at: Completed 04-07-PLAN.md
-last_updated: "2026-07-24T09:49:17.413Z"
-last_activity: 2026-07-24
-last_activity_desc: Phase EPRA-04 execution started
+stopped_at: Completed 04-08-PLAN.md
+last_updated: "2026-09-01T16:55:00Z"
+last_activity: 2026-09-01
+last_activity_desc: Completed 04-08-PLAN.md (GSD close-out; production was 2026-07-24)
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 22
-  completed_plans: 21
+  completed_plans: 22
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-04 — m3-dbt-warehouse
+**Current focus:** Phase EPRA-04 — m3-dbt-warehouse (all 8 plans have SUMMARYs; next is verify-work)
 
 ## Current Position
 
-Phase: EPRA-04 (m3-dbt-warehouse) — EXECUTING
+Phase: EPRA-04 (m3-dbt-warehouse) — PLANS COMPLETE, PENDING VERIFY
 Plan: 8 of 8
-Status: Executing Phase EPRA-04
-Last activity: 2026-07-24 — Phase EPRA-04 execution started
+Status: Completed 04-08-PLAN.md; ready for `/gsd-verify-work`
+Last activity: 2026-09-01 — 04-08 GSD close-out (SUMMARY + STATE/ROADMAP)
 
-Progress: [██████████] 95%
+Progress: [██████████] 100% (plans)
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [██████████] 95%
 | Phase EPRA-04 P05 | 45min | 3 tasks | 6 files |
 | Phase EPRA-04 P06 | 35min | 3 tasks | 7 files |
 | Phase EPRA-04 P07 | 30min | 2 tasks | 5 files |
+| Phase EPRA-04 P08 | 40min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -115,10 +116,14 @@ Progress: [██████████] 95%
 - [Phase ?]: [04-06] marts_contract.yml is a flat mart-name-keyed mapping (no version/wrapper key) so test_marts_contract.py can parametrize via sorted(contract) directly; fct_procurement_cost_monthly.year_local/month_local captured as BIGINT (not INTEGER) since that mart loads straight off the processed stand-in parquet, not a dim_calendar join
 - [Phase ?]: [04-07] D-02 build-report writer (ModelBuildResult/BuildReport, GateResult/ValidationReport reuse) queries the marts schema read-only for DM-062/DM-050/DM-064 sanity numbers without re-implementing the 04-06 dbt tests' boundary logic -- purely presentation, not re-gating
 - [Phase ?]: [04-07] make transform un-stubbed to cd dbt && dbt build; make warehouse composes transform + python -m epra.warehouse.report, mirroring the ingest -> validate-ingest two-step Makefile convention
+- [Phase 04-08]: dbt-check is a separate EN-080 job 3 (bootstrap --force then dbt build then D-07 pytest); never folded into test:
+- [Phase 04-08]: SC#3 proven in an isolated --data-root so --force cannot clobber committed oespi_monthly.csv
+- [Phase 04-08]: TP.02 (mark dbt-check required on main) remains operator GitHub settings — not auto-approved
 
 ### Pending Todos
 
-None yet.
+- TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
+- `/gsd-verify-work` Phase EPRA-04, then discuss/plan/execute Phase 5 (M4 consumer profile)
 
 ### Blockers/Concerns
 
@@ -144,7 +149,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-07-24T09:49:17.403Z
-Stopped at: Completed 04-07-PLAN.md
+Last session: 2026-09-01T16:55:00Z
+Stopped at: Completed 04-08-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
+Next: `/gsd-verify-work` (Phase 4), then `/gsd-discuss-phase` Phase 5
