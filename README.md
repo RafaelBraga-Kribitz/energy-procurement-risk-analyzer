@@ -1,18 +1,6 @@
 # Energy Procurement Risk Analyzer (EPRA)
 
-```mermaid
-flowchart LR
-    SRC["ENTSO-E / GeoSphere / ÖSPI / holidays"] --> ING["Ingestion<br/>retry, cache, gates"]
-    ING --> RAW["data/raw parquet"]
-    RAW --> WH["DuckDB + dbt<br/>staging → marts"]
-    WH --> A["Analytics A1–A4"]
-    WH --> P["Consumer profile"]
-    WH --> S["Strategy simulator"]
-    A --> SSOT["NUMERIC_SSOT.md<br/>exports/*.csv"]
-    P --> SSOT
-    S --> SSOT
-    SSOT --> RPT["Power BI + EXEC_SUMMARY"]
-```
+![Energy Procurement Risk Analyzer — Procurement-strategy risk on the Austrian day-ahead market for a 50 GWh Styrian consumer. Ingest and warehouse built; strategy results not yet.](docs/assets/hero.png)
 
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
@@ -29,6 +17,20 @@ vs. fixed annual price vs. partial hedge.
 > **How much did buying electricity the wrong way cost a 50 GWh/year Styrian
 > manufacturer in 2021–2025 — and what is the P95 cost exposure for the next
 > 12 months under each procurement strategy?**
+
+```mermaid
+flowchart LR
+    SRC["ENTSO-E / GeoSphere / ÖSPI / holidays"] --> ING["Ingestion<br/>retry, cache, gates"]
+    ING --> RAW["data/raw parquet"]
+    RAW --> WH["DuckDB + dbt<br/>staging → marts"]
+    WH --> A["Analytics A1–A4"]
+    WH --> P["Consumer profile"]
+    WH --> S["Strategy simulator"]
+    A --> SSOT["NUMERIC_SSOT.md<br/>exports/*.csv"]
+    P --> SSOT
+    S --> SSOT
+    SSOT --> RPT["Power BI + EXEC_SUMMARY"]
+```
 
 ## Project status
 
@@ -213,6 +215,13 @@ MIT. See [LICENSE](LICENSE).
 
 <table>
   <tr>
+    <td width="110">
+      <img
+        src="docs/assets/Author_MDS_Rafael_Braga-Kribitz_kroped.png"
+        alt="Rafael Braga-Kribitz"
+        width="96"
+      />
+    </td>
     <td>
       <strong>Rafael Braga-Kribitz</strong><br />
       Seiersberg-Pirka, Austria · Portfolio project, 2026<br />

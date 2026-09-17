@@ -1,0 +1,84 @@
+{
+  "output": "C:\\Users\\Benutzer1\\Dev\\portfolio-readme-work\\energy-procurement-risk-analyzer\\docs\\assets\\hero.png",
+  "width": 1600,
+  "height": 640,
+  "mode": "light",
+  "fonts": "Söhne from C:\\Users\\Benutzer1\\Dev\\braga-design-system-template\\public\\fonts",
+  "title_size": 112,
+  "descriptor_size": 34,
+  "attempts": 2,
+  "blocks": {
+    "kind": {
+      "bbox": [
+        72,
+        72,
+        488,
+        104
+      ],
+      "lines": [
+        "BRAGA · ANALYTICAL PROJECT"
+      ],
+      "font": "SohneMono-Buch.otf"
+    },
+    "status": {
+      "bbox": [
+        1368,
+        72,
+        1528,
+        104
+      ],
+      "lines": [
+        "FOUNDATION"
+      ],
+      "font": "SohneMono-Buch.otf"
+    },
+    "facts": {
+      "bbox": [
+        72,
+        542,
+        953,
+        570
+      ],
+      "lines": [
+        "LICENSE  MIT  ·  RUNTIME  Python >=3.12,<3.13  ·  CI  GitHub Actions"
+      ],
+      "font": "SohneMono-Buch.otf"
+    },
+    "title": {
+      "bbox": [
+        72,
+        128,
+        1425,
+        356
+      ],
+      "lines": [
+        "Energy Procurement Risk",
+        "Analyzer"
+      ],
+      "font": "Sohne-Fett.otf"
+    },
+    "descriptor": {
+      "bbox": [
+        72,
+        384,
+        1199,
+        474
+      ],
+      "lines": [
+        "Procurement-strategy risk on the Austrian day-ahead market for a 50 GWh",
+        "Styrian consumer. Ingest and warehouse built; strategy results not yet."
+      ],
+      "font": "Sohne-Buch.otf"
+    }
+  },
+  "guardrails": [
+    "safe-area",
+    "wrap-and-shrink",
+    "line-length",
+    "no-overlap",
+    "glyph-coverage-per-char",
+    "contrast>=4.5",
+    "pixel-scan"
+  ],
+  "validated": true
+}
