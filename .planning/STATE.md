@@ -13,7 +13,7 @@ progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 27
-  completed_plans: 25
+  completed_plans: 26
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-05 (m4-consumer-profile) — PLANNED
-Plan: 3 of 5
-Status: executing 05-03 complete; next 05-04
-Last activity: 2026-09-02 — T4.03 outputs + ADR-013; 2019 peak share ~0.486
+Plan: 4 of 5
+Status: executing 05-04 complete; next 05-05
+Last activity: 2026-09-02 — T4.04 LP-040 golden committed; LP-030/041/042 green
 
 Progress: [█████░░░░░] 50% (4/8 phases)
 
@@ -123,11 +123,12 @@ Progress: [█████░░░░░] 50% (4/8 phases)
 - [Phase 05-01]: ADR-012 SG-04 first Monday on or after 1 August; vectorized hourly_weights; YAML numerics stay in config
 - [Phase 05-02]: LP-004/LP-034 normalize via full-year Σw from build_calendar; build_profile returns ts_utc, load_mwh
 - [Phase 05-03]: ADR-013 2019 peak share (~0.486, near-band not YAML-retuned); D-08 single-file consumer parquet
+- [Phase 05-04]: LP-040 golden tests/golden/consumer_load_2023.sha256; flat_baseload via profile_name
 
 ### Pending Todos
 
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
-- execute 05-04 (T4.04 goldens LP-040..042)
+- execute 05-05 (T4.05 CLI, Makefile, BUILD_LOG)
 
 ### Blockers/Concerns
 
