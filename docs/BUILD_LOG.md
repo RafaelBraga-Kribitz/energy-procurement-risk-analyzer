@@ -337,3 +337,46 @@ CLI second-run hourly parquet is byte-identical (no `ingested_at_utc`).
 - 2019 `consumer_peak_share` is ~0.486 (ADR-013); YAML was **not** retuned
   to force the informal 0.48 cap (A-2, LP-002).
 
+---
+
+## 2026-09-03 — M5 Analytics (T5.07 operator close-out)
+
+**Shipped**
+
+- Shared kit (`_kit.py`) plus `python -m epra.analytics` (A1 → A2 → A4 → A3).
+- A1 descriptive: annual table+CSV, 2021-2025 heatmap (empty panel if incomplete),
+  duration curves (2022 vermillion, linear EUR/MWh), negative hours, AN-105 prose.
+- A2 AT−DE-LU spread: monthly zero line, yearly stats, localization prose.
+- A4 system load vs mart HDD_18 (month FE, HC1); StyriaMetal weather-invariance sentence.
+- A3 HMM (seeds 42-51, BLAS pin, AN-304 skip-if-incomplete / fail-closed) + GARCH(1,1)
+  overlay; `garch_persistence` VERIFIED; α+β never clamped.
+- `make analyze` is `$(UV) run python -m epra.analytics` (does not invoke dbt).
+- SSOT producer `ssot_inputs_analytics.parquet` upserts by key (tag=VERIFIED).
+- No fixture-warehouse PNGs committed (D-05 / A-2).
+
+**Gate evidence**
+
+```
+make lint
+  ruff check: All checks passed
+  ruff format --check: 70 files already formatted
+  mypy: Success: no issues found in 34 source files
+
+uv run pytest tests/unit/test_analytics_gates.py -m "not live" --no-cov -q
+  AN-701 12 SPEC-04 filenames; AN-705 two-run SSOT identity — passed
+
+uv run pytest -m "not live"
+  330 passed, 2 skipped, 1 deselected
+  coverage 93.21% (gate: 80%)
+```
+
+No invented market EUR in this entry. AN-304 on a real 2019+crisis window is an
+operator run (`make warehouse && make analyze`); this checkout has no `data/raw/`.
+
+**Open questions**
+
+- AN-304 on real 2021-2023 (and 2019 calm) remains operator/ROADMAP SC#2.
+- Do not commit CI-fixture `reports/analytics/*` as Q2 evidence (D-05).
+- TP.02 (`dbt-check` required on `main`) and EN-072 golden regen still human.
+
+
