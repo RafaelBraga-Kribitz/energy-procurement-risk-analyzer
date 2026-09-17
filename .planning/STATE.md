@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 07
-current_phase_name: m6-strategy-simulator
-status: verifying
-stopped_at: Phase 7 verify-work complete; next M7 reporting (code, not .pbix)
-last_updated: "2026-09-03T19:30:00Z"
+current_phase: 08
+current_phase_name: m7-reporting
+status: discussing
+stopped_at: M7 discuss CONTEXT landed; next research/plan/execute T7.01–T7.07
+last_updated: "2026-09-03T20:00:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-07 GSD verify-work (operator ST-602(a)/SSOT remain)
+last_activity_desc: Phase EPRA-08 GSD discuss-phase started
 progress:
   total_phases: 8
   completed_phases: 5
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-08 — m7-reporting (next; M6 verified with operator ST-602(a)/SSOT)
+**Current focus:** Phase EPRA-08 — m7-reporting (discuss; M6 verified with operator gates)
 
 ## Current Position
 
-Phase: EPRA-07 (m6-strategy-simulator) — VERIFIED (operator ST-602(a) + committed SSOT remain)
-Plan: 10 of 10
-Status: verify-work complete; next GSD discuss Phase 8 (M7)
-Last activity: 2026-09-03 — Phase 7 verify-work
+Phase: EPRA-08 (m7-reporting) — DISCUSSING
+Plan: 0 of TBD
+Status: 08-CONTEXT D-01..D-10 locked; next research/plan
+Last activity: 2026-09-03 — M7 discuss
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -176,8 +176,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-03T19:30:00Z
-Stopped at: Phase 7 verify-work complete
+Last session: 2026-09-03T20:00:00Z
+Stopped at: M7 discuss CONTEXT D-01..D-10
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: GSD discuss-phase for M7 reporting (SPEC-06); do not invent SSOT euros
+Next: GSD research-phase then plan T7.01–T7.07; do not invent SSOT euros
