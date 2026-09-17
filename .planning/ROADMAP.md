@@ -230,5 +230,5 @@ Phases execute in numeric order: 1 → 2 → … → 8
 | 4. M3 dbt | 8/8 | Complete | 2026-09-01 |
 | 5. M4 Profile | 5/5 | Complete | 2026-09-02 |
 | 6. M5 Analytics | 7/7 | Verified (SC#2 operator) | 2026-09-03 |
-| 7. M6 Strategies | 7/10 | Executing | - |
+| 7. M6 Strategies | 10/10 | Verified (ST-602(a)/SSOT operator) | 2026-09-03 |
 | 8. M7 Reporting | 0/TBD | Not started | - |
