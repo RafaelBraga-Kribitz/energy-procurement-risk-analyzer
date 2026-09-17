@@ -285,3 +285,55 @@ and `make validate-ingest` green on real data. **M1 complete; M2 can start.**
 **Open questions:** none on the automated side. The GitHub push, branch-
 protection required-check flip for `dbt-check` (TP.02), and M3 PR opening
 remain human-only per the phase-exit checkpoint (D-01/D-02).
+
+---
+
+## 2026-09-02 — M4 Consumer Profile (T4.05 operator close-out)
+
+**Shipped**
+
+- `python -m epra.consumer.profile` CLI (`--profile` optional override via
+  `cfg.model_copy`). Missing `data/raw/calendar/calendar.parquet` exits 1
+  with an actionable `make calendar` hint (D-01).
+- `make profile` un-stubbed to that CLI; **does not** invoke dbt.
+- `all:` order is `profile transform analyze simulate ssot export report`
+  (D-08) so a full pipeline never feeds the consumer stand-in into dbt.
+- Warehouse report `_STAND_IN_MARTS` is only `fct_procurement_cost_monthly`
+  (consumer mart is M4 profile output).
+- LIMITATIONS.md §1 already contains the LP-051 sentence (constructed, not
+  measured; RLM would change levels not ordinal ranking; `flat_baseload`
+  bounds shape). Confirmed; no M6 sensitivity euros invented.
+
+Prior M4 plans on this stack (05-01..05-04): vectorized weights + ADR-012;
+LP-004/LP-034 normalization; LP-003 parquet + ADR-013 2019 peak share;
+LP-040 golden `tests/golden/consumer_load_2023.sha256`; LP-030 `flat_baseload`.
+
+**Gate evidence**
+
+```
+make lint
+  ruff check: All checks passed
+  ruff format --check: 62 files already formatted
+  mypy: Success: no issues found in 32 source files
+
+uv run pytest tests/unit/test_profile.py tests/unit/test_warehouse_report.py \
+  -m "not live" --no-cov -q
+  38 passed
+
+uv run pytest -m "not live"
+  287 passed, 2 skipped, 1 deselected
+  coverage 92.64% (gate: 80%)
+```
+
+CLI second-run hourly parquet is byte-identical (no `ingested_at_utc`).
+`rg -n "^all: profile transform" Makefile` matches.
+
+**Open questions**
+
+- Golden regeneration (EN-072 / ST-601 analog): human approval required;
+  do not rewrite `tests/golden/consumer_load_2023.sha256` without a diff + why.
+- Real-data `make profile` still needs a local `calendar.parquet`
+  (`make calendar`). This cloud checkout has no `data/raw/` backfill (A-2).
+- 2019 `consumer_peak_share` is ~0.486 (ADR-013); YAML was **not** retuned
+  to force the informal 0.48 cap (A-2, LP-002).
+

@@ -144,7 +144,7 @@ Plans:
   2. Each local calendar year sums to 50,000.00 MWh ± 0.01 after normalization
   3. `consumer_peak_share` is computed and ready for SSOT inputs
 
-**Plans**: 4/5 executed
+**Plans**: 5/5 executed
 
 Plans:
 
@@ -152,7 +152,7 @@ Plans:
 - [x] 05-02-PLAN.md — T4.02 normalization LP-004/LP-034 + build_profile
 - [x] 05-03-PLAN.md — T4.03 outputs, peak share ADR-013, D-08 single-file path
 - [x] 05-04-PLAN.md — T4.04 flat_baseload + LP-040..042 goldens
-- [ ] 05-05-PLAN.md — T4.05 CLI, Makefile, BUILD_LOG, stand-in flag
+- [x] 05-05-PLAN.md — T4.05 CLI, Makefile, BUILD_LOG, stand-in flag
 
 ### Phase 6: M5 Analytics
 

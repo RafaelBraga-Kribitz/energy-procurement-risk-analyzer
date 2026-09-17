@@ -332,3 +332,56 @@ def test_flat_baseload_unit_weights_then_same_annual(
     assert float(built["load_mwh"].sum()) == pytest.approx(cfg.annual_consumption_mwh, abs=0.01)
     shaped = prof.build_profile(cal, cfg)
     assert prof.year_slice_checksum(built, cal) != prof.year_slice_checksum(shaped, cal)
+
+
+def _write_calendar_parquet(settings: Settings, calendar_df: pd.DataFrame) -> Path:
+    path = prof._calendar_parquet_path(settings)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    calendar_df.to_parquet(path, index=False, engine="pyarrow")
+    return path
+
+
+def test_cli_missing_calendar_exits_1(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(prof, "load_settings", lambda: tmp_settings)
+    assert prof.main([]) == 1
+
+
+def test_cli_writes_identical_hourly_parquet_twice(
+    tmp_settings: Settings,
+    calendar_frame: pd.DataFrame,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Second CLI run is byte-identical (no ingested_at_utc clock). Implements: EN-050."""
+    monkeypatch.setattr(prof, "load_settings", lambda: tmp_settings)
+    cal = calendar_frame.loc[calendar_frame["year_local"].isin([2019, 2020])]
+    _write_calendar_parquet(tmp_settings, cal)
+    assert prof.main([]) == 0
+    hourly = tmp_settings.paths.data_processed / "consumer_load_hourly.parquet"
+    first = hourly.read_bytes()
+    assert prof.main([]) == 0
+    assert hourly.read_bytes() == first
+    assert b"ingested_at_utc" not in first
+
+
+def test_cli_profile_flat_baseload_differs_from_default(
+    tmp_settings: Settings,
+    calendar_frame: pd.DataFrame,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(prof, "load_settings", lambda: tmp_settings)
+    cal = calendar_frame.loc[calendar_frame["year_local"].isin([2019, 2020])]
+    _write_calendar_parquet(tmp_settings, cal)
+    assert prof.main([]) == 0
+    shaped = (tmp_settings.paths.data_processed / "consumer_load_hourly.parquet").read_bytes()
+    assert prof.main(["--profile", "flat_baseload"]) == 0
+    flat = (tmp_settings.paths.data_processed / "consumer_load_hourly.parquet").read_bytes()
+    assert flat != shaped
+
+
+def test_makefile_profile_before_transform() -> None:
+    makefile = Path(__file__).resolve().parents[2] / "Makefile"
+    text = makefile.read_text(encoding="utf-8")
+    assert "$(UV) run python -m epra.consumer.profile" in text
+    assert "all: profile transform analyze simulate ssot export report" in text
