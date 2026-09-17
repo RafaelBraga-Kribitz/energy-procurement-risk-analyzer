@@ -4,15 +4,15 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 07
 current_phase_name: m6-strategy-simulator
-status: researching
-stopped_at: Completed GSD research-phase Phase 7; next Phase 7 plan (M6)
-last_updated: "2026-09-03T11:30:00Z"
+status: planning
+stopped_at: Completed GSD plan-phase Phase 7; next T6.01 execute
+last_updated: "2026-09-03T12:00:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-07 research; marts/T-5/T-6/SG-07..09 pinned
+last_activity_desc: Phase EPRA-07 plan; 07-01..07-10 PLAN.md written
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 34
+  total_plans: 44
   completed_plans: 34
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-07 — m6-strategy-simulator (research complete)
+**Current focus:** Phase EPRA-07 — m6-strategy-simulator (plans ready; execute T6.01 next)
 
 ## Current Position
 
-Phase: EPRA-07 (m6-strategy-simulator) — RESEARCH complete
+Phase: EPRA-07 (m6-strategy-simulator) — PLAN complete
 Plan: 0 of 10
-Status: research-phase complete; next plan-phase
-Last activity: 2026-09-03 — GSD research-phase M6
+Status: plan-phase complete; next execute 07-01
+Last activity: 2026-09-03 — GSD plan-phase M6
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -135,10 +135,11 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 06-07]: make analyze; AN-701/705 tests; BUILD_LOG M5
 - [Phase 07 discuss]: D-01 shared ST-101 aligner; D-02 w_peak from profile parquet; D-03 simulate = retro+forward no dbt; D-05 dual-write parquet; D-06 skip-if-incomplete 2019; D-07 ST-406 cells day one; D-10..11 ADR-014/015; D-12 reuse M5 december_regime (calm wins); D-19 synthetic ST-601 golden
 - [Phase 07 research]: ÖSPI from fct_price_monthly; data_last_month from marts not raw; int64 year for BIGINT contract; ssot-check skips GV-302 if NUMERIC_SSOT.md absent (D-04); Decimal ROUND_HALF_UP; emit oespi_peak_ref
+- [Phase 07 plan]: 10 execute-plans T6.01–T6.10; ADRs 014–016 at T6.07/T6.08; synthetic ST-601 at T6.10
 
 ### Pending Todos
 
-- GSD Phase 7 plan → execute T6.01–T6.10
+- Execute 07-01..07-10 (one PR each) then GSD verify-work
 - AN-304 / ST-602(a) on real warehouse (operator)
 - TP.02: mark GitHub `dbt-check` and later `ssot-check` required on `main` (operator)
 - EN-072: human approval before regenerating consumer golden or replacing synthetic strategy golden with real euros
@@ -167,8 +168,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-03T11:30:00Z
-Stopped at: Completed GSD research-phase Phase 7
+Last session: 2026-09-03T12:00:00Z
+Stopped at: Completed GSD plan-phase Phase 7
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: `/gsd-plan-phase` for Phase 7 (M6 SPEC-05)
+Next: execute 07-01-PLAN.md (T6.01 aligner)
