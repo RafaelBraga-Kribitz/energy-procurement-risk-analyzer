@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 04
-current_phase_name: m3-dbt-warehouse
-status: executing
-stopped_at: Completed 04-08-PLAN.md
-last_updated: "2026-09-01T16:55:00Z"
+current_phase: 05
+current_phase_name: m4-consumer-profile
+status: ready
+stopped_at: Completed /gsd-verify-work Phase EPRA-04
+last_updated: "2026-09-01T17:10:00Z"
 last_activity: 2026-09-01
-last_activity_desc: Completed 04-08-PLAN.md (GSD close-out; production was 2026-07-24)
+last_activity_desc: Phase EPRA-04 verified; next is discuss-phase 5 (M4)
 progress:
-  total_phases: 4
-  completed_phases: 3
+  total_phases: 8
+  completed_phases: 4
   total_plans: 22
   completed_plans: 22
 ---
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-04 — m3-dbt-warehouse (all 8 plans have SUMMARYs; next is verify-work)
+**Current focus:** Phase EPRA-05 — m4-consumer-profile (discuss/plan not started)
 
 ## Current Position
 
-Phase: EPRA-04 (m3-dbt-warehouse) — PLANS COMPLETE, PENDING VERIFY
-Plan: 8 of 8
-Status: Completed 04-08-PLAN.md; ready for `/gsd-verify-work`
-Last activity: 2026-09-01 — 04-08 GSD close-out (SUMMARY + STATE/ROADMAP)
+Phase: EPRA-05 (m4-consumer-profile) — NOT STARTED
+Plan: 0 of TBD
+Status: Phase EPRA-04 verified; next `/gsd-discuss-phase 5`
+Last activity: 2026-09-01 — `/gsd-verify-work` Phase 4 passed (TP.02 GitHub settings deferred)
 
-Progress: [██████████] 100% (plans)
+Progress: [█████░░░░░] 50% (4/8 phases)
 
 ## Performance Metrics
 
@@ -123,7 +123,7 @@ Progress: [██████████] 100% (plans)
 ### Pending Todos
 
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
-- `/gsd-verify-work` Phase EPRA-04, then discuss/plan/execute Phase 5 (M4 consumer profile)
+- `/gsd-discuss-phase 5` then research/plan/execute M4 consumer profile (REQ-LP-01)
 
 ### Blockers/Concerns
 
@@ -149,8 +149,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-01T16:55:00Z
-Stopped at: Completed 04-08-PLAN.md
+Last session: 2026-09-01T17:10:00Z
+Stopped at: Completed /gsd-verify-work Phase EPRA-04
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: `/gsd-verify-work` (Phase 4), then `/gsd-discuss-phase` Phase 5
+Next: `/gsd-discuss-phase 5` (M4 consumer profile)
