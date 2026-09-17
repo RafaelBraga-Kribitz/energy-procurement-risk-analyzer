@@ -17,6 +17,7 @@ flowchart LR
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Status: Foundation](https://img.shields.io/badge/status-Foundation-orange)](#status)
 
 **Status:** Foundation
 
@@ -38,7 +39,7 @@ not yet implemented. `make profile`, `make analyze`, `make simulate`, and `make 
 still fail loudly with their milestone.
 
 **No results yet.** Per project rule (RP-601 / GV-303), every number in this README
-is copied from the auto-generated [`reports/NUMERIC_SSOT.md`](reports/NUMERIC_SSOT.md)
+is copied from the auto-generated `reports/NUMERIC_SSOT.md` (generated at M6; not yet in the repository)
 with its epistemic tag. No results exist yet, so none are quoted yet. The answer
 lands here at M6/M7. There is no result chart to embed; the pipeline diagram above
 is the primary evidence until SSOT numbers exist.
@@ -47,7 +48,7 @@ is the primary evidence until SSOT numbers exist.
 
 | Audience | Start here |
 |---|---|
-| Recruiter | This page: the question, foundation status, and pipeline diagram |
+| Recruiter | This page: the question, foundation [Status](#status), and pipeline diagram |
 | Hiring manager | [PROJECT_CHARTER.md](PROJECT_CHARTER.md) §1 (question + four strategies) and [LIMITATIONS.md](LIMITATIONS.md) |
 | Technical reviewer | [Architecture](#architecture), [Method](#method), [docs/SPEC-01](docs/SPEC-01_data_ingestion.md) through [SPEC-05](docs/SPEC-05_strategy_simulator.md) |
 | Auditor | [Data](#data), [Validation](#validation), [docs/SPEC-08](docs/SPEC-08_governance_quality.md), [docs/ADR/](docs/ADR/) |
