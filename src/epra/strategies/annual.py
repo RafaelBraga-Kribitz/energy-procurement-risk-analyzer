@@ -141,6 +141,19 @@ def write_ssot_parquet(frame: pd.DataFrame, path: Path) -> None:
     _atomic_parquet(frame, path)
 
 
+def upsert_ssot_parquet(rows: list[dict[str, object]], path: Path) -> None:
+    """Append-or-replace SSOT rows by ``key`` (CALIBRATED then SIMULATED).
+
+    Implements: ST-204, ST-403.
+    """
+    frame = pd.DataFrame(rows)
+    if path.is_file():
+        existing = pd.read_parquet(path)
+        frame = pd.concat([existing, frame], ignore_index=True)
+        frame = frame.drop_duplicates(subset=["key"], keep="last").reset_index(drop=True)
+    write_ssot_parquet(frame, path)
+
+
 def write_strategy_costs(monthly: pd.DataFrame, settings: Settings) -> Path:
     """Dual-write ST-001 file and ADR-010 dbt glob (D-05).
 
