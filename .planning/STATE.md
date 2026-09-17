@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: m4-consumer-profile
 status: ready
-stopped_at: Completed /gsd-discuss-phase 5
-last_updated: "2026-09-02T11:30:00Z"
+stopped_at: Completed /gsd-research-phase 5
+last_updated: "2026-09-02T12:00:00Z"
 last_activity: 2026-09-02
-last_activity_desc: Phase EPRA-05 CONTEXT locked; next is /gsd-research-phase
+last_activity_desc: Phase EPRA-05 research complete; next is /gsd-plan-phase
 progress:
   total_phases: 8
   completed_phases: 4
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-05 — m4-consumer-profile (CONTEXT locked; research/plan next)
+**Current focus:** Phase EPRA-05 — m4-consumer-profile (research done; plan next)
 
 ## Current Position
 
-Phase: EPRA-05 (m4-consumer-profile) — DISCUSSED
+Phase: EPRA-05 (m4-consumer-profile) — RESEARCHED
 Plan: 0 of TBD
-Status: `/gsd-discuss-phase 5` complete (`05-CONTEXT.md`); next `/gsd-research-phase`
-Last activity: 2026-09-02 — discuss-phase 5 locked D-01..D-10 (SG-04/SG-03 ADRs, single-file parquet, 2019 peak share)
+Status: `/gsd-research-phase` complete (`05-RESEARCH.md`); next `/gsd-plan-phase`
+Last activity: 2026-09-02 — research: vectorized weights, LP-034 via build_calendar Σw, payload SHA-256, D-08 single-file analog
 
 Progress: [█████░░░░░] 50% (4/8 phases)
 
@@ -124,7 +124,7 @@ Progress: [█████░░░░░] 50% (4/8 phases)
 ### Pending Todos
 
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
-- `/gsd-research-phase` then `/gsd-plan-phase` then execute T4.01–T4.05 (REQ-LP-01)
+- `/gsd-plan-phase` then execute T4.01–T4.05 (REQ-LP-01)
 
 ### Blockers/Concerns
 
@@ -150,8 +150,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-02T11:30:00Z
-Stopped at: Completed /gsd-discuss-phase 5
+Last session: 2026-09-02T12:00:00Z
+Stopped at: Completed /gsd-research-phase 5
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: `/gsd-research-phase` (M4 consumer profile)
+Next: `/gsd-plan-phase` (M4 consumer profile)
