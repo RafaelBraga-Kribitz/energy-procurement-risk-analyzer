@@ -1,0 +1,59 @@
+{
+  "disclaimer": "SYNTHETIC engine contract (D-19 / ST-601). Not Austrian market evidence.",
+  "rows": [
+    {
+      "cost_eur": 120.0,
+      "delta_vs_min_eur": 20.0,
+      "rank": 6,
+      "strategy_id": "S1",
+      "unit_cost_eur_mwh": 12.0,
+      "volume_mwh": 10.0,
+      "year_local": 2022
+    },
+    {
+      "cost_eur": 110.0,
+      "delta_vs_min_eur": 10.0,
+      "rank": 3,
+      "strategy_id": "S2",
+      "unit_cost_eur_mwh": 11.0,
+      "volume_mwh": 10.0,
+      "year_local": 2022
+    },
+    {
+      "cost_eur": 100.0,
+      "delta_vs_min_eur": 0.0,
+      "rank": 1,
+      "strategy_id": "S3",
+      "unit_cost_eur_mwh": 10.0,
+      "volume_mwh": 10.0,
+      "year_local": 2022
+    },
+    {
+      "cost_eur": 114.0,
+      "delta_vs_min_eur": 14.0,
+      "rank": 5,
+      "strategy_id": "S4_30",
+      "unit_cost_eur_mwh": 11.4,
+      "volume_mwh": 10.0,
+      "year_local": 2022
+    },
+    {
+      "cost_eur": 110.0,
+      "delta_vs_min_eur": 10.0,
+      "rank": 3,
+      "strategy_id": "S4_50",
+      "unit_cost_eur_mwh": 11.0,
+      "volume_mwh": 10.0,
+      "year_local": 2022
+    },
+    {
+      "cost_eur": 106.0,
+      "delta_vs_min_eur": 6.0,
+      "rank": 2,
+      "strategy_id": "S4_70",
+      "unit_cost_eur_mwh": 10.6,
+      "volume_mwh": 10.0,
+      "year_local": 2022
+    }
+  ]
+}
