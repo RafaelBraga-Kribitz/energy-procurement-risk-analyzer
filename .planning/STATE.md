@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 07
 current_phase_name: m6-strategy-simulator
-status: planning
-stopped_at: Completed GSD plan-phase Phase 7; next T6.01 execute
-last_updated: "2026-09-03T12:00:00Z"
+status: executing
+stopped_at: T6.01 aligner landed; next T6.02 anchors
+last_updated: "2026-09-03T12:30:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-07 plan; 07-01..07-10 PLAN.md written
+last_activity_desc: Phase EPRA-07 execute 07-01 ST-101 aligner
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 44
-  completed_plans: 34
+  completed_plans: 35
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: EPRA-07 (m6-strategy-simulator) — PLAN complete
-Plan: 0 of 10
-Status: plan-phase complete; next execute 07-01
-Last activity: 2026-09-03 — GSD plan-phase M6
+Plan: 1 of 10
+Status: executing 07-01 done; next 07-02
+Last activity: 2026-09-03 — T6.01 aligner
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -136,6 +136,7 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 07 discuss]: D-01 shared ST-101 aligner; D-02 w_peak from profile parquet; D-03 simulate = retro+forward no dbt; D-05 dual-write parquet; D-06 skip-if-incomplete 2019; D-07 ST-406 cells day one; D-10..11 ADR-014/015; D-12 reuse M5 december_regime (calm wins); D-19 synthetic ST-601 golden
 - [Phase 07 research]: ÖSPI from fct_price_monthly; data_last_month from marts not raw; int64 year for BIGINT contract; ssot-check skips GV-302 if NUMERIC_SSOT.md absent (D-04); Decimal ROUND_HALF_UP; emit oespi_peak_ref
 - [Phase 07 plan]: 10 execute-plans T6.01–T6.10; ADRs 014–016 at T6.07/T6.08; synthetic ST-601 at T6.10
+- [Phase 07-01]: ST-101 aligner + w_peak from profile parquet; 6 unit tests green
 
 ### Pending Todos
 
@@ -172,4 +173,4 @@ Last session: 2026-09-03T12:00:00Z
 Stopped at: Completed GSD plan-phase Phase 7
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: execute 07-01-PLAN.md (T6.01 aligner)
+Next: execute 07-02-PLAN.md (T6.02 anchors)
