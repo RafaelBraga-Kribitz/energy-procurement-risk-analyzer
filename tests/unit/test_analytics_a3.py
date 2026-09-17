@@ -150,7 +150,7 @@ def test_run_writes_hmm_artifacts_and_an704(tmp_settings: Settings) -> None:
     assert "arithmetic" in prose.lower()
 
 
-def test_run_does_not_write_garch_yet(tmp_settings: Settings) -> None:
+def test_run_writes_garch_overlay_and_ssot(tmp_settings: Settings) -> None:
     daily = pd.DataFrame(
         {
             "date_local": pd.date_range("2023-01-01", periods=120, freq="D"),
@@ -158,4 +158,53 @@ def test_run_does_not_write_garch_yet(tmp_settings: Settings) -> None:
         }
     )
     a3.run(tmp_settings, daily=daily)
-    assert not (kit.analytics_dir(tmp_settings) / "a3_garch_vs_realized.png").exists()
+    out = kit.analytics_dir(tmp_settings)
+    assert (out / "a3_garch_vs_realized.png").is_file()
+    ssot = pd.read_parquet(kit.processed_dir(tmp_settings) / "ssot_inputs_analytics.parquet")
+    row = ssot.loc[ssot["key"] == "garch_persistence"].iloc[0]
+    assert row["tag"] == "VERIFIED"
+    assert row["produced_by"] == a3.PRODUCED_BY
+
+
+def test_garch_persistence_identity() -> None:
+    rng = np.random.default_rng(11)
+    d_t = rng.normal(0.0, 2.0, 250)
+    a = a3.fit_garch(d_t)
+    b = a3.fit_garch(d_t)
+    assert a.persistence == b.persistence
+    assert a.alpha == b.alpha
+    assert a.beta == b.beta
+    assert a.scale == 1.0
+    assert "unscaled" in a.rescale_note
+
+
+def test_near_integrated_persistence_is_not_clamped() -> None:
+    garch = a3.GarchFit(
+        persistence=1.05,
+        alpha=0.20,
+        beta=0.85,
+        scale=1.0,
+        rescale_note=a3._garch_note(1.0, 1.05),
+        conditional_vol=np.ones(8),
+        near_integrated=True,
+    )
+    assert garch.persistence == 1.05
+    assert garch.near_integrated
+    assert "not clamped" in garch.rescale_note
+    frame = pd.DataFrame(
+        {
+            "date_local": pd.date_range("2022-01-01", periods=8, freq="D"),
+            "d_t": np.arange(8, dtype=float),
+        }
+    )
+    fig = a3.figure_garch_vs_realized(frame, garch)
+    texts = " ".join(t.get_text() for t in fig.texts)
+    assert "not clamped" in texts
+    from matplotlib import pyplot as plt
+
+    plt.close(fig)
+
+
+def test_scale_warning_detection() -> None:
+    assert a3._scale_warning_seen(["y is poorly scaled"])
+    assert not a3._scale_warning_seen(["convergence warning"])

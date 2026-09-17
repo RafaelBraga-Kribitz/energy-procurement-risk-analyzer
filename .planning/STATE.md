@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: m5-analytics
 status: executing
-stopped_at: Completed 06-05; next execute 06-06
-last_updated: "2026-09-03T09:00:00Z"
+stopped_at: Completed 06-06; next execute 06-07
+last_updated: "2026-09-03T09:20:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-06 executing; 06-05 A3 HMM shipped
+last_activity_desc: Phase EPRA-06 executing; 06-06 GARCH shipped
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 34
-  completed_plans: 32
+  completed_plans: 33
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-06 — m5-analytics (executing 06-06)
+**Current focus:** Phase EPRA-06 — m5-analytics (executing 06-07)
 
 ## Current Position
 
 Phase: EPRA-06 (m5-analytics) — EXECUTING
-Plan: 6 of 7
-Status: 06-05 complete; next execute 06-06
-Last activity: 2026-09-03 — T5.05 A3 HMM
+Plan: 7 of 7
+Status: 06-06 complete; next execute 06-07
+Last activity: 2026-09-03 — T5.06 A3 GARCH
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -131,10 +131,11 @@ Progress: [██████░░░░] 62% (5/8 phases)
 - [Phase 06-03]: A2 spread_stats on one hourly frame; axhline(0); spread_mean_<year>
 - [Phase 06-04]: A4 month-FE HC1 load~HDD; consumer weather-invariant sentence
 - [Phase 06-05]: A3 HMM seeds 42-51; AN-304 skip-if-incomplete; december_regime
+- [Phase 06-06]: GARCH(1,1) overlay; garch_persistence VERIFIED; no clamp
 
 ### Pending Todos
 
-- execute 06-06 (T5.06 A3 GARCH)
+- execute 06-07 (T5.07 make analyze + AN-70x)
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
 - EN-072: human approval before regenerating `tests/golden/consumer_load_2023.sha256`
 
@@ -162,8 +163,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-03T09:00:00Z
-Stopped at: Completed 06-05 A3 HMM; next execute 06-06
+Last session: 2026-09-03T09:20:00Z
+Stopped at: Completed 06-06 GARCH; next execute 06-07
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: execute `.planning/phases/EPRA-06-m5-analytics/06-06-PLAN.md`
+Next: execute `.planning/phases/EPRA-06-m5-analytics/06-07-PLAN.md`
