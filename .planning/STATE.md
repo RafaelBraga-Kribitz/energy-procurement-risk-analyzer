@@ -5,10 +5,10 @@ milestone_name: milestone
 current_phase: 06
 current_phase_name: m5-analytics
 status: executing
-stopped_at: Completed 06-07; next GSD verify-work Phase 6
-last_updated: "2026-09-03T10:00:00Z"
+stopped_at: Completed GSD verify-work Phase 6; next Phase 7 discuss (M6)
+last_updated: "2026-09-03T10:15:00Z"
 last_activity: 2026-09-03
-last_activity_desc: Phase EPRA-06 plans T5.01-T5.07 executed; next verify-work
+last_activity_desc: Phase EPRA-06 verify-work; SC#2 AN-304 real data is operator
 progress:
   total_phases: 8
   completed_phases: 5
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-06 — m5-analytics (verify-work)
+**Current focus:** Phase EPRA-07 — m6-strategies (not started)
 
 ## Current Position
 
-Phase: EPRA-06 (m5-analytics) — EXECUTING
+Phase: EPRA-06 (m5-analytics) — VERIFIED (SC#2 operator)
 Plan: 7 of 7
-Status: 06-07 complete; next GSD verify-work Phase 6
-Last activity: 2026-09-03 — T5.07 make analyze + AN-70x
+Status: verify-work complete; next Phase 7 discuss
+Last activity: 2026-09-03 — GSD verify-work M5
 
 Progress: [██████░░░░] 62% (5/8 phases)
 
@@ -136,7 +136,8 @@ Progress: [██████░░░░] 62% (5/8 phases)
 
 ### Pending Todos
 
-- GSD verify-work Phase 6 (M5 analytics)
+- GSD Phase 7 discuss (M6 strategies)
+- AN-304 on real warehouse (operator; ROADMAP Phase 6 SC#2)
 - TP.02: mark GitHub `dbt-check` a required status check on `main` (operator; out of code scope)
 - EN-072: human approval before regenerating `tests/golden/consumer_load_2023.sha256`
 
@@ -164,8 +165,8 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-03T10:00:00Z
-Stopped at: Completed 06-07; next GSD verify-work Phase 6
+Last session: 2026-09-03T10:15:00Z
+Stopped at: Completed GSD verify-work Phase 6
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
-Next: write `.planning/phases/EPRA-06-m5-analytics/06-VERIFICATION.md`
+Next: `/gsd-discuss-phase` for Phase 7 (M6 SPEC-05) — `.planning/phases/` not yet created

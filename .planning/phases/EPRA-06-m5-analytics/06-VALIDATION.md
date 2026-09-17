@@ -1,9 +1,9 @@
 ---
 phase: 6
 slug: m5-analytics
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-09-02
 ---
 
@@ -32,24 +32,24 @@ created: 2026-09-02
 
 | Item | Requirement | Test | File |
 |------|-------------|------|------|
-| T5.01 kit | RP-701/702, SSOT schema, empty-SQL raise | unit | ❌ W0 |
-| T5.02 A1 | AN-101..105, AN-704, neg_hours keys | unit + prose length | ❌ W0 |
-| T5.03 A2 | AN-201..203, zero line, spread_mean keys | unit | ❌ W0 |
-| T5.04 A4 | AN-401..402, HDD coef > 0 on synthetic, invariance sentence | unit | ❌ W0 |
-| T5.05 HMM | AN-301/302/304, determinism, december_regime | unit; AN-304 skip path | ❌ W0 |
-| T5.06 GARCH | AN-303 persistence identity; α+β≥1 reported | unit | ❌ W0 |
-| T5.07 make | AN-701/705, BUILD_LOG, stubs gone | make + pytest | ❌ W0 |
+| T5.01 kit | RP-701/702, SSOT schema, empty-SQL raise | unit | ✓ |
+| T5.02 A1 | AN-101..105, AN-704, neg_hours keys | unit + prose length | ✓ |
+| T5.03 A2 | AN-201..203, zero line, spread_mean keys | unit | ✓ |
+| T5.04 A4 | AN-401..402, HDD coef > 0 on synthetic, invariance sentence | unit | ✓ |
+| T5.05 HMM | AN-301/302/304, determinism, december_regime | unit; AN-304 skip path | ✓ |
+| T5.06 GARCH | AN-303 persistence identity; α+β≥1 reported | unit | ✓ |
+| T5.07 make | AN-701/705, BUILD_LOG, stubs gone | make + pytest | ✓ |
 
 ## Wave 0 Requirements
 
-- [ ] `_kit.py` + `__main__.py`
-- [ ] Four `run()` implementations
-- [ ] 12 artifact filenames constant matching SPEC-04 §6
-- [ ] `ssot_inputs_analytics.parquet` writer
-- [ ] Makefile `analyze:`
-- [ ] AN-304 skip/fail split
-- [ ] BUILD_LOG M5 entry
-- [ ] M5 rows removed from `test_stubs_fail_loudly.py`
+- [x] `_kit.py` + `__main__.py`
+- [x] Four `run()` implementations
+- [x] 12 artifact filenames constant matching SPEC-04 §6
+- [x] `ssot_inputs_analytics.parquet` writer
+- [x] Makefile `analyze:`
+- [x] AN-304 skip/fail split
+- [x] BUILD_LOG M5 entry
+- [x] M5 rows removed from `test_stubs_fail_loudly.py`
 
 ## Phase Gate (ROADMAP)
 
