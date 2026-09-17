@@ -165,7 +165,17 @@ Plans:
   2. Crisis-regime sanity gate AN-304 passes on real 2021–2023 data
   3. Charts carry epistemic tags and obey SPEC-06 §7 caption rules
 
-**Plans**: TBD
+**Plans**: 0/7 executed
+
+Plans:
+
+- [ ] 06-01-PLAN.md — T5.01 analytics shared kit + CLI shell
+- [ ] 06-02-PLAN.md — T5.02 A1 descriptive
+- [ ] 06-03-PLAN.md — T5.03 A2 spread
+- [ ] 06-04-PLAN.md — T5.04 A4 weather
+- [ ] 06-05-PLAN.md — T5.05 A3 HMM + AN-304
+- [ ] 06-06-PLAN.md — T5.06 A3 GARCH
+- [ ] 06-07-PLAN.md — T5.07 make analyze + AN-70x + BUILD_LOG
 
 ### Phase 7: M6 Strategy Simulator
 
