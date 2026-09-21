@@ -19,7 +19,7 @@ vs. fixed annual price vs. partial hedge.
 > 12 months under each procurement strategy?**
 
 ```mermaid
-flowchart LR
+flowchart TD
     SRC["ENTSO-E / GeoSphere / ÖSPI / holidays"] --> ING["Ingestion<br/>retry, cache, gates"]
     ING --> RAW["data/raw parquet"]
     RAW --> WH["DuckDB + dbt<br/>staging → marts"]
