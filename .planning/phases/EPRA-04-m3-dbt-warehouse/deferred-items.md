@@ -16,6 +16,7 @@ current task's changes).
   `unique_combination_of_columns` invocations. `staging.yml` is out of scope
   for 04-04 (owned by 04-02, already committed) — fix in a future
   housekeeping pass or the next time `staging.yml` is touched.
+  **Status: resolved in the 2026-09-30 audit-fix PR.**
 
 ## 04-07
 
@@ -29,3 +30,6 @@ current task's changes).
   src/epra/warehouse tests/unit/test_warehouse_report.py` (this plan's own
   files) reports "3 files already formatted", clean. Fix whenever
   `bootstrap_fixture_warehouse.py`/its test is next touched.
+  **Status: resolved** in commit `f493463` ("fix(04): resolve post-merge ruff-format
+  drift from wave 4", 2026-07-24), which reformatted both files; `ruff format --check`
+  on both is clean (2026-09-30).

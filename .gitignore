@@ -55,6 +55,11 @@ dbt/logs/
 dbt/dbt_packages/
 dbt/.user.yml
 
-# generated graph artifacts (rebuilt locally by the GSD graphify hooks; not versioned)
-.planning/graphs/graph.html
+# graphify generated artifacts (regenerated locally by .planning/hooks/run-graphify-rebuild.js)
 .planning/graphs/graph.json
+.planning/graphs/graph.html
+.planning/graphs/.last-build-status.json
+.planning/graphs/.rebuild.lock
+# GSD session/pause artifacts (generated locally; see .planning/CONTINUITY.md)
+.planning/SESSION_SNAP.md
+.planning/HANDOFF.json

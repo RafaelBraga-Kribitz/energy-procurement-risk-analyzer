@@ -6,8 +6,10 @@ Analyzer. This file tells you HOW to work. WHAT to build is in `PROJECT_CHARTER.
 
 **Claude Code ↔ Cursor:** progress and intent live only under `.planning/` (not chat history).
 Before switching runtimes run `/gsd-pause-work`; after a limit/crash open the other runtime and
-run `/gsd-resume-work` or `/gsd-next`. Prefer `.planning/graphs/GRAPH_REPORT.md` /
-`/gsd-graphify query` for codebase orientation. Full playbook: `.planning/CONTINUITY.md`.
+run `/gsd-resume-work` or `/gsd-next` (the `/gsd-*` commands come from the maintainer's
+local GSD install, not this repo). `.planning/graphs/GRAPH_REPORT.md` / `/gsd-graphify query`
+help codebase orientation but may be stale — check the report's "Built from commit" header
+against `git rev-parse HEAD`. Full playbook: `.planning/CONTINUITY.md`.
 
 ---
 

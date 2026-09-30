@@ -1,5 +1,7 @@
 ## Conflict Detection Report
 
+> Status annotations added 2026-09-30 (audit follow-up). Original report text is kept; resolved items are marked inline.
+
 ### BLOCKERS (0)
 
 (none)
@@ -10,11 +12,13 @@
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-01 proposes `EntsoeRawClient` as transport with own Appendix-A parser; PandasClient never used for persistence
   Impact: Non-binding gap proposal conflicts with explicit SPEC-01 ING-022 client choice; synthesized intel retains SPEC authority until ADR adoption
   → Adopt via T1.02 ADR if EntsoeRawClient approach is chosen; until then implement per ING-022 or document ADR deviation
+  **RESOLVED:** adopted by `docs/ADR/ADR-003_entsoe-raw-client-sg01.md`.
 
 [WARNING] SG-02 proposed zone rule for ING-042 latest complete month
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-02 proposes min(AT prices, DE-LU prices) for `latest_complete_month()`
   Impact: SPEC-01 ING-042 defines "price data" without zone enumeration; proposal is non-binding interpretation
   → Adopt via T1.08 ADR before implementing zone-specific logic, or implement strict ING-042 text and escalate ambiguity
+  **RESOLVED:** adopted by `docs/ADR/ADR-005_latest-complete-month-sg02.md`.
 
 [WARNING] SG-03 proposed reference-year 2019 for consumer_peak_share
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-03 proposes per-year computation with 2019 reference value published to SSOT
@@ -25,11 +29,13 @@
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-05 proposes frozen column list (ING-110 attrs + season, hdd_18, cdd_22)
   Impact: SPEC-02 §5 says "+ all dim_calendar attributes" without frozen enumeration; contract YAML adoption pending
   → Complete T3.04 contract YAML review/adoption before treating enumeration as binding
+  **SUPERSEDED 2026-09-30:** the enumeration is frozen in `dbt/contracts/marts_contract.yml` (`fct_price_hourly`, 17 columns, commit `411d8c8`) and checked by `tests/unit/test_marts_contract.py`.
 
 [WARNING] SG-06 proposed fixture bootstrap for M3 marts
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-06 proposes stand-in parquet for `fct_consumer_load_hourly` / `fct_procurement_cost_monthly` until M4/M6
   Impact: SPEC-02 §5 defines mart contracts but does not specify fixture stand-ins; proposal is non-binding build-order workaround
   → Adopt via T3.06 ADR before committing fixture bootstrap pattern
+  **RESOLVED:** adopted by `docs/ADR/ADR-010_ci-fixture-standin-policy.md`.
 
 [WARNING] SG-07 proposed ST-401 day-mapping algorithm
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-07 pins day-index/weekend-type/DST rules beyond SPEC-05 ST-401 step 3 text
@@ -50,6 +56,7 @@
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-13 proposes macro returning custom schema literally (avoid `main_staging`)
   Impact: SPEC-02 DM-003 names schemas `staging`/`marts` but does not specify dbt macro override; proposal non-binding
   → Adopt via T3.01 ADR before committing macro
+  **RESOLVED:** adopted by `docs/ADR/ADR-009_generate-schema-name-macro.md`.
 
 [WARNING] SG-15 proposed dynamic calendar end and rebuild order
   Found: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md SG-15 proposes `--end` pre-M1, post-M1 regeneration to latest_complete_month + horizon + margin, profile rebuilt after calendar
@@ -74,6 +81,7 @@
 
 [INFO] SG-14 peak definition aligns with ING-110 and LP-020 over Charter glossary shorthand
   Note: Charter glossary peak omits holidays; SPEC-01 ING-110 and SPEC-03 LP-020 define holiday-aware peak — synthesized intel uses ING-110/LP-020; SG-14 proposal consistent but pending T3.04 ADR for LIMITATIONS note
+  **SUPERSEDED 2026-09-30:** adopted by `docs/ADR/ADR-011_holiday-aware-peak.md` (accepted 2026-07-24); LIMITATIONS.md §2 carries the ÖSPI peak-convention note.
 
 [INFO] SG-16 and SG-17 marked resolved in gaps tracker
   Note: docs/EXECUTION_BLUEPRINT/14_SPEC_GAPS.md records SG-16 (staging dedup defense-in-depth) and SG-17 (consumption kind persisted, filtered in staging) as spec-consistent — no conflict with SPECs

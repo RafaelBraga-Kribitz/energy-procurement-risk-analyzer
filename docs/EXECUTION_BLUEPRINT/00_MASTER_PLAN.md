@@ -149,14 +149,16 @@ implemented and tested — nothing in between).
 | Milestone | State | Evidence |
 |-----------|-------|----------|
 | M0 bootstrap | **DONE** (commit `chore: M0 bootstrap…`, 2026-07-19) | ruff/mypy clean, 51 tests, cov 99.67% |
-| M1 ENTSO-E ingestion | not started — code tasks unblocked, live backfill `[TOKEN]` (~3 days) | — |
-| M2 auxiliary data | not started — fully unblocked | — |
-| M3 dbt warehouse | not started | — |
+| M1 ENTSO-E ingestion | **DONE** 2026-07-22 (data horizon 2024-02; re-backfill to latest complete month outstanding `[TOKEN]`) | `docs/BUILD_LOG.md` 2026-07-21/22, `reports/ingestion/validation_2026-07-23.md`, `.planning/phases/EPRA-02-m1-entso-e-ingestion/02-VERIFICATION.md` |
+| M2 auxiliary data | **DONE** 2026-07-23 (GeoSphere horizon 2023-12) | `docs/BUILD_LOG.md` 2026-07-23, `.planning/phases/EPRA-03-m2-auxiliary-data/03-VERIFICATION.md` |
+| M3 dbt warehouse | **BUILT** 2026-07-24; phase verification pending | `docs/BUILD_LOG.md` 2026-07-24, `reports/warehouse/dbt_build_2026-07-24.md` |
 | M4 consumer profile | not started | — |
 | M5 analytics | not started | — |
 | M6 strategies | not started | — |
 | M7 reporting & refresh | not started | — |
 
-Blocked-only-by-token work is exactly: T1.09 (live backfill+validation) and the
-fixture-refresh half of T1.03. Everything else in M1–M7 is specifiable and much
+*Snapshot updated 2026-09-30 (audit follow-up, `.planning/AUDIT-2026-09-30.md`).*
+Blocked-only-by-token work today: the re-backfill of ENTSO-E data to the latest
+complete month (and re-running `make validate-ingest`). Originally (2026-07-19):
+T1.09 (live backfill+validation) and the fixture-refresh half of T1.03. Everything else in M1–M7 is specifiable and much
 of it buildable now — see [04_DEPENDENCIES.md](04_DEPENDENCIES.md) §token-window.

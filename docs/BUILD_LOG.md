@@ -42,6 +42,12 @@ One entry per milestone: date, what shipped, gate evidence, open questions.
 - `uv run ruff check` / `ruff format --check` / `mypy` — recorded in the M0
   commit; see CI once a remote exists.
 - `uv run pytest` — all tests green, coverage above the 80% gate.
+- *[Evidence note added 2026-09-30, audit follow-up]* The only recorded M0 gate
+  output is the M0 commit message (`c043933`, 2026-07-19):
+  `Gate M0: ruff clean, mypy --strict clean, 51 tests green, coverage 99.67%`.
+  No raw terminal output was captured at M0, and
+  `.planning/phases/EPRA-01-m0-bootstrap/01-VERIFICATION.md` (2026-07-21) is a
+  retroactive static reconciliation, not a fresh gate run.
 
 **Open questions / next steps (in build order)**
 
@@ -221,6 +227,71 @@ ING-083 now checks the spec-required years that are *complete* in the data (toda
 reported as a boundary partial. All three ROADMAP Phase 2 success criteria are
 met end-to-end: ING-070 contract tests in CI, real backfill under `data/raw/`,
 and `make validate-ingest` green on real data. **M1 complete; M2 can start.**
+
+---
+
+## 2026-07-23 — M2 Auxiliary Data (GeoSphere, ÖSPI, calendar) — complete
+
+*Entry written 2026-09-30 from the phase records (audit follow-up: the M2 entry
+was missing, W-5). Sources: `.planning/phases/EPRA-03-m2-auxiliary-data/`
+(`03-01…06-SUMMARY.md`, `03-VERIFICATION.md`), commit `9ab8999`,
+`reports/ingestion/validation_2026-07-23.md`.*
+
+**Shipped**
+
+- `_io.write_month` gained a keyword-only `key_column` (default `ts_utc`) so
+  date-grain GeoSphere data reuses the single ING-003/004 raw writer (03-01).
+- `epra.ingest.calendar` (ING-110/111): hourly UTC calendar spine with
+  Vienna-local attributes, Styrian holidays via `holidays` (`subdiv='6'`, SG-10
+  asserted in `tests/unit/test_calendar.py`), peak flags from
+  `epra.common.timeutil`; one file `data/raw/calendar/calendar.parquet` (03-02).
+- `epra.ingest.geosphere` (ING-090…094): live-first station discovery picked
+  station 30 "Graz Universität/Heinrichstraße" (ADR-007, `config/settings.yaml`);
+  klima-v2-1d daily ingest to date-keyed monthly parquet; `gate_ing_094`
+  (03-03, 03-04).
+- `epra.ingest.oespi` (ING-100/102/104): `load_oespi` with constant-`source_url`
+  single-series check and Base-only fallback signal; `gate_ing_103`
+  (continuity / positivity / 2022-crisis ≥3× 2019 mean / MoM ≤60%); synthetic
+  CSV fixture; ADR-008 pins the AEA *strompreisindex* page (03-05).
+- `validate.run_gates` reports all nine M1+M2 gates once each; `gate_ing_111`
+  wraps the calendar assertions (03-06).
+- Human double-entry ÖSPI transcription reconciled with
+  `scripts/oespi_reconcile.py` (ING-101) into the committed
+  `data/manual/oespi_monthly.csv` (commit `9ab8999`, 92 months 2019-01→2026-08).
+
+**Gate evidence** (from `03-VERIFICATION.md` and the committed report)
+
+- `uv run pytest -m "not live" -q`: all green, 94.89% coverage;
+  `uv run ruff check src tests scripts`: all checks passed; `uv run mypy`:
+  no issues in 30 source files.
+- ING-101: `uv run python scripts/oespi_reconcile.py` exit 0 on two identical
+  entries (recorded in `03-VERIFICATION.md` "Post-Verification Resolution");
+  the reconcile run itself left no log file in the repository.
+- `make validate-ingest` exit 0, **ALL GATES PASSED** (ING-080..085, 094, 103,
+  111). Excerpt of `reports/ingestion/validation_2026-07-23.md`:
+
+```
+### ING-094 — PASS
+    coverage              >=99% 1.0000 (1826/1826 days) True
+       range [-30.0, 42.0] degC   0 row(s) out of range True
+### ING-103 — PASS
+       continuity           no gaps                                               none True
+crisis_visibility >= 3.0x 2019 mean 2022 max=660.44 vs 2019 mean=103.54 (need >= 3.0x) True
+### ING-111 — PASS
+holiday_count_2024                                                                   13                                   13 True
+```
+
+**Open questions** (as seen on 2026-09-30)
+
+- The GeoSphere pull covers 2019-01→2023-12 only (1826 days) although ING-093
+  specifies "2019 → latest"; the truncation is not explained in the phase
+  records. Recorded in `LIMITATIONS.md` §6.
+- ADR-008 Status is still `proposed` although `03-06-SUMMARY.md` records the
+  maintainer's confirmation of the series pick — the owner should record it in
+  a superseding ADR (ADRs are append-only, GV-201).
+- ÖSPI rows 2026-07/2026-08 have `retrieved_at=2026-07-23`; whether ÖSPI is
+  published ahead of its delivery month needs human verification
+  (`LIMITATIONS.md` §6).
 
 ---
 

@@ -26,7 +26,7 @@ test:                ## EN-070 — offline suite, same selection as CI
 test-live:           ## EN-070 — live API tests only (needs network; ENTSO-E ones need the token)
 	$(UV) run pytest -m live
 
-backfill:            ## M1 — SPEC-01 §4: full 2019→latest ingestion (all sources)
+backfill:            ## M1 — SPEC-01 §4: full 2019→last complete month, ENTSO-E only (GeoSphere/calendar/ÖSPI: own targets)
 	$(UV) run python -m epra.ingest.entsoe --backfill
 
 ingest:              ## M1 — SPEC-01 §4: incremental 45-day refresh (ING-041)

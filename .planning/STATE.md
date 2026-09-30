@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: m3-dbt-warehouse
-status: executing
+status: verification-pending
 stopped_at: Completed 04-08-PLAN.md
-last_updated: "2026-09-01T16:55:00Z"
-last_activity: 2026-09-01
-last_activity_desc: Completed 04-08-PLAN.md (GSD close-out; production was 2026-07-24)
+last_updated: "2026-09-30T00:00:00Z"
+last_activity: 2026-09-30
+last_activity_desc: Planning/docs reconciled with AUDIT-2026-09-30 (no phase work; M3 still awaiting verify-work)
 progress:
-  total_phases: 4
+  total_phases: 8
   completed_phases: 3
   total_plans: 22
   completed_plans: 22
@@ -20,23 +20,23 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-21)
+See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-04 — m3-dbt-warehouse (all 8 plans have SUMMARYs; next is verify-work)
+**Current focus:** Phase EPRA-04 — m3-dbt-warehouse (all 8 plans have SUMMARYs; formal verification not yet run). Audit 2026-09-30: `.planning/AUDIT-2026-09-30.md`.
 
 ## Current Position
 
 Phase: EPRA-04 (m3-dbt-warehouse) — PLANS COMPLETE, PENDING VERIFY
 Plan: 8 of 8
-Status: Completed 04-08-PLAN.md; ready for `/gsd-verify-work`
-Last activity: 2026-09-01 — 04-08 GSD close-out (SUMMARY + STATE/ROADMAP)
+Status: Completed 04-08-PLAN.md; `/gsd-verify-work` not yet run (no `04-VERIFICATION.md`)
+Last activity: 2026-09-30 — audit follow-up reconciled ROADMAP/STATE/PROJECT with phase evidence
 
-Progress: [██████████] 100% (plans)
+Progress: [██████████] 100% of plans written so far (22/22, phases 1–4); phases 5–8 (M4–M7) not yet planned — 3 of 8 phases verified complete
 
 ## Performance Metrics
 
-**Velocity:** Not yet tracked (no plans executed)
+**Velocity:** 21 plans with executor-reported durations (Phases EPRA-02..04, table below): total ≈ 628 min, mean ≈ 30 min/plan. M0 (1 retroactive plan) has no duration.
 **Per-Plan Metrics:**
 
 | Plan | Duration | Tasks | Files |
@@ -69,7 +69,7 @@ Progress: [██████████] 100% (plans)
 
 - ADR-001: Light governance only — no external governance-bootstrap kit (locked)
 - ADR-002: Dev typing stubs for mypy --strict (locked)
-- SG-01, SG-14: Proposed gap resolutions — adopt ADRs before M1/M3 implementation
+- SG-01, SG-14: ~~Proposed gap resolutions — adopt ADRs before M1/M3 implementation~~ — adopted: SG-01 → ADR-003, SG-14 → ADR-011
 - [Phase ?]: ADR-003: EntsoeRawClient transport-only, own Appendix-A parsers (adopts SG-01)
 - [Phase ?]: ADR-004: pyarrow>=18,<26 as canonical pandas parquet engine
 - [Phase ?]: ADR-005: latest_complete_month = min(AT, DE-LU) prices completeness (adopts SG-02)
@@ -128,16 +128,18 @@ Progress: [██████████] 100% (plans)
 ### Blockers/Concerns
 
 - ~~ENTSO-E API token required for M1 backfill (human-owned)~~ — RESOLVED 2026-07-21: `ENTSOE_API_TOKEN` present in `.env`
-- INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation
+- ~~INGEST-CONFLICTS: 2 warnings on SG-01/SG-14 — not blockers; resolve via ADR at implementation~~ — RESOLVED: ADR-003 (SG-01), ADR-011 (SG-14); see `.planning/INGEST-CONFLICTS.md`
 - ~~test_config.py::test_entsoe_token_fails_fast_when_unset fails (.env token repopulated by load_dotenv)~~ — RESOLVED 2026-07-22: test now stubs load_dotenv to isolate from real .env (commit dc14314)
 - ~~M1 live-data gate pending operator~~ — DONE 2026-07-22. Live backfill run on real ENTSO-E (token in .env); found + fixed two data-loss bugs (100-doc response cap → pagination; chunk-boundary month overwrite → accumulate-then-write) and one domain bug (gates bucketed by UTC year → ADR-006 scopes them to complete Vienna-local years). `make validate-ingest` now exits 0 — ALL GATES PASSED (ING-080..085) on real 2019→2024-01 data. All three ROADMAP Phase 2 criteria met; M1 complete. See docs/BUILD_LOG.md 2026-07-22 entry.
-- ÖSPI double-entry reconciliation pending: data/manual/oespi_monthly_entry1.csv + entry2.csv exist unreconciled; ING-103 soft-passes informationally (D-06). Resolve via uv run python scripts/oespi_reconcile.py, delete entry files, re-run make validate-ingest. See LIMITATIONS.md sec 6.
+- ~~ÖSPI double-entry reconciliation pending~~ — RESOLVED 2026-07-23: reconciled `data/manual/oespi_monthly.csv` committed (`9ab8999`, 92 months), ING-103 substantive PASS (`03-VERIFICATION.md`).
+- **Data horizon gap (open, needs the human's ENTSO-E token):** real ENTSO-E prices end 2024-02 and GeoSphere 2023-12 (`reports/ingestion/validation_2026-07-23.md`); re-backfill to latest complete month + `make validate-ingest` outstanding before M4–M6 can produce 2024–2025 results. See `LIMITATIONS.md` §6, AUDIT §1.
+- ADR-008 still `Status: proposed` — maintainer to confirm via a superseding ADR (GV-201 append-only); ÖSPI publication lag unverified (`LIMITATIONS.md` §6).
 
 ## Deferred Verification
 
 | Phase | State | Resume |
 |-------|-------|--------|
-| *(none)* | | |
+| EPRA-04 (M3) | Built, 8/8 SUMMARYs; no `04-VERIFICATION.md` | `/gsd-verify-work` Phase EPRA-04 (weigh AUDIT §2 dbt caveats) |
 
 Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clean, live backfill run on real ENTSO-E, and `make validate-ingest` exits 0 (ALL GATES PASSED). All three ROADMAP Phase 2 criteria met — no open items.
 
@@ -149,7 +151,7 @@ Phase 2 fully verified 2026-07-22: 178 tests + lint/mypy clean, code review clea
 
 ## Session Continuity
 
-Last session: 2026-09-01T16:55:00Z
+Last session: 2026-09-30
 Stopped at: Completed 04-08-PLAN.md
 Resume file: None
 Also: .planning/CONTINUITY.md, .planning/graphs/GRAPH_REPORT.md
