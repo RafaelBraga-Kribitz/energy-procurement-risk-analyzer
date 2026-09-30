@@ -304,9 +304,10 @@ def fetch_entsoe(
     Implements: ING-006, ING-007, ING-008, ING-009, ING-021.
 
     Reads `ENTSOE_API_TOKEN` first, so a missing token fails fast (ING-021)
-    before any cache lookup or network call. A live fetch is written to
-    `data/cache/entsoe/<hash>.bin` and followed by the ING-007 politeness
-    sleep. `use_cache=False` always hits the network (`--no-cache`).
+    before any cache lookup or network call. A live fetch of a settled window
+    (ended more than `cache_min_age_days` ago) is written to
+    `data/cache/entsoe/<hash>.bin`; every live fetch is followed by the ING-007
+    politeness sleep. `use_cache=False` always hits the network (`--no-cache`).
     `transport` overrides the live call (tests inject canned XML or a
     `requests`-shaped error with `.response.status_code`; ADR-003).
 
@@ -338,7 +339,11 @@ def fetch_entsoe(
             "entsoe", _error_detail(exc, api_key), status_code=_http_status(exc)
         ) from None
     elapsed_ms = int((time.monotonic() - start_ns) * 1000)
-    _write_cache(cache_path, xml)
+    # Cache only windows that are already settled: a response for a window
+    # younger than the ING-009 age limit may be incomplete, and once cached it
+    # would be replayed forever after the window ages past the limit.
+    if _is_cache_eligible(query, settings):
+        _write_cache(cache_path, xml)
     logger.info(
         "source=entsoe window=%s..%s status=200 rows=n/a elapsed_ms=%d",
         query.period_start.isoformat(),

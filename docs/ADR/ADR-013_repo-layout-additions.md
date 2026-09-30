@@ -20,6 +20,7 @@ Paths present in the repository but absent from the SPEC-07 §2 tree:
 | `dbt/macros/` | M3 (plan 04-01) | `generate_schema_name` (ADR-009) and hand-rolled test/spine macros |
 | `src/epra/ingest/_io.py`, `_fetch.py`, `exceptions.py` | M1 | Private helpers of the listed ingest modules (single raw-parquet write boundary, HTTP transport/cache, exception types) |
 | `docs/BUILD_LOG.md`, `docs/EXECUTION_BLUEPRINT/` | M0 / 2026-07-19 | Build log required by AGENTS.md W-5; planning blueprint (subordinate to Charter/SPEC/ADR) |
+| `src/epra/common/gates.py` | 2026-09-30 (audit fix) | Shared `CheckResult`/`CheckReport` behind both the ingest validation report (`validate.py`) and the dbt build report (`warehouse/report.py`), replacing two verbatim copies |
 | `.planning/` | 2026-07-21 | Planning/continuity state for the maintainer's local GSD tooling (`.planning/CONTINUITY.md`) |
 
 ## Decision

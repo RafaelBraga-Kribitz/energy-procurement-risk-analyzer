@@ -64,7 +64,7 @@ allowed-confusables = ["×", "−", "α", "β"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src/epra", "scripts"]
+files = ["src/epra", "scripts", "tests"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]

@@ -497,7 +497,8 @@ def _full_month_price_frame(year: int, month: int, zone: str) -> pd.DataFrame:
 
 def _partial_month_price_frame(year: int, month: int, zone: str, missing_day: int) -> pd.DataFrame:
     frame = _full_month_price_frame(year, month, zone)
-    return frame[frame["ts_utc"].dt.day != missing_day].reset_index(drop=True)
+    kept: pd.DataFrame = frame.loc[frame["ts_utc"].dt.day != missing_day]
+    return kept.reset_index(drop=True)
 
 
 def test_latest_complete_month_returns_min_of_at_and_delu(tmp_settings: Settings) -> None:

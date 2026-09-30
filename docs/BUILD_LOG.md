@@ -356,3 +356,54 @@ holiday_count_2024                                                              
 **Open questions:** none on the automated side. The GitHub push, branch-
 protection required-check flip for `dbt-check` (TP.02), and M3 PR opening
 remain human-only per the phase-exit checkpoint (D-01/D-02).
+
+## 2026-09-30 — Audit follow-up housekeeping (`.planning/AUDIT-2026-09-30.md`)
+
+**What shipped:** fixes for every audit item that needs neither real data, the
+ENTSO-E token, a human decision, nor an M4–M7 milestone. There are no
+milestone deliverables in this entry (A-5).
+- Ingest: `make backfill` default end is the last complete calendar month
+  (ING-040). The old default was the latest month already on disk, which
+  pinned re-runs at the previous horizon; this is the likely cause of prices
+  ending 2024-02. Also: per-request `request_hash` per row and an
+  overlapping-request union instead of blanket dedup (ADR-015); ENTSO-E and
+  GeoSphere caches only store settled windows (ING-009); token redaction in
+  error bodies (A-7); GeoSphere retries (ING-006); ING-094 checks the ING-093
+  window; calendar spine on local-day bounds (ADR-017, local 2019 = 8760 h).
+- dbt: processed sources follow the LP-003 / ST-001 single-file contracts
+  (ADR-016, supersedes ADR-010); the bootstrap never writes `data/manual`;
+  dbt>=1.10 syntax everywhere (ADR-012); five silent-pass tests fixed;
+  monthly price mart ends at the last priced month; contract covers all
+  8 marts with INTEGER/BIGINT types, and `ts_utc` stays TIMESTAMPTZ in a
+  UTC session (ADR-014).
+- Tooling: `uv sync --frozen` (the lock is now what gets installed), offline
+  `make test`, `make token-guard` in CI, `make freshness` in `make refresh`
+  (DM-066), mypy over `src`, `scripts` and `tests`, warehouse report run in CI.
+- Docs/planning: M2 entry above, planning trackers and README/LIMITATIONS
+  brought in line with the evidence, SPEC-07 layout additions (ADR-013).
+
+**Gate evidence (this container, fixture data only — there is no real data here):**
+```
+make lint   -> ruff clean; 61 files formatted; mypy: Success, 61 source files
+make test   -> 310 passed, 11 skipped, 1 deselected; coverage 96.94% (gate 80%)
+bootstrap_fixture_warehouse.py --force && dbt build
+            -> PASS=65 WARN=0 ERROR=0 SKIP=0 TOTAL=65 (no deprecation warnings)
+pytest tests/unit/test_marts_contract.py -> 10 passed
+python -m epra.warehouse.report -> "ALL DBT TESTS PASSED; SANITY CHECKS OK"
+make freshness -> FAIL 1 (expected: fixture prices end 2024-12)
+data/manual/oespi_monthly.csv byte-identical before/after
+```
+
+**Open questions / human actions:**
+- Re-run `make backfill`, `make geosphere`, `make calendar`, `make validate-ingest`
+  and `make warehouse` with the token, then commit the new validation and
+  warehouse reports. `reports/warehouse/dbt_build_2026-07-24.md` predates the
+  report's dbt-results section and stays as historical evidence.
+- ADR-008 confirmation (superseding ADR) and the ÖSPI publication lag
+  (`LIMITATIONS.md` §6).
+- M3 verification record (`04-VERIFICATION.md`) is still outstanding.
+- SG-15 (calendar horizon) is implemented without an ADR.
+- `fct_price_daily`/`fct_price_hourly` still extend over the forward calendar
+  with NULL prices by design; the monthly mart no longer does.
+- M4–M7 remain unimplemented; each is its own milestone PR (A-5).
+

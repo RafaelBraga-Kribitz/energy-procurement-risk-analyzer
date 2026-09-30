@@ -95,12 +95,22 @@ month":
   `config/strategies.yaml` have no price data.
 - GeoSphere: the live pull covers 2019-01-01→2023-12-31 only (1826/1826 days,
   ING-094 section of the same validation report) although ING-093 specifies
-  "2019-01-01 → latest". The truncation is not explained in the phase records.
+  "2019-01-01 → latest". No code path truncates the pull (checked
+  2026-09-30). The phase records show the run was invoked with an explicit
+  `--end` (`03-06-PLAN.md`, `03-06-SUMMARY.md`), presumably matching the
+  ENTSO-E horizon of the time. The old ING-094 gate measured coverage against
+  the data's own first and last day, so it could not see the truncation. It
+  now measures against the ING-093 window and will FAIL until GeoSphere is
+  re-pulled.
 
-Resolution requires a re-backfill to the latest complete month with the
-maintainer's ENTSO-E token, re-running `make validate-ingest`, and recording
-any 2025 gate investigation here. Until then no result may be stated for
-2024–2025.
+Likely cause of the ENTSO-E horizon (found 2026-09-30): `make backfill`
+without `--end` defaulted its end date to the latest complete month *already
+on disk*, so every re-run stopped where the previous one had. It now defaults
+to the last complete calendar month (ING-040). Resolution: with the
+maintainer's ENTSO-E token, run `make backfill`, `make geosphere` (no
+`--end`) and `make calendar` (the spine now uses local-day bounds, ADR-017),
+then `make validate-ingest` and `make warehouse`, and record any 2024/2025
+gate investigation here. Until then no result may be stated for 2024–2025.
 
 **M1 live-backfill findings (resolved 2026-07-22, `docs/BUILD_LOG.md`).** The
 first real backfill exposed two silent data-loss bugs that offline fixtures had

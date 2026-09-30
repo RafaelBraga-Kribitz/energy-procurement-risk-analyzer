@@ -6,6 +6,8 @@ the project relies on, so accidental config edits fail loudly here instead of
 silently shifting results downstream.
 """
 
+from typing import cast
+
 import pytest
 from pydantic import ValidationError
 
@@ -90,7 +92,7 @@ def test_day_shape_validator_rejects_wrong_length() -> None:
 
 def test_day_shape_validator_rejects_missing_shape() -> None:
     bad = _profile_dict()
-    shapes = dict(bad["day_shapes"])  # type: ignore[arg-type]
+    shapes = dict(cast(dict[str, list[float]], bad["day_shapes"]))
     del shapes["shutdown"]
     bad["day_shapes"] = shapes
     with pytest.raises(ValidationError, match="shutdown"):
@@ -99,7 +101,7 @@ def test_day_shape_validator_rejects_missing_shape() -> None:
 
 def test_seasonal_validator_requires_all_12_months() -> None:
     bad = _profile_dict()
-    factors = dict(bad["seasonal_factors"])  # type: ignore[arg-type]
+    factors = dict(cast(dict[int, float], bad["seasonal_factors"]))
     del factors[12]
     bad["seasonal_factors"] = factors
     with pytest.raises(ValidationError, match=r"1\.\.12"):

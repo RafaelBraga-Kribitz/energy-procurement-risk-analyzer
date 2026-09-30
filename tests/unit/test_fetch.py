@@ -12,6 +12,7 @@ environment (A-7).
 from __future__ import annotations
 
 import logging
+import os
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -204,6 +205,20 @@ def test_fetch_entsoe_ignores_cache_for_recent_window(tmp_settings: Settings) ->
     assert len(calls) == 1
 
 
+def test_fetch_entsoe_does_not_cache_unsettled_window(tmp_settings: Settings) -> None:
+    """ING-009 regression (audit 2026-09-30, EN-073): a response for a window
+    younger than the age limit may be incomplete; caching it would replay it
+    forever once the window ages past the limit."""
+    q = _query(
+        period_start=datetime.now(UTC) - timedelta(days=3),
+        period_end=datetime.now(UTC) - timedelta(days=1),
+    )
+
+    fetch_entsoe(q, tmp_settings, transport=lambda query, api_key: "<xml>partial</xml>")
+
+    assert not _fetch._cache_path(tmp_settings, _fetch.query_request_hash(q)).exists()
+
+
 def test_fetch_entsoe_retries_429_then_succeeds(tmp_settings: Settings) -> None:
     attempts = {"n": 0}
 
@@ -312,13 +327,13 @@ def test_fetch_entsoe_cache_tmp_path_is_per_call_unique(
         return f"<xml>{len(calls)}</xml>"
 
     tmp_srcs: list[str] = []
-    real_replace = _fetch.os.replace
+    real_replace = os.replace
 
-    def _spy_replace(src: object, dst: object) -> None:
+    def _spy_replace(src: str, dst: str) -> None:
         tmp_srcs.append(str(src))
         real_replace(src, dst)
 
-    monkeypatch.setattr(_fetch.os, "replace", _spy_replace)
+    monkeypatch.setattr(os, "replace", _spy_replace)
 
     q = _old_window()
     fetch_entsoe(q, tmp_settings, use_cache=False, transport=stub_transport)
