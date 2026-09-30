@@ -5,7 +5,7 @@
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status: Foundation](https://img.shields.io/badge/status-Foundation-orange)](#status)
+[![Status: Foundation](https://img.shields.io/badge/status-Foundation-orange)](#project-status)
 
 **Status:** Foundation
 
@@ -32,9 +32,11 @@ flowchart TD
     SSOT --> RPT["Power BI + EXEC_SUMMARY"]
 ```
 
-## Status
+## Project status
 
-Foundation: charter and eight SPECs are final. M0 (bootstrap), M1 (ENTSO-E ingest),
+**Status:** Foundation
+
+Charter and eight SPECs are final. M0 (bootstrap), M1 (ENTSO-E ingest),
 M2 (GeoSphere, ÖSPI, calendar), and M3 (DuckDB + dbt warehouse) are implemented.
 M4–M7 — consumer profile, market analytics, strategy simulator, and reporting — are
 not yet implemented. `make profile`, `make analyze`, `make simulate`, and `make ssot`
@@ -60,7 +62,7 @@ audit-finding registry.
 
 | Audience | Start here |
 |---|---|
-| Recruiter | This page: the question, foundation [Status](#status), and pipeline diagram |
+| Recruiter | This page: the question, foundation [Status](#project-status), and pipeline diagram |
 | Hiring manager | [PROJECT_CHARTER.md](PROJECT_CHARTER.md) §1 (question + four strategies) and [LIMITATIONS.md](LIMITATIONS.md) |
 | Technical reviewer | [Architecture](#architecture), [Method](#method), [docs/SPEC-01](docs/SPEC-01_data_ingestion.md) through [SPEC-05](docs/SPEC-05_strategy_simulator.md) |
 | Auditor | [Data](#data), [Validation](#validation), [docs/SPEC-08](docs/SPEC-08_governance_quality.md), [docs/ADR/](docs/ADR/) |
@@ -208,10 +210,23 @@ and needs the maintainer's ENTSO-E token. Details: [`LIMITATIONS.md`](LIMITATION
 
 ## Limitations
 
-What this work does not establish, and what would change the conclusion, is kept in one
-place: [`LIMITATIONS.md`](LIMITATIONS.md) (constructed load, ÖSPI as contract proxy,
-fixed-price premium assumption, bootstrap limits, excluded grid fees and taxes, data
-caveats, no forecast-skill claim).
+What this work does not establish, in brief. [`LIMITATIONS.md`](LIMITATIONS.md) is the
+authoritative text, and each line below is a pointer to its section:
+
+- **No strategy results yet.** Nothing here answers Q1–Q4 in euros.
+- **Load is constructed, not measured** (§1). Real industrial metering data would change
+  cost levels.
+- **ÖSPI is a contract/forward proxy, not a quoted offer** (§2). Supplier margins and
+  contract terms are missing; the direction of bias is unknown.
+- **The fixed-price premium is an assumption** (§3, value in `config/strategies.yaml`),
+  CALIBRATED rather than observed.
+- **The bootstrap cannot invent an unprecedented regime** (§4).
+- **Grid fees, taxes, and levies are excluded** (§5).
+- **Ingested data stops short of the latest complete month** (§6).
+- **No forecast-skill claim** (§7).
+
+Falsification: a measured load profile, or supplier offers that do not track ÖSPI, would
+change the euro ranking.
 
 ## Future work
 
