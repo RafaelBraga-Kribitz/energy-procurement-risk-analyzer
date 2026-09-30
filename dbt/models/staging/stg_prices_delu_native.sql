@@ -9,4 +9,9 @@ select
     resolution,
     zone
 from {{ source('raw', 'entsoe_prices_delu') }}
-qualify row_number() over (partition by ts_utc order by ingested_at_utc desc) = 1
+-- ingested_at_utc is persisted as an ISO-8601 string (ING-004); cast it so
+-- "latest ingestion wins" orders chronologically, never lexicographically.
+-- A malformed value fails the cast loudly instead of mis-ordering silently.
+qualify row_number() over (
+    partition by ts_utc order by cast(ingested_at_utc as timestamptz) desc
+) = 1

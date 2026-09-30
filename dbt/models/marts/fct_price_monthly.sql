@@ -7,6 +7,14 @@
 -- stg_oespi_monthly by matching year/month (ÖSPI's own peak convention may
 -- differ from `is_peak_hour` — see LIMITATIONS.md §2 / ADR-011). No
 -- timezone-conversion call (DM-011).
+--
+-- Window (DM-050 "every month in the analysis window"): fct_price_hourly is
+-- spined on dim_calendar, which runs past the data into the forward-risk
+-- horizon (ING-110). Months outside [first, last] local month holding at
+-- least one non-NULL AT price are therefore dropped here — a monthly price
+-- mart must not carry forward months of NULL prices that look like data.
+-- Months INSIDE that window are kept even if prices are sparse (gaps stay
+-- visible as NULL/partial means, never filled — A-2).
 
 with hourly as (
     select
@@ -18,10 +26,18 @@ with hourly as (
     from {{ ref('fct_price_hourly') }}
 ),
 
+price_window as (
+    select
+        min(make_date(year_local, month_local, 1)) as first_month,
+        max(make_date(year_local, month_local, 1)) as last_month
+    from hourly
+    where price_at_eur_mwh is not null
+),
+
 oespi as (
     select
-        extract(year from month_local)::integer as year_local,
-        extract(month from month_local)::integer as month_local,
+        cast(extract(year from month_local) as integer) as year_local,
+        cast(extract(month from month_local) as integer) as month_local,
         oespi_base,
         oespi_peak
     from {{ ref('stg_oespi_monthly') }}
@@ -34,7 +50,7 @@ monthly as (
         avg(price_at_eur_mwh) as price_base_eur_mwh,
         avg(price_at_eur_mwh) filter (where is_peak_hour) as price_peak_eur_mwh,
         avg(price_at_eur_mwh) filter (where not is_peak_hour) as price_offpeak_eur_mwh,
-        sum(case when is_negative_price then 1 else 0 end) as n_negative_hours
+        cast(count(*) filter (where is_negative_price) as bigint) as n_negative_hours
     from hourly
     group by year_local, month_local
 )
@@ -49,6 +65,9 @@ select
     oespi.oespi_base,
     oespi.oespi_peak
 from monthly
+cross join price_window
 left join oespi
     on monthly.year_local = oespi.year_local
     and monthly.month_local = oespi.month_local
+where make_date(monthly.year_local, monthly.month_local, 1)
+    between price_window.first_month and price_window.last_month

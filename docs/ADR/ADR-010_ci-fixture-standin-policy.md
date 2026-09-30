@@ -1,6 +1,6 @@
 # ADR-010: CI fixture bootstrap synthesizes data at run time; environment-aligned data/processed stand-ins feed the local build too
 
-**Status:** accepted
+**Status:** superseded-by ADR-016
 **Date:** 2026-07-24
 **Deciders:** M3 dbt warehouse (EPRA-04), plan 04-05
 **Related:** docs/EXECUTION_BLUEPRINT/03_MODULES.md (`bootstrap_fixture_warehouse.py` scripts-table contract), SPEC-02 §5 (`fct_consumer_load_hourly`, `fct_procurement_cost_monthly`), 14_SPEC_GAPS.md SG-06 (never-disable policy), D-03..D-06 (04-CONTEXT.md)

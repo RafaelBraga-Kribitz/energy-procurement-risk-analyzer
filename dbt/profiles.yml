@@ -1,22 +1,27 @@
 # DM-002 — committed profile, relative path, no credentials.
 # Run dbt from the dbt/ directory (DBT_PROFILES_DIR defaults to cwd there).
+# EPRA_DUCKDB_PATH optionally overrides the warehouse file (e.g. a scratch
+# warehouse); the default is the DM-001 location relative to dbt/.
 #
 # settings.TimeZone: DuckDB's session TimeZone defaults to the HOST OS's local
 # zone (confirmed live: this machine reports 'Europe/Vienna'), not UTC. Because
 # `ts_utc` is TIMESTAMP WITH TIME ZONE, `date_trunc('hour', ts_utc)` truncates
 # in whatever the *session* TimeZone is — so without this pin, every staging
 # hourly aggregation silently truncates to Vienna-local hour boundaries
-# instead of UTC ones (discovered live 04-02: DST-transition hours showed
+# instead of UTC ones (discovered live during M3: DST-transition hours showed
 # n_subhours=8 instead of 4, proving the truncation was TZ-shifted). Pinning
 # TimeZone=UTC here, once, for every dbt-duckdb session/cursor is the correct
 # fix — not a per-model AT TIME ZONE call, which DM-011 reserves exclusively
 # for deriving local calendar attributes (which staging must never do).
+# ADR-014: this pin is also what makes the TIMESTAMPTZ `ts_utc` columns
+# satisfy DM-010 "TIMESTAMP (UTC)"; dbt/tests/session_timezone_is_utc.sql
+# fails the build if it is ever lost.
 epra:
   target: dev
   outputs:
     dev:
       type: duckdb
-      path: ../data/warehouse/epra.duckdb
+      path: "{{ env_var('EPRA_DUCKDB_PATH', '../data/warehouse/epra.duckdb') }}"
       threads: 4
       settings:
         TimeZone: UTC

@@ -1,7 +1,7 @@
 # SPEC-02 §5 price/generation mart contracts + DM-060 unique/not_null +
-# DM-061 accepted-range generic tests. Kept as a dedicated facts_price.yml,
-# separate from dims.yml and the facts_future.yml added in 04-05, to avoid
-# cross-plan file conflicts.
+# DM-061 accepted-range generic tests (dbt >= 1.10 `arguments:` syntax,
+# ADR-012). Every mart column is listed; types are pinned in
+# dbt/contracts/marts_contract.yml.
 version: 2
 
 models:
@@ -10,21 +10,53 @@ models:
       SPEC-02 §5 / SG-05 hour-grain price mart: ts_utc, price_at_eur_mwh,
       price_delu_eur_mwh, spread_at_delu_eur_mwh, load_at_mw,
       is_negative_price, plus every dim_calendar attribute. dim_calendar is
-      the spine (DM-050 — ts_utc is never NULL); no timezone-conversion
-      call (DM-011).
+      the spine (DM-050 — ts_utc is never NULL), so hours outside the
+      ingested window (e.g. the forward-risk horizon) carry NULL prices;
+      no timezone-conversion call (DM-011).
     columns:
       - name: ts_utc
-        tests:
+        description: UTC hour start, TIMESTAMPTZ (DM-010, ADR-014). Grain key.
+        data_tests:
           - unique
           - not_null
       - name: price_at_eur_mwh
-        tests:
+        description: AT day-ahead hourly price (mean of native MTUs), EUR/MWh.
+        data_tests:
           - accepted_range:
               arguments: {min_value: -500, max_value: 5000}
+      - name: price_delu_eur_mwh
+        description: DE-LU day-ahead hourly price (mean of native MTUs), EUR/MWh.
+      - name: spread_at_delu_eur_mwh
+        description: price_at_eur_mwh − price_delu_eur_mwh, EUR/MWh (NULL if either side is NULL).
       - name: load_at_mw
-        tests:
+        description: AT actual total load, hourly mean, MW.
+        data_tests:
           - accepted_range:
               arguments: {min_value: 3000, max_value: 13000}
+      - name: is_negative_price
+        description: price_at_eur_mwh < 0 (NULL when the price is NULL).
+      - name: date_local
+        description: dim_calendar.date_local (Europe/Vienna civil date).
+      - name: year_local
+        description: dim_calendar.year_local (DM-012).
+      - name: month_local
+        description: dim_calendar.month_local, 1-12.
+      - name: hour_local
+        description: dim_calendar.hour_local, 0-23.
+      - name: dow_local
+        description: dim_calendar.dow_local, 0 = Monday.
+      - name: is_weekend
+        description: dim_calendar.is_weekend.
+      - name: is_holiday_at
+        description: dim_calendar.is_holiday_at.
+      - name: is_peak_hour
+        description: dim_calendar.is_peak_hour (holiday-aware, ADR-011).
+      - name: season
+        description: dim_calendar.season ('winter' Nov-Mar, else 'summer').
+      - name: hdd_18
+        description: dim_calendar.hdd_18 (heating degree-days of the local day).
+      - name: cdd_22
+        description: dim_calendar.cdd_22 (cooling degree-days of the local day).
 
   - name: fct_price_daily
     description: >
@@ -34,52 +66,94 @@ models:
       price_max, price_std, n_negative_hours, tavg_c, hdd_18, cdd_22.
     columns:
       - name: date_local
-        tests:
+        description: Europe/Vienna civil date. Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: price_base_eur_mwh
+        description: Mean AT price over all hours of the local day, EUR/MWh.
+      - name: price_peak_eur_mwh
+        description: Mean AT price over the day's is_peak_hour hours, EUR/MWh; NULL on days without peak hours.
+      - name: price_min
+        description: Minimum hourly AT price of the day, EUR/MWh.
+      - name: price_max
+        description: Maximum hourly AT price of the day, EUR/MWh.
+      - name: price_std
+        description: Sample standard deviation of the day's hourly AT prices, EUR/MWh.
+      - name: n_negative_hours
+        description: Count of hours with price_at_eur_mwh < 0 (BIGINT).
       - name: tavg_c
-        tests:
+        description: Graz daily mean air temperature, °C.
+        data_tests:
           - accepted_range:
               arguments: {min_value: -30, max_value: 42}
+      - name: hdd_18
+        description: Heating degree-days of the day (dim_calendar.hdd_18).
+      - name: cdd_22
+        description: Cooling degree-days of the day (dim_calendar.cdd_22).
 
   - name: fct_price_monthly
     description: >
       SPEC-02 §5 local month-grain aggregation of fct_price_hourly:
       price_base_eur_mwh, price_peak_eur_mwh, price_offpeak_eur_mwh
       (holiday-aware is_peak_hour, SG-14/ADR-011), n_negative_hours, plus
-      oespi_base/oespi_peak left-joined from stg_oespi_monthly.
-    tests:
+      oespi_base/oespi_peak left-joined from stg_oespi_monthly. Covers only
+      the months between the first and last local month with actual AT
+      price data (DM-050 analysis window) — never the forward calendar.
+    data_tests:
       - unique_combination_of_columns:
           arguments:
             combination_of_columns: [year_local, month_local]
     columns:
       - name: year_local
-        tests:
+        description: Europe/Vienna calendar year (DM-012). Grain key.
+        data_tests:
           - not_null
       - name: month_local
-        tests:
+        description: Europe/Vienna calendar month, 1-12. Grain key.
+        data_tests:
           - not_null
+      - name: price_base_eur_mwh
+        description: Mean AT price over all hours of the local month, EUR/MWh.
+      - name: price_peak_eur_mwh
+        description: Mean AT price over is_peak_hour hours, EUR/MWh.
+      - name: price_offpeak_eur_mwh
+        description: Mean AT price over non-peak hours, EUR/MWh.
+      - name: n_negative_hours
+        description: Count of hours with price_at_eur_mwh < 0 (BIGINT).
       - name: oespi_base
-        tests:
+        description: ÖSPI base index of the month (index points, unitless; trap T-5).
+        data_tests:
           - accepted_range:
-              arguments: {min_value: 0.01}
+              arguments: {min_value: 0, inclusive: false}
+      - name: oespi_peak
+        description: ÖSPI peak index of the month (index points, unitless).
 
   - name: fct_generation_monthly
     description: >
       SPEC-02 §5 local month x psr_type generation mart: gen_gwh (=
       sum(gen_mw)/1000 per hour count) and share_of_total (each psr_type's
       share of that month's total generation). Strategy-free psr grain.
-    tests:
+    data_tests:
       - unique_combination_of_columns:
           arguments:
             combination_of_columns: [year_local, month_local, psr_type]
     columns:
       - name: year_local
-        tests:
+        description: Europe/Vienna calendar year (DM-012). Grain key.
+        data_tests:
           - not_null
       - name: month_local
-        tests:
+        description: Europe/Vienna calendar month, 1-12. Grain key.
+        data_tests:
           - not_null
       - name: psr_type
-        tests:
+        description: ENTSO-E production type code. Grain key.
+        data_tests:
           - not_null
+      - name: psr_name
+        description: Human-readable production type name.
+      - name: gen_gwh
+        description: Monthly generation, GWh (= sum of hourly mean MW / 1000).
+      - name: share_of_total
+        description: gen_gwh / total gen_gwh of the month across psr_types (fraction 0-1, unitless).

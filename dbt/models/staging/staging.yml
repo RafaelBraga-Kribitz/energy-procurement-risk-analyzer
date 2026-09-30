@@ -1,5 +1,6 @@
-# DM-005/§3 staging model contracts + DM-060 unique/not_null generic tests on
-# every staging grain key.
+# SPEC-02 §3 / DM-005 staging model contracts + DM-060 unique/not_null
+# generic tests on every staging grain key. Generic tests with parameters use
+# the dbt >= 1.10 `arguments:` syntax (ADR-012).
 version: 2
 
 models:
@@ -8,13 +9,21 @@ models:
       SPEC-02 §3 / DM-005 native MTU grain, Austrian day-ahead price:
       ts_utc, price_eur_mwh, resolution, zone. Deduped by the single
       sanctioned DM-020 rule (qualify row_number() over (partition by
-      ts_utc order by ingested_at_utc desc) = 1) — the ONLY place
+      ts_utc order by ingested_at_utc desc) = 1, with ingested_at_utc cast
+      to TIMESTAMPTZ so ordering is chronological) — the ONLY place
       duplicate ts_utc rows are resolved in this warehouse.
     columns:
       - name: ts_utc
-        tests:
+        description: Native MTU start instant, UTC (DM-010). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: price_eur_mwh
+        description: AT day-ahead price, EUR/MWh, as published (no unit conversion).
+      - name: resolution
+        description: ENTSO-E MTU resolution of the row (PT60M or PT15M).
+      - name: zone
+        description: Bidding-zone code (AT).
 
   - name: stg_prices_delu_native
     description: >
@@ -23,22 +32,35 @@ models:
       DM-020 rule, identical to stg_prices_at_native.
     columns:
       - name: ts_utc
-        tests:
+        description: Native MTU start instant, UTC (DM-010). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: price_eur_mwh
+        description: DE-LU day-ahead price, EUR/MWh, as published.
+      - name: resolution
+        description: ENTSO-E MTU resolution of the row (PT60M or PT15M).
+      - name: zone
+        description: Bidding-zone code (DE_LU).
 
   - name: stg_prices_at_hourly
     description: >
       SPEC-02 §3 / DM-005 hour grain, Austrian day-ahead price: ts_utc,
-      price_eur_mwh, n_subhours. n_subhours records how many native MTU
-      rows fed the mean (1 for PT60M, 4 for PT15M — Pitfall 4), so partial
-      aggregation is always detectable downstream (DM-064 reconciliation
-      guard).
+      price_eur_mwh, n_subhours. PT15M quarters are averaged (MEAN, never
+      sum — trap T-2) per UTC hour; mixed-resolution months are handled per
+      row by truncating ts_utc to the hour.
     columns:
       - name: ts_utc
-        tests:
+        description: UTC hour start (DM-010). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: price_eur_mwh
+        description: Mean of the native MTU prices in the hour, EUR/MWh.
+      - name: n_subhours
+        description: >
+          Number of native MTU rows that fed the mean (1 for PT60M, 4 for
+          PT15M), so partial aggregation stays detectable downstream.
 
   - name: stg_prices_delu_hourly
     description: >
@@ -47,19 +69,27 @@ models:
       stg_prices_at_hourly.
     columns:
       - name: ts_utc
-        tests:
+        description: UTC hour start (DM-010). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: price_eur_mwh
+        description: Mean of the native MTU prices in the hour, EUR/MWh.
+      - name: n_subhours
+        description: Number of native MTU rows that fed the mean (1 or 4).
 
   - name: stg_load_at_hourly
     description: >
       SPEC-02 §3 / DM-005 hour grain, Austrian load: ts_utc, load_mw (MW
-      stays MW — no MWh conversion here, ING-051).
+      stays MW — mean of sub-hourly MW, no MWh conversion here, ING-051).
     columns:
       - name: ts_utc
-        tests:
+        description: UTC hour start (DM-010). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: load_mw
+        description: Mean of the sub-hourly actual total load in the hour, MW.
 
   - name: stg_gen_at_hourly
     description: >
@@ -67,16 +97,23 @@ models:
       ts_utc, psr_type, psr_name, gen_mw. Filters raw kind='aggregated'
       only (SG-17 — raw 'consumption' rows are persisted upstream but
       have no SSOT value derived from them at this layer).
-    tests:
+    data_tests:
       - unique_combination_of_columns:
-          combination_of_columns: [ts_utc, psr_type]
+          arguments:
+            combination_of_columns: [ts_utc, psr_type]
     columns:
       - name: ts_utc
-        tests:
+        description: UTC hour start (DM-010). Grain key (with psr_type).
+        data_tests:
           - not_null
       - name: psr_type
-        tests:
+        description: ENTSO-E production type code (e.g. B16). Grain key (with ts_utc).
+        data_tests:
           - not_null
+      - name: psr_name
+        description: Human-readable production type name (e.g. Solar).
+      - name: gen_mw
+        description: Mean of the sub-hourly aggregated generation in the hour, MW.
 
   - name: stg_weather_graz_daily
     description: >
@@ -87,17 +124,25 @@ models:
       rename, nothing more.
     columns:
       - name: date_local
-        tests:
+        description: Local (Europe/Vienna) civil date as published by GeoSphere. Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: tavg_c
+        description: Daily mean air temperature (GeoSphere tl_mittel), °C.
 
   - name: stg_oespi_monthly
     description: >
-      SPEC-02 §3 / DM-005 month grain, manually-transcribed OESPI price
+      SPEC-02 §3 / DM-005 month grain, manually-transcribed ÖSPI price
       index: month_local (first-of-month DATE), oespi_base, oespi_peak
       (ING-101).
     columns:
       - name: month_local
-        tests:
+        description: First day of the local month (DATE). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: oespi_base
+        description: ÖSPI base index value (index points, unitless — not EUR/MWh, trap T-5).
+      - name: oespi_peak
+        description: ÖSPI peak index value (index points, unitless).

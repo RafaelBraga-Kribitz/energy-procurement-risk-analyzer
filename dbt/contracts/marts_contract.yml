@@ -1,19 +1,51 @@
-# D-07 hand-authored mart schema contract, per SPEC-02 §5 + the SG-05
-# frozen fct_price_hourly enumeration.
+# Mart schema contract (M3 exit gate, AGENTS.md §3: "mart schemas byte-match
+# SPEC-02 §5 (schema test comparing information_schema to a committed
+# contract YAML)"), per SPEC-02 §4-§5 + the SG-05 frozen fct_price_hourly
+# enumeration.
 #
 # This file deliberately lives OUTSIDE dbt_project.yml's model-paths
 # (["models"]), so dbt itself never discovers or validates it -- it exists
 # solely as the byte-exact diff target for tests/unit/test_marts_contract.py
-# (D-07 pytest information_schema.columns diff), not as a dbt-native
-# `contract: {enforced: true}` block (Pitfall 3, 04-RESEARCH.md).
+# (information_schema.columns diff), not as a dbt-native
+# `contract: {enforced: true}` block.
 #
-# Top-level keys are exactly the 6 mart names (no wrapper key) -- consumed
-# directly as `sorted(contract)` by the pytest parametrize in
-# tests/unit/test_marts_contract.py. Column order matches ordinal_position
-# in the built warehouse (schema='marts'); `type` is the exact DuckDB
-# canonical information_schema.columns.data_type string read directly off
-# a real `dbt build` of this warehouse -- editing any mart's column name or
-# type without updating this file (or vice versa) breaks the D-07 test.
+# Top-level keys are exactly the 8 objects in the `marts` schema (6 fct_*
+# tables, dim_calendar, the dim_strategy seed; no wrapper key) -- consumed
+# directly as `sorted(contract)` by the pytest parametrize. Column order
+# matches ordinal_position; `type` is the exact DuckDB canonical
+# information_schema.columns.data_type string. Editing any mart's column
+# name or type without updating this file (or vice versa) fails the test.
+#
+# Type conventions (pinned by explicit casts in the models, so they do not
+# depend on upstream parquet writers):
+#   - ts_utc: TIMESTAMP WITH TIME ZONE. SPEC-02 DM-010 "TIMESTAMP (UTC)" is
+#     satisfied by TIMESTAMPTZ read/written in the UTC-pinned session
+#     (dbt/profiles.yml TimeZone: UTC, tested by
+#     dbt/tests/session_timezone_is_utc.sql) -- ADR-014.
+#   - year_local / month_local / hour_local / dow_local: INTEGER everywhere.
+#   - counts (n_negative_hours): BIGINT (never HUGEINT -- BI-friendly).
+
+dim_calendar:
+  columns:
+    - {name: ts_utc, type: "TIMESTAMP WITH TIME ZONE"}
+    - {name: date_local, type: DATE}
+    - {name: year_local, type: INTEGER}
+    - {name: month_local, type: INTEGER}
+    - {name: hour_local, type: INTEGER}
+    - {name: dow_local, type: INTEGER}
+    - {name: is_weekend, type: BOOLEAN}
+    - {name: is_holiday_at, type: BOOLEAN}
+    - {name: is_peak_hour, type: BOOLEAN}
+    - {name: season, type: VARCHAR}
+    - {name: hdd_18, type: DOUBLE}
+    - {name: cdd_22, type: DOUBLE}
+
+dim_strategy:
+  # dbt seed (SPEC-02 §4); column types pinned in dbt_project.yml.
+  columns:
+    - {name: strategy_id, type: VARCHAR}
+    - {name: strategy_name, type: VARCHAR}
+    - {name: description, type: VARCHAR}
 
 fct_price_hourly:
   # SG-05 frozen enumeration: 6 own columns + all 11 dim_calendar
@@ -47,7 +79,7 @@ fct_price_daily:
     - {name: price_min, type: DOUBLE}
     - {name: price_max, type: DOUBLE}
     - {name: price_std, type: DOUBLE}
-    - {name: n_negative_hours, type: HUGEINT}
+    - {name: n_negative_hours, type: BIGINT}
     - {name: tavg_c, type: DOUBLE}
     - {name: hdd_18, type: DOUBLE}
     - {name: cdd_22, type: DOUBLE}
@@ -59,7 +91,7 @@ fct_price_monthly:
     - {name: price_base_eur_mwh, type: DOUBLE}
     - {name: price_peak_eur_mwh, type: DOUBLE}
     - {name: price_offpeak_eur_mwh, type: DOUBLE}
-    - {name: n_negative_hours, type: HUGEINT}
+    - {name: n_negative_hours, type: BIGINT}
     - {name: oespi_base, type: DOUBLE}
     - {name: oespi_peak, type: DOUBLE}
 
@@ -78,14 +110,9 @@ fct_consumer_load_hourly:
     - {name: load_mwh, type: DOUBLE}
 
 fct_procurement_cost_monthly:
-  # year_local/month_local are BIGINT here (unlike the INTEGER
-  # dim_calendar-derived year_local/month_local elsewhere) because this
-  # mart is a thin loader straight off the processed stand-in parquet
-  # (source('raw_processed', 'procurement_cost_monthly')), not a
-  # dim_calendar join -- confirmed against the real built warehouse.
   columns:
-    - {name: year_local, type: BIGINT}
-    - {name: month_local, type: BIGINT}
+    - {name: year_local, type: INTEGER}
+    - {name: month_local, type: INTEGER}
     - {name: strategy_id, type: VARCHAR}
     - {name: volume_mwh, type: DOUBLE}
     - {name: cost_eur, type: DOUBLE}

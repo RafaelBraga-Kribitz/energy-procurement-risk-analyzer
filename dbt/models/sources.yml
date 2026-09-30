@@ -3,7 +3,7 @@
 # data/manual, or data/processed directly. dbt's cwd is dbt/ (profiles.yml
 # path: ../data/warehouse/epra.duckdb), so every glob below is prefixed
 # ../data/ — a bare data/... glob silently resolves against dbt/ and
-# returns zero rows (RESEARCH Pitfall 1).
+# returns zero rows.
 version: 2
 
 sources:
@@ -12,7 +12,7 @@ sources:
       M1 ENTSO-E + M2 GeoSphere raw ingestion outputs (SPEC-01), one monthly
       parquet file per dataset per calendar month, partitioned by year
       (DM-004). union_by_name=true defends against any future column-order
-      drift across monthly files (RESEARCH Pitfall 6).
+      drift across monthly files.
     tables:
       - name: entsoe_prices_at
         description: >
@@ -72,23 +72,25 @@ sources:
 
   - name: raw_processed
     description: >
-      M4 (consumer profile, SPEC-03) and M6 (procurement strategy, SPEC-05)
-      module outputs, re-exposed to the warehouse (DM-004). Until those
-      milestones land, this phase's D-05/D-06 stand-in generator populates
-      these paths with environment-aligned synthetic data so
+      Python module outputs re-exposed to the warehouse (DM-004), read from
+      exactly the single files their specs name: SPEC-03 LP-003 (M4
+      consumer profile) and SPEC-05 ST-001 (M6 strategy simulator). Until
+      those milestones land, scripts/bootstrap_fixture_warehouse.py writes
+      stand-ins with the identical file name and columns (ADR-016), so
       fct_consumer_load_hourly / fct_procurement_cost_monthly build
-      unmodified.
+      unmodified (SG-06).
     tables:
       - name: consumer_load_hourly
         description: >
-          fct_consumer_load_hourly (SPEC-02 §5) source grain: hourly
-          ts_utc, load_mwh (DM-004).
+          SPEC-03 LP-003 output data/processed/consumer_load_hourly.parquet,
+          hourly grain: ts_utc (TIMESTAMP UTC), load_mwh (double).
         meta:
-          external_location: "read_parquet('../data/processed/consumer_load_hourly/**/*.parquet', union_by_name=true)"
-      - name: procurement_cost_monthly
+          external_location: "read_parquet('../data/processed/consumer_load_hourly.parquet')"
+      - name: strategy_costs_monthly
         description: >
-          fct_procurement_cost_monthly (SPEC-02 §5) source grain: local
-          month x strategy_id, volume_mwh, cost_eur, unit_cost_eur_mwh
-          (DM-004).
+          SPEC-05 ST-001 output data/processed/strategy_costs_monthly.parquet,
+          local month x strategy grain: year_local, month_local, strategy_id,
+          volume_mwh, cost_eur, unit_cost_eur_mwh (SPEC-02 §5
+          fct_procurement_cost_monthly columns).
         meta:
-          external_location: "read_parquet('../data/processed/procurement_cost_monthly/**/*.parquet', union_by_name=true)"
+          external_location: "read_parquet('../data/processed/strategy_costs_monthly.parquet')"
