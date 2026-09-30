@@ -32,7 +32,7 @@ Binding contract: SPEC-01 §9. Key points:
 - Gates (ING-094): coverage ≥ 99% of days; −30 ≤ tl_mittel ≤ 42; July mean in
   [15, 30]; January mean in [−10, 8].
 
-Implements: ING-090, ING-091, ING-092, ING-093, ING-002.
+Implements: ING-090, ING-091, ING-092, ING-093, ING-002, ING-006 (retry), ING-009 (cache).
 """
 
 from __future__ import annotations
@@ -53,19 +53,28 @@ from uuid import uuid4
 
 import pandas as pd
 import requests
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from epra.common import logging as common_logging
-from epra.common.config import REPO_ROOT, Settings, load_settings
-from epra.common.timeutil import iter_month_starts
+from epra.common.config import Settings, load_settings, resolve_repo_path
+from epra.common.timeutil import iter_month_starts, today_local
 from epra.ingest._io import _now_utc, request_hash, write_month
-from epra.ingest.exceptions import ContractError, DiscoveryError, IngestError
+from epra.ingest.exceptions import (
+    ContractError,
+    DiscoveryError,
+    IngestError,
+    IngestTransportError,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
 class StationInfo:
-    """A GeoSphere station's discovery-relevant metadata (ING-091)."""
+    """A GeoSphere station's discovery-relevant metadata (ING-091).
+
+    Implements: ING-091.
+    """
 
     id: str
     name: str
@@ -90,7 +99,10 @@ DataTransportFn = Callable[[Settings, str, date], Any]
 
 
 def _default_metadata_transport(settings: Settings) -> Any:
-    """Live GET of the GeoSphere station metadata endpoint (no auth, ING-093)."""
+    """Live GET of the GeoSphere station metadata endpoint (no auth, ING-093).
+
+    Implements: ING-091, ING-093.
+    """
     url = (
         f"{settings.geosphere.base_url}/station/historical/{settings.geosphere.dataset_id}/metadata"
     )
@@ -138,10 +150,38 @@ def _station_record_start(station: dict[str, Any]) -> date:
     return datetime.fromisoformat(valid_from).date()
 
 
+def _graz_candidates(stations: list[Any]) -> list[dict[str, Any]]:
+    """ING-091 filter: stations whose name contains "Graz"; raise listing all names if none.
+
+    Implements: ING-091.
+    """
+    candidates = [s for s in stations if isinstance(s, dict) and "Graz" in str(s.get("name", ""))]
+    if not candidates:
+        available = sorted({str(s.get("name", "?")) for s in stations if isinstance(s, dict)})
+        raise DiscoveryError(
+            "geosphere",
+            f"no station name contains 'Graz' among {len(stations)} candidates; "
+            f"available: {available}",
+        )
+    return candidates
+
+
+def _longest_record_key(station: dict[str, Any]) -> tuple[date, bool]:
+    """ING-091 sort key: earliest ``valid_from`` (longest record) first; ties prefer
+    a name containing "Graz Universität" (``False`` sorts before ``True``).
+
+    Implements: ING-091.
+    """
+    name = str(station.get("name", ""))
+    return (_station_record_start(station), "Graz Universität" not in name)
+
+
 def discover_station(
     settings: Settings, *, transport: MetadataTransportFn | None = None
 ) -> StationInfo:
     """ING-091: pick the Graz station with the longest record.
+
+    Implements: ING-091.
 
     Fetches the ``klima-v2-1d`` station metadata (live by default; inject
     `transport` in tests to use the committed fixture instead) and filters to
@@ -170,22 +210,7 @@ def discover_station(
             the ADR or a human checkpoint.
     """
     stations = _load_metadata(settings, transport=transport)
-    candidates = [s for s in stations if isinstance(s, dict) and "Graz" in str(s.get("name", ""))]
-    if not candidates:
-        available = sorted({str(s.get("name", "?")) for s in stations if isinstance(s, dict)})
-        raise DiscoveryError(
-            "geosphere",
-            f"no station name contains 'Graz' among {len(stations)} candidates; "
-            f"available: {available}",
-        )
-
-    def _sort_key(station: dict[str, Any]) -> tuple[date, bool]:
-        name = str(station.get("name", ""))
-        # Earliest valid_from = longest record; on a tie, prefer a name
-        # containing "Graz Universität" (False sorts before True).
-        return (_station_record_start(station), "Graz Universität" not in name)
-
-    chosen = min(candidates, key=_sort_key)
+    chosen = min(_graz_candidates(stations), key=_longest_record_key)
     station = StationInfo(
         id=str(chosen["id"]),
         name=str(chosen["name"]),
@@ -208,6 +233,63 @@ def discover_station(
 
 #: The §7 raw contract's own columns (before ING-004 provenance is appended).
 _RAW_COLUMNS = ("date", "station_id", "tl_mittel_c", "parameter_raw")
+
+
+def _empty_raw_frame() -> pd.DataFrame:
+    """Correctly-typed empty §7 frame -- a genuinely empty response window."""
+    return pd.DataFrame(
+        {
+            "date": pd.Series([], dtype="object"),
+            "station_id": pd.Series([], dtype="object"),
+            "tl_mittel_c": pd.Series([], dtype="float64"),
+            "parameter_raw": pd.Series([], dtype="object"),
+        }
+    )
+
+
+def _top_level_lists(payload: Any) -> tuple[list[Any], list[Any]]:
+    """Validate and return the top-level ``(timestamps, features)`` lists (RESEARCH Pitfall 5)."""
+    if not isinstance(payload, dict):
+        raise ContractError(
+            "geosphere_graz_daily", expected="top-level JSON object", actual=type(payload).__name__
+        )
+    timestamps = payload.get("timestamps")
+    features = payload.get("features")
+    if not isinstance(timestamps, list) or not isinstance(features, list):
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected="'timestamps' and 'features' lists at the top level",
+            actual=f"keys={sorted(payload.keys())}",
+        )
+    return timestamps, features
+
+
+def _tl_mittel_values(features: list[Any], n_timestamps: int) -> list[Any]:
+    """``features[0].properties.parameters.tl_mittel.data``, validated against ``timestamps``."""
+    if not features:
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected="a non-empty 'features' list (timestamps present but no feature)",
+            actual="features=[]",
+        )
+    feature = features[0]
+    properties = feature.get("properties") if isinstance(feature, dict) else None
+    parameters = properties.get("parameters") if isinstance(properties, dict) else None
+    tl_mittel = parameters.get("tl_mittel") if isinstance(parameters, dict) else None
+    data = tl_mittel.get("data") if isinstance(tl_mittel, dict) else None
+    if not isinstance(data, list):
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected="features[0].properties.parameters.tl_mittel.data list",
+            actual=f"features[0]={feature!r}"[:200],
+        )
+    if len(data) != n_timestamps:
+        raise ContractError(
+            "geosphere_graz_daily",
+            expected=f"tl_mittel.data length matching timestamps length ({n_timestamps})",
+            actual=f"{len(data)}",
+        )
+    return data
 
 
 def parse_geojson(payload: Any, station_id: str) -> pd.DataFrame:
@@ -243,66 +325,20 @@ def parse_geojson(payload: Any, station_id: str) -> pd.DataFrame:
             expected GeoJSON structure, or ``tl_mittel.data`` length does not
             match ``timestamps`` length.
     """
-    if not isinstance(payload, dict):
-        raise ContractError(
-            "geosphere_graz_daily", expected="top-level JSON object", actual=type(payload).__name__
-        )
-    timestamps = payload.get("timestamps")
-    features = payload.get("features")
-    if not isinstance(timestamps, list) or not isinstance(features, list):
-        raise ContractError(
-            "geosphere_graz_daily",
-            expected="'timestamps' and 'features' lists at the top level",
-            actual=f"keys={sorted(payload.keys())}",
-        )
-
+    timestamps, features = _top_level_lists(payload)
     if not timestamps and not features:
         # Genuinely empty window (e.g. a future/not-yet-published range) --
         # not a mis-parse, so this does NOT raise (A-2 distinguishes the two).
-        return pd.DataFrame(
-            {
-                "date": pd.Series([], dtype="object"),
-                "station_id": pd.Series([], dtype="object"),
-                "tl_mittel_c": pd.Series([], dtype="float64"),
-                "parameter_raw": pd.Series([], dtype="object"),
-            }
-        )
-
-    if not features:
-        raise ContractError(
-            "geosphere_graz_daily",
-            expected="a non-empty 'features' list (timestamps present but no feature)",
-            actual="features=[]",
-        )
-
-    feature = features[0]
-    properties = feature.get("properties") if isinstance(feature, dict) else None
-    parameters = properties.get("parameters") if isinstance(properties, dict) else None
-    tl_mittel = parameters.get("tl_mittel") if isinstance(parameters, dict) else None
-    data = tl_mittel.get("data") if isinstance(tl_mittel, dict) else None
-    if not isinstance(data, list):
-        raise ContractError(
-            "geosphere_graz_daily",
-            expected="features[0].properties.parameters.tl_mittel.data list",
-            actual=f"features[0]={feature!r}"[:200],
-        )
-    if len(data) != len(timestamps):
-        raise ContractError(
-            "geosphere_graz_daily",
-            expected=f"tl_mittel.data length matching timestamps length ({len(timestamps)})",
-            actual=f"{len(data)}",
-        )
-
-    dates = pd.to_datetime(timestamps, utc=True).date
-    frame = pd.DataFrame(
+        return _empty_raw_frame()
+    data = _tl_mittel_values(features, len(timestamps))
+    return pd.DataFrame(
         {
-            "date": dates,
+            "date": pd.to_datetime(timestamps, utc=True).date,
             "station_id": station_id,
             "tl_mittel_c": pd.Series(data, dtype="float64"),
             "parameter_raw": [json.dumps(v) for v in data],
         }
     )
-    return frame
 
 
 # ---------------------------------------------------------------------------
@@ -322,6 +358,8 @@ def _request_url(settings: Settings, station_id: str, month: date) -> str:
     Used both as the live GET URL and as the ING-009 cache/request_hash key
     — GeoSphere has no auth token to strip (unlike `_fetch._cache_request_url`
     for ENTSO-E), so this is also the literal URL sent over the wire.
+
+    Implements: ING-090, ING-009.
     """
     params = {
         "parameters": settings.geosphere.parameter,
@@ -337,17 +375,21 @@ def _request_url(settings: Settings, station_id: str, month: date) -> str:
 
 
 def _default_data_transport(settings: Settings, station_id: str, month: date) -> Any:
-    """Live GET of one calendar month of GeoSphere `tl_mittel` daily data (no auth, ING-093)."""
+    """Live GET of one calendar month of GeoSphere `tl_mittel` daily data (no auth, ING-093).
+
+    Implements: ING-090, ING-093.
+    """
     response = requests.get(_request_url(settings, station_id, month), timeout=30)
     response.raise_for_status()
     return response.json()
 
 
 def _cache_root(settings: Settings) -> Path:
-    """Absolute path of `data/cache/geosphere/` (mirrors `_fetch._cache_root`)."""
-    p = settings.paths.data_cache
-    root = p if p.is_absolute() else REPO_ROOT / p
-    return root / "geosphere"
+    """Absolute, REPO_ROOT-anchored path of `data/cache/geosphere/` (ING-009).
+
+    Implements: ING-009.
+    """
+    return resolve_repo_path(settings.paths.data_cache) / "geosphere"
 
 
 def _cache_path(settings: Settings, req_hash: str) -> Path:
@@ -355,9 +397,94 @@ def _cache_path(settings: Settings, req_hash: str) -> Path:
 
 
 def _is_cache_eligible(month: date, settings: Settings) -> bool:
-    """ING-009: cache is used only once the requested month is safely in the past."""
+    """ING-009: cache is used only once the requested month is safely in the past.
+
+    Implements: ING-009.
+    """
     cutoff = _now_utc().date() - timedelta(days=settings.ingest.cache_min_age_days)
     return _month_end(month) <= cutoff
+
+
+#: HTTP statuses ING-006 forbids retrying -- raised immediately with the response body.
+_NO_RETRY_STATUS = frozenset({400, 401, 403})
+
+
+def _http_status(exc: BaseException) -> int | None:
+    """HTTP status code carried by a `requests`-shaped exception, if any."""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    return status if isinstance(status, int) else None
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """ING-006 retry predicate: 429, 5xx and connection errors/timeouts only.
+
+    Implements: ING-006.
+    """
+    if isinstance(exc, IngestError):
+        return False
+    status = _http_status(exc)
+    if status is not None:
+        return status == 429 or status >= 500
+    return isinstance(exc, (requests.exceptions.ConnectionError, requests.exceptions.Timeout))
+
+
+def _transport_error(exc: BaseException, month: date) -> IngestTransportError:
+    """Wrap a failed GeoSphere call; the response body goes into the message (ING-006).
+
+    Implements: ING-006.
+    """
+    status = _http_status(exc)
+    body = getattr(getattr(exc, "response", None), "text", None)
+    detail = str(body)[:500] if body else f"{type(exc).__name__}: {exc}"
+    return IngestTransportError(
+        "geosphere", f"month={month:%Y-%m} status={status}: {detail}", status_code=status
+    )
+
+
+@retry(
+    wait=wait_exponential(multiplier=2, min=2, max=120),
+    stop=stop_after_attempt(6),
+    retry=retry_if_exception(_is_retryable),
+    reraise=True,
+)
+def _call_with_retry(
+    transport_fn: DataTransportFn, settings: Settings, station_id: str, month: date
+) -> Any:
+    try:
+        return transport_fn(settings, station_id, month)
+    except Exception as exc:
+        if _http_status(exc) in _NO_RETRY_STATUS:
+            raise _transport_error(exc, month) from exc
+        raise
+
+
+def _fetch_live(
+    transport_fn: DataTransportFn, settings: Settings, station_id: str, month: date
+) -> Any:
+    """One live GeoSphere call under ING-006: retry 429/5xx/connection errors (6 attempts,
+    exponential 2..120 s); 400/401/403 or exhausted retries raise `IngestTransportError`.
+
+    Implements: ING-006.
+    """
+    try:
+        return _call_with_retry(transport_fn, settings, station_id, month)
+    except IngestError:
+        raise
+    except Exception as exc:  # retries exhausted, or a non-HTTP failure
+        raise _transport_error(exc, month) from exc
+
+
+def _write_cache(cache_path: Path, payload: Any) -> None:
+    """Atomically persist one response (temp file, then ``os.replace``).
+
+    Per-call-unique temp name (PID + short uuid4) mirrors `_io.write_month` /
+    `_fetch.fetch_entsoe`'s WR-02 guard against two processes racing to write
+    the same cache key.
+    """
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = cache_path.parent / f"{cache_path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
+    tmp_path.write_text(json.dumps(payload), encoding="utf-8")
+    os.replace(tmp_path, cache_path)
 
 
 def _fetch_geosphere(
@@ -375,6 +502,18 @@ def _fetch_geosphere(
     temp-file-then-rename), and a `settings.ingest.geosphere_sleep_s` (>=0.2s,
     ING-007) sleep after every LIVE fetch only — a cache hit never sleeps.
 
+    Only responses for windows that are already cache-eligible (ended > 7 days
+    ago) are persisted. A response for a still-open or just-closed month may
+    be incomplete (publication lag); caching it would let a later run -- once
+    the month turns eligible -- replay that incomplete payload forever instead
+    of re-fetching the final data.
+
+    Live calls go through the ING-006 retry policy (`_fetch_live`): a
+    transient 429/5xx/connection error no longer aborts a multi-year pull
+    half-way (leaving a silently truncated series on disk).
+
+    Implements: ING-006, ING-007, ING-009, ING-093.
+
     Args:
         transport: override for the live network call. Defaults to
             `_default_data_transport` (real `requests.get`); tests inject a
@@ -387,20 +526,15 @@ def _fetch_geosphere(
     transport_fn = transport if transport is not None else _default_data_transport
     req_hash = request_hash(_request_url(settings, station_id, month))
     cache_path = _cache_path(settings, req_hash)
+    eligible = _is_cache_eligible(month, settings)
 
-    if cache_path.exists() and _is_cache_eligible(month, settings):
+    if cache_path.exists() and eligible:
         logger.info("source=geosphere_graz_daily month=%s status=cache_hit", f"{month:%Y-%m}")
         return json.loads(cache_path.read_text(encoding="utf-8"))
 
-    payload = transport_fn(settings, station_id, month)
-
-    cache_path.parent.mkdir(parents=True, exist_ok=True)
-    # Per-call-unique temp name (PID + short uuid4) mirrors `_io.write_month` /
-    # `_fetch.fetch_entsoe`'s WR-02 guard against two processes racing to
-    # write the same cache key.
-    tmp_path = cache_path.parent / f"{cache_path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
-    tmp_path.write_text(json.dumps(payload), encoding="utf-8")
-    os.replace(tmp_path, cache_path)
+    payload = _fetch_live(transport_fn, settings, station_id, month)
+    if eligible:
+        _write_cache(cache_path, payload)
 
     logger.info("source=geosphere_graz_daily month=%s status=200", f"{month:%Y-%m}")
     time.sleep(settings.ingest.geosphere_sleep_s)  # ING-007 -- paces the *next* live call
@@ -414,7 +548,10 @@ def _fetch_geosphere(
 
 
 def _require_station_id(settings: Settings) -> str:
-    """Fail fast if station discovery (ING-091/ADR-007) hasn't been pinned yet."""
+    """Fail fast if station discovery (ING-091/ADR-007) hasn't been pinned yet.
+
+    Implements: ING-091.
+    """
     station_id = settings.geosphere.station_id
     if not station_id:
         raise DiscoveryError(
@@ -430,10 +567,10 @@ def ingest(
     start: date,
     end: date,
     transport: DataTransportFn | None = None,
-) -> None:
+) -> list[date]:
     """Ingest GeoSphere daily temperatures into monthly date-keyed parquet.
 
-    Implements: ING-093.
+    Implements: ING-093, ING-003.
 
     Iterates calendar months in ``[start, end]`` (`timeutil.iter_month_starts`),
     fetches each month's GeoJSON (`_fetch_geosphere` — ING-009 cache, ING-007
@@ -446,22 +583,44 @@ def ingest(
             network. Tests inject a stub returning the committed GeoJSON
             fixture (D-07).
 
+    Returns:
+        The month starts actually written, in order. A month whose response
+        is empty is skipped with a WARNING (never silently), and the run ends
+        with one summary line naming the requested window, the last month
+        written and every empty month -- so a pull that stops short of the
+        requested end is visible in the log rather than only in the data.
+
     Raises:
         DiscoveryError: `settings.geosphere.station_id` is unset (run
             `discover_station()` first, ADR-007) — checked before any
             network call.
+        IngestTransportError: a live call failed after the ING-006 retries.
     """
     station_id = _require_station_id(settings)
+    written: list[date] = []
+    empty: list[str] = []
     for month in iter_month_starts(start, end):
         payload = _fetch_geosphere(settings, station_id, month, transport=transport)
         frame = parse_geojson(payload, station_id)
         if frame.empty:
-            logger.info(
+            logger.warning(
                 "dataset=geosphere_graz_daily month=%s no data -- skipping write", f"{month:%Y-%m}"
             )
+            empty.append(f"{month:%Y-%m}")
             continue
         req_hash = request_hash(_request_url(settings, station_id, month))
         write_month(frame, "geosphere_graz_daily", month, req_hash, settings, key_column="date")
+        written.append(month)
+    logger.info(
+        "dataset=geosphere_graz_daily requested=%s..%s months_written=%d last_written=%s "
+        "empty_months=%s",
+        start.isoformat(),
+        end.isoformat(),
+        len(written),
+        f"{written[-1]:%Y-%m}" if written else "none",
+        empty,
+    )
+    return written
 
 
 def _parse_cli_date(text: str) -> date:
@@ -476,12 +635,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     """CLI: ``python -m epra.ingest.geosphere [--start YYYY-MM-DD] [--end YYYY-MM-DD]`` (ING-002).
 
     Defaults: ``--start`` to ``settings.window.start_date`` (2019-01-01),
-    ``--end`` to today — so a bare invocation (e.g. ``make geosphere``)
-    ingests the full 2019-latest window (ING-093), matching `entsoe.py`'s
-    mode-flag-only ergonomics (no required date args).
+    ``--end`` to today's Europe/Vienna date — so a bare invocation (e.g.
+    ``make geosphere``) ingests the full 2019-latest window (ING-093),
+    matching `entsoe.py`'s mode-flag-only ergonomics (no required date args).
+    The logfile lands under the REPO_ROOT-anchored ``reports/ingestion/``.
 
     Returns 0 on success, 1 on a user/validation error (invalid window, or
-    `settings.geosphere.station_id` unset — run `discover_station()` first).
+    `settings.geosphere.station_id` unset — run `discover_station()` first)
+    or an ingest failure (e.g. `IngestTransportError` after ING-006 retries).
+
+    Implements: ING-002, ING-093, EN-060.
     """
     parser = argparse.ArgumentParser(
         prog="python -m epra.ingest.geosphere",
@@ -497,16 +660,20 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--end",
         type=_parse_cli_date,
         default=None,
-        help="Override ingest end date (YYYY-MM-DD). Default: today.",
+        help="Override ingest end date (YYYY-MM-DD). Default: today (Europe/Vienna).",
     )
     args = parser.parse_args(argv)
 
     settings = load_settings()
-    logfile = settings.paths.reports / "ingestion" / f"geosphere_{date.today():%Y-%m-%d}.log"
+    logfile = (
+        resolve_repo_path(settings.paths.reports)
+        / "ingestion"
+        / f"geosphere_{today_local():%Y-%m-%d}.log"
+    )
     common_logging.setup(logfile=logfile)
 
     start = args.start if args.start is not None else settings.window.start_date
-    end = args.end if args.end is not None else date.today()
+    end = args.end if args.end is not None else today_local()
 
     try:
         if end <= start:

@@ -26,6 +26,15 @@ data/warehouse/*
 !data/warehouse/.gitkeep
 
 exports/*.csv
+exports/*.parquet
+exports/*.xlsx
+
+# stray warehouse/data files anywhere (e.g. a dbt run from the wrong cwd); the only
+# committed parquet files are the test fixtures (EN-091)
+*.duckdb
+*.duckdb.wal
+*.parquet
+!tests/fixtures/**/*.parquet
 
 # operational ingest logs (EN-060); gate evidence is reports/ingestion/validation_*.md
 reports/ingestion/*.log
@@ -45,3 +54,12 @@ dbt/target/
 dbt/logs/
 dbt/dbt_packages/
 dbt/.user.yml
+
+# graphify generated artifacts (regenerated locally by .planning/hooks/run-graphify-rebuild.js)
+.planning/graphs/graph.json
+.planning/graphs/graph.html
+.planning/graphs/.last-build-status.json
+.planning/graphs/.rebuild.lock
+# GSD session/pause artifacts (generated locally; see .planning/CONTINUITY.md)
+.planning/SESSION_SNAP.md
+.planning/HANDOFF.json

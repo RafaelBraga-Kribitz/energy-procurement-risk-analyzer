@@ -8,6 +8,9 @@ Figure standards (RP-701): matplotlib Agg backend, 12×6 in, dpi 150, no seaborn
 for executive charts. Every chart carries the source note (bottom-left) and,
 when CALIBRATED/SIMULATED data is shown, the epistemic tag bottom-right (RP-702).
 
+Not yet imported by production code: M7's executive charts (SPEC-06 §7) are
+the intended callers; tests pin the palette and figure standards now.
+
 Implements: RP-701 (constants), RP-704; supports RP-702.
 """
 
@@ -41,7 +44,10 @@ def _interpolate_hex(color_a: str, color_b: str, t: float) -> str:
 
 
 def hybrid_color(hedge_ratio: float) -> str:
-    """Color for HYBRID_h: interpolate S1 (spot, ratio 0) → S3 (fixed, ratio 1)."""
+    """Color for HYBRID_h: interpolate S1 (spot, ratio 0) → S3 (fixed, ratio 1).
+
+    Implements: RP-704 (hybrids interpolated between the S1 and S3 colors).
+    """
     return _interpolate_hex(OKABE_ITO["vermillion"], OKABE_ITO["blue"], hedge_ratio)
 
 

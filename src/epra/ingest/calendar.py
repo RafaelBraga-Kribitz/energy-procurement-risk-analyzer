@@ -23,14 +23,15 @@ from __future__ import annotations
 import argparse
 import logging
 from collections.abc import Sequence
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 
 import pandas as pd
 from holidays.countries.austria import Austria
 
-from epra.common.config import Settings, load_settings
-from epra.common.timeutil import VIENNA, is_peak_hour, next_month
-from epra.ingest._io import _dataset_root
+from epra.common import logging as common_logging
+from epra.common.config import Settings, load_settings, resolve_repo_path
+from epra.common.timeutil import VIENNA, is_peak_hour, next_month, to_utc, today_local
+from epra.ingest._io import dataset_root
 from epra.ingest.entsoe import latest_complete_month
 
 logger = logging.getLogger(__name__)
@@ -56,20 +57,24 @@ def _default_end(settings: Settings) -> date:
 def build_calendar(settings: Settings, end: date | None = None) -> pd.DataFrame:
     """Return the hourly calendar frame per ING-110.
 
-    One row per UTC hour from 2019-01-01 00:00 UTC through the last UTC
-    hour of ``end`` (inclusive). ``end`` defaults to
+    One row per hour (keyed by ``ts_utc``) from 00:00 Europe/Vienna on
+    ``settings.window.start_date`` through the last Vienna-local hour of
+    ``end`` (inclusive) — local-day bounds per ADR-017. ``end`` defaults to
     ``latest_complete_month(settings) + _FORWARD_HORIZON_MONTHS`` months
     (D-08/D-09); pass a fixed ``end`` for deterministic tests.
 
-    Implements: ING-110.
+    Implements: ING-110 (ADR-017), DM-012.
     """
     resolved_end = end if end is not None else _default_end(settings)
 
-    # Use stdlib `timedelta`, not `pd.Timedelta(hours=...)` — the latter hits
-    # a pandas 2.3.3 "generic unit" DeprecationWarning on the bare-kwarg
-    # constructor path (upstream quirk, unrelated to this logic).
-    end_of_day_naive = pd.Timestamp(resolved_end) + timedelta(hours=23)
-    ts_utc = pd.date_range(start="2019-01-01", end=end_of_day_naive, freq="h", tz="UTC")
+    # Local days, not UTC days (ADR-017, DM-012): the spine runs from
+    # 00:00 Europe/Vienna on the window start through the last local hour of
+    # `resolved_end`, so every local year is complete (2019 = 8760 h) and no
+    # 1-hour sliver of the following local year is emitted. Bounds are
+    # computed as UTC instants, so DST days get 23/25 rows by construction.
+    first = to_utc(datetime.combine(settings.window.start_date, time(), tzinfo=VIENNA))
+    stop = to_utc(datetime.combine(resolved_end + timedelta(days=1), time(), tzinfo=VIENNA))
+    ts_utc = pd.date_range(start=first, end=stop, freq="h", inclusive="left")
 
     local = ts_utc.tz_convert(VIENNA)
     date_local = local.date
@@ -118,7 +123,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     ``--end`` defaults to the dynamic ``latest_complete_month() +
     _FORWARD_HORIZON_MONTHS`` months (D-09); pass a fixed value for
     deterministic/manual runs. Writes a SINGLE parquet file — not
-    monthly-partitioned, not via ``_io.write_month``. Returns 0 on success.
+    monthly-partitioned, not via ``_io.write_month``. Logs to stdout and the
+    REPO_ROOT-anchored ``reports/ingestion/calendar_<date>.log`` (EN-060).
+    Returns 0 on success.
+
+    Implements: ING-002 (CLI entrypoint), ING-110 (writes calendar.parquet), EN-060.
     """
     parser = argparse.ArgumentParser(
         prog="python -m epra.ingest.calendar",
@@ -134,9 +143,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     settings = load_settings()
+    logfile = (
+        resolve_repo_path(settings.paths.reports)
+        / "ingestion"
+        / f"calendar_{today_local():%Y-%m-%d}.log"
+    )
+    common_logging.setup(logfile=logfile)
     frame = build_calendar(settings, args.end)
 
-    path = _dataset_root("calendar", settings) / "calendar.parquet"
+    path = dataset_root("calendar", settings) / "calendar.parquet"
     path.parent.mkdir(parents=True, exist_ok=True)
     frame.to_parquet(path, index=False, engine="pyarrow")
     logger.info("calendar: wrote %d rows to %s", len(frame), path)

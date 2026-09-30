@@ -11,6 +11,15 @@ Implements (when built): GV-301, GV-302, E-3.
 
 from __future__ import annotations
 
-import sys
+from collections.abc import Sequence
 
-sys.exit("not implemented yet — M6 (SPEC-08 §3 GV-301/302); see module docstring")
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point — fails loudly until its milestone lands (AGENTS.md M0 rule)."""
+    raise NotImplementedError(
+        "not implemented yet — M6 (SPEC-08 §3 GV-301/302); see module docstring"
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

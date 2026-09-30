@@ -3,6 +3,8 @@
 import logging
 from pathlib import Path
 
+import pytest
+
 from epra.common import db
 from epra.common import logging as epra_logging
 from epra.common.config import load_settings
@@ -35,3 +37,22 @@ def test_db_connect_creates_warehouse(tmp_path: Path) -> None:
     finally:
         con.close()
     assert db.warehouse_path(settings).exists()
+
+
+def test_db_connect_pins_session_timezone_to_utc(tmp_path: Path) -> None:
+    """ADR-014: Python readers use the same UTC session zone as dbt's profile."""
+    settings = load_settings()
+    paths = settings.paths.model_copy(update={"warehouse": tmp_path / "epra.duckdb"})
+    con = db.connect(settings.model_copy(update={"paths": paths}))
+    try:
+        assert con.execute("select current_setting('TimeZone')").fetchone() == ("UTC",)
+    finally:
+        con.close()
+
+
+def test_warehouse_path_honours_dbt_env_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Same override variable as dbt/profiles.yml, so both open one file."""
+    monkeypatch.setenv("EPRA_DUCKDB_PATH", str(tmp_path / "other.duckdb"))
+    assert db.warehouse_path(load_settings()) == tmp_path / "other.duckdb"

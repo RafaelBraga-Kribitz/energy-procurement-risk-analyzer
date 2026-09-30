@@ -1,6 +1,6 @@
-# DM-060 unique/not_null generic tests on the two dimension grain keys.
-# Kept as a dedicated dims.yml, separate from the fct_* YAMLs added in
-# 04-04/04-05, to avoid cross-plan file conflicts.
+# SPEC-02 §4 dimension contracts: DM-060 unique/not_null on both grain keys,
+# plus a description for every column (column types are pinned in
+# dbt/contracts/marts_contract.yml).
 version: 2
 
 models:
@@ -13,9 +13,41 @@ models:
       hdd_18/cdd_22 are added here from stg_weather_graz_daily.
     columns:
       - name: ts_utc
-        tests:
+        description: UTC hour start, TIMESTAMPTZ in the UTC-pinned session (DM-010, ADR-014). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: date_local
+        description: Europe/Vienna civil date of the hour (ING-110).
+      - name: year_local
+        description: Europe/Vienna calendar year — the ONLY meaning of "year" (DM-012).
+      - name: month_local
+        description: Europe/Vienna calendar month, 1-12.
+      - name: hour_local
+        description: Europe/Vienna hour of day, 0-23.
+      - name: dow_local
+        description: Europe/Vienna day of week, 0 = Monday.
+      - name: is_weekend
+        description: True on local Saturday/Sunday.
+      - name: is_holiday_at
+        description: Austrian public holiday incl. Styria (holidays package, subdiv 6).
+      - name: is_peak_hour
+        description: >
+          Mon-Fri 08:00-20:00 local AND not a public holiday — the one
+          holiday-aware peak flag used everywhere (ADR-011).
+      - name: season
+        description: >
+          'winter' when month_local in (11, 12, 1, 2, 3) — the Austrian
+          energy-market heating-season convention — else 'summer'.
+      - name: hdd_18
+        description: >
+          Heating degree-days, greatest(0, 18 − tavg_c) in °C·d, from the
+          local day's Graz mean temperature (same value on every hour of
+          that day; NULL if the day has no observation).
+      - name: cdd_22
+        description: >
+          Cooling degree-days, greatest(0, tavg_c − 22) in °C·d, same
+          repetition/NULL rule as hdd_18.
 
 seeds:
   - name: dim_strategy
@@ -23,9 +55,14 @@ seeds:
       SPEC-02 §4 dim_strategy seed — the 6 committed procurement strategy
       rows (S1, S2, S3, S4_30, S4_50, S4_70). DM-060 unique/not_null on
       strategy_id makes this a trustworthy DM-063 FK target for
-      fct_procurement_cost_monthly (04-05).
+      fct_procurement_cost_monthly.
     columns:
       - name: strategy_id
-        tests:
+        description: Strategy key (SPEC-05 §3 families S1-S4). Grain key.
+        data_tests:
           - unique
           - not_null
+      - name: strategy_name
+        description: Short machine-friendly strategy name (e.g. FULL_SPOT).
+      - name: description
+        description: One-line human description of the strategy.

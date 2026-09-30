@@ -1,11 +1,8 @@
 # EN-003 — pre-commit hooks: ruff, ruff-format, end-of-file-fixer, check-yaml,
 # detect-private-key, and the custom token guard (scripts/check_no_token_in_code.py).
+# ruff runs from the uv.lock-pinned environment (`uv run`), so the linter version is
+# defined in exactly one place (ADR-012). The token guard also runs in CI (`make token-guard`).
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.5
-    hooks:
-      - id: ruff
-      - id: ruff-format
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -14,8 +11,18 @@ repos:
       - id: detect-private-key
   - repo: local
     hooks:
+      - id: ruff
+        name: ruff check (uv.lock version)
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format (uv.lock version)
+        entry: uv run ruff format
+        language: system
+        types: [python]
       - id: no-entsoe-token-in-code
         name: no ENTSO-E token literal in code (A-7)
-        entry: python scripts/check_no_token_in_code.py
+        entry: uv run python scripts/check_no_token_in_code.py
         language: system
         types: [text]

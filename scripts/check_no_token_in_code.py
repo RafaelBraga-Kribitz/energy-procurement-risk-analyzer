@@ -4,8 +4,13 @@ Flags ``securityToken=`` followed by a literal value (anything that is not an
 env-var/format placeholder). The token must exist ONLY as the ENTSOE_API_TOKEN
 environment variable (ING-021).
 
+Runs from pre-commit on staged files and from ``make token-guard`` / CI over
+every tracked file, so a bypassed hook cannot slip a token into main.
+
 Usage: ``python scripts/check_no_token_in_code.py <file> [<file> ...]``
 Exit 1 if any file contains a violation.
+
+Implements: EN-003, A-7.
 """
 
 from __future__ import annotations
@@ -20,7 +25,10 @@ _TOKEN_LITERAL = re.compile(r"securityToken=(?![{$*<%])[A-Za-z0-9][A-Za-z0-9\-]{
 
 
 def check_file(path: Path) -> list[str]:
-    """Return violation descriptions ('file:line') for one file."""
+    """Return violation descriptions ('file:line') for one file.
+
+    Implements: EN-003 (token-literal scan of one file).
+    """
     if path.name == Path(__file__).name:
         return []
     try:
@@ -35,6 +43,10 @@ def check_file(path: Path) -> list[str]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Scan every file named in `argv`; exit 1 on any finding.
+
+    Implements: EN-003, A-7.
+    """
     args = list(sys.argv[1:] if argv is None else argv)
     violations: list[str] = []
     for name in args:

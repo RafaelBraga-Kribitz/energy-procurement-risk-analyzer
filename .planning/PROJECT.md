@@ -15,6 +15,8 @@ Quantify the euro cost of wrong electricity procurement for a 50 GWh/year Styria
 ### Validated
 
 - ✓ **REQ-ENG-01**: Reproducible engineering baseline (uv, Makefile, ruff, mypy, pre-commit, pytest smoke, CI) — Phase 1 / M0
+- ✓ **REQ-ING-01**: Real market data ingestion with validation gates (SPEC-01) — Phases 2–3 / M1+M2, verified 2026-07-22/23 (caveat: data horizon, see Context)
+- ✓ **REQ-DWH-01**: DuckDB + dbt warehouse with contract-tested marts (SPEC-02) — Phase 4 / M3, gate evidence 2026-07-24; formal phase verification pending
 
 ### Active
 
@@ -22,8 +24,6 @@ Quantify the euro cost of wrong electricity procurement for a 50 GWh/year Styria
 - [ ] **REQ-Q2**: Market structure analytics driving strategy differences (Charter Q2, DL-3)
 - [ ] **REQ-Q3**: Forward 12-month cost distribution per strategy (mean, P5, P50, P95, CVaR95) (Charter Q3, DL-4)
 - [ ] **REQ-Q4**: CFO recommendation — risk-averse vs cost-minimizing choice with price of risk reduction (Charter Q4, DL-5)
-- [ ] **REQ-ING-01**: Real market data ingestion with validation gates (D1–D4, SPEC-01)
-- [ ] **REQ-DWH-01**: DuckDB + dbt warehouse with contract-tested marts (SPEC-02)
 - [ ] **REQ-LP-01**: Deterministic calibrated consumer load profile (SPEC-03)
 - [ ] **REQ-ANA-01**: Market analytics modules A1–A4 with plausibility gates (SPEC-04)
 - [ ] **REQ-ST-01**: Procurement strategy simulator — retrospective + forward bootstrap (SPEC-05)
@@ -42,11 +42,13 @@ Quantify the euro cost of wrong electricity procurement for a 50 GWh/year Styria
 
 ## Context
 
-**Brownfield state (2026-07-20):** M0 bootstrap is complete. `src/epra/common/` and `src/epra/report/` format/style helpers are implemented; domain modules (`ingest`, `consumer`, `analytics`, `strategies`) are typed stubs raising `NotImplementedError`. dbt project skeleton exists; Makefile pipeline targets are wired but unimplemented stages fail loudly.
+**Current state (2026-09-30):** M0–M3 are done: M0 bootstrap, M1 ENTSO-E ingestion (verified 2026-07-22), M2 GeoSphere/ÖSPI/calendar (verified 2026-07-23), M3 DuckDB + dbt warehouse (built 2026-07-24; `04-VERIFICATION.md` not yet produced). M4–M7 (consumer profile, analytics, strategy simulator, reporting) are not started — their modules are typed stubs raising `NotImplementedError` and their Makefile targets fail loudly. A full-project audit is in `.planning/AUDIT-2026-09-30.md`.
+
+**Data horizon gap (open):** real ENTSO-E prices end 2024-02 and GeoSphere temperature 2023-12 (`reports/ingestion/validation_2026-07-23.md`), not the latest complete month; the ÖSPI CSV runs 2019-01→2026-08. A re-backfill to the latest complete month is outstanding and needs the human's ENTSO-E token. Until then the 2024–2025 retrospective years have no price data.
 
 **Authority hierarchy:** PROJECT_CHARTER.md → docs/SPEC-01..08 → docs/ADR/* → docs/EXECUTION_BLUEPRINT/ (non-binding proposals until ADR adoption).
 
-**Ingest warnings (informational):** SG-01 (EntsoeRawClient vs entsoe-py raw cache) and SG-14 (holiday-aware peak definition) pending ADR adoption at implementation time — see `.planning/INGEST-CONFLICTS.md`.
+**Ingest warnings:** SG-01 and SG-14 are resolved (ADR-003, ADR-011) — see `.planning/INGEST-CONFLICTS.md`.
 
 **Runtime:** Cursor + Claude Code; batch Python pipeline orchestrated via Makefile; human builds Power BI `.pbix` at M7. Cross-runtime continuity: `.planning/CONTINUITY.md` (SSOT = `.planning/`; pause with `/gsd-pause-work`, resume with `/gsd-resume-work`).
 
@@ -70,9 +72,9 @@ Quantify the euro cost of wrong electricity procurement for a 50 GWh/year Styria
 |----------|-----------|---------|
 | ADR-001: Light governance per SPEC-08; governance-bootstrap kit NOT vendored | Charter O-5 caps governance weight; governance is exactly epistemic tags (GV-101/102), append-only ADRs (GV-201..203), and SSOT mechanism with CI check (GV-301..303) plus SPEC-07 §8 CI gates | ✓ Locked |
 | ADR-002: Dev-only typing stubs (`pandas-stubs`, `types-PyYAML`, `types-requests`); `statsmodels` ignore_missing_imports | Preserve EN-002 mypy --strict on own code without runtime stub dependencies | ✓ Locked |
-| Makefile as canonical operator interface | Single entry point for local ops and CI cron; EN-050 | — Pending |
-| DuckDB warehouse as sole boundary between ingest and analytics | Prevents cross-layer imports; mart reader pattern | — Pending |
+| Makefile as canonical operator interface | Single entry point for local ops and CI cron; EN-050 | ✓ In use (M1–M3 targets real; M4–M7 fail loudly) |
+| DuckDB warehouse as sole boundary between ingest and analytics | Prevents cross-layer imports; mart reader pattern | ✓ Warehouse built (M3); consumers arrive M4–M6 |
 | ÖSPI as forward-price proxy (not EEX futures) | Charter P-2; documented approximation in LIMITATIONS | — Pending |
 
 ---
-*Last updated: 2026-07-21 after new-project-from-ingest initialization*
+*Last updated: 2026-09-30 — reconciled with phase evidence after the 2026-09-30 audit (previous: 2026-07-21 initialization)*

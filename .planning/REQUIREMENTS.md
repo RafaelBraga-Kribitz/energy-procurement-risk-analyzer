@@ -58,8 +58,8 @@ Explicitly excluded per Charter §4.2. Documented to prevent scope creep.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | REQ-ENG-01 | Phase 1 (M0) | Complete |
-| REQ-ING-01 | Phase 3 (M2) | Complete (2026-07-23 — M1 ENTSO-E + M2 GeoSphere/ÖSPI/calendar; all 9 gates green on real data 2019→latest) |
-| REQ-DWH-01 | Phase 4 (M3) | Complete |
+| REQ-ING-01 | Phase 3 (M2) | Complete (2026-07-23 — M1 ENTSO-E + M2 GeoSphere/ÖSPI/calendar; all 9 gates green on real data) — **caveat 2026-09-30:** the data ends 2024-02 (ENTSO-E) / 2023-12 (GeoSphere), not "latest"; gates pass on complete years only (ADR-006). Re-backfill outstanding (AUDIT §1). |
+| REQ-DWH-01 | Phase 4 (M3) | Complete per gate evidence (`docs/BUILD_LOG.md` 2026-07-24, `04-08-SUMMARY.md`); formal phase verification (`04-VERIFICATION.md`) pending |
 | REQ-LP-01 | Phase 5 (M4) | Pending |
 | REQ-ANA-01 | Phase 6 (M5) | Pending |
 | REQ-Q2 | Phase 6 (M5) | Pending |

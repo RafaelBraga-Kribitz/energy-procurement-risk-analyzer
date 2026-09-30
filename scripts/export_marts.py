@@ -9,6 +9,15 @@ Implements (when built): DM-070, SPEC-02 §7 table.
 
 from __future__ import annotations
 
-import sys
+from collections.abc import Sequence
 
-sys.exit("not implemented yet — M7 (SPEC-02 §7 / DM-070); see module docstring")
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point — fails loudly until its milestone lands (AGENTS.md M0 rule)."""
+    raise NotImplementedError(
+        "not implemented yet — M7 (SPEC-02 §7 / DM-070); see module docstring"
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

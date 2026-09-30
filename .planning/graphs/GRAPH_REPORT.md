@@ -1,55 +1,59 @@
-# Graph Report - energy-procurement-risk-analyzer  (2026-07-22)
+# Graph Report - energy-procurement-risk-analyzer  (2026-09-30)
 
 ## Corpus Check
-- 154 files · ~320,425 words
+- 239 files · ~466,972 words
 - Verdict: corpus is large enough that graph structure adds value.
+- Unclassified: 43 file(s) not represented in the graph (top: (none) 24, .xml 8, .parquet 5)
 
 ## Summary
-- 1637 nodes · 2308 edges · 142 communities (124 shown, 18 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 54 edges (avg confidence: 0.66)
+- 2520 nodes · 4598 edges · 186 communities (156 shown, 30 thin omitted)
+- Extraction: 76% EXTRACTED · 24% INFERRED · 0% AMBIGUOUS · INFERRED: 1094 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `487d467a`
+- Built from commit: `cdd94c43`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
+- Regenerated 2026-09-30 with `graphify update .` (graphifyy CLI) on a clean checkout of `cdd94c43`;
+  dbt `.sql` files are NOT represented (optional `tree_sitter_sql` dependency was not installed).
+- `graph.json` / `graph.html` are no longer committed (generated locally by the GSD graphify hooks).
 
 ## Community Hubs (Navigation)
-- Communities (137 total, 18 thin omitted)
+- Communities (142 total, 18 thin omitted)
 - entsoe.py
-- test_entsoe_orchestration.py
+- _read
 - Phase 2: M1 ENTSO-E Ingestion - Research
 - test_io.py
-- _fetch.py
+- Summary
 - Synthesized Constraints (SPECs)
-- Pattern Assignments
+- Shared Patterns
 - timeutil.py
-- Settings
-- run_gates
 - test_fetch.py
+- run_gates
+- test_fetch_entsoe_cache_tmp_path_is_per_call_unique
 - Specification gaps tracker (14_SPEC_GAPS)
-- validate.py
+- _year_hourly
 - test_raw_contracts.py
 - test_ingest_gates.py
 - 05 — IMPLEMENTATION GUIDES (the "how", per milestone)
-- _io.py
+- write_month
 - 00_MASTER_PLAN.md
-- Phase 2 Plan 3: ENTSO-E HTTP Transport (_fetch) Summary
-- Phase EPRA-02 Plan 06: ENTSO-E Validation Gate Framework Summary
+- fetch_entsoe
+- bootstrap_fixture_warehouse.py
 - Phase EPRA-02 Plan 07: M1 Close-Out (Contract Tests, Fixtures, BUILD_LOG) Summary
 - Implementation Decisions
 - SPEC-01 — Data Ingestion
 - SPEC-05 — Procurement Strategy Simulator
 - Phase EPRA-02 Plan 01: Wave 0 Architecture Decisions Summary
-- Phase EPRA-02 Plan 02: Raw Parquet Writer (`_io`) Summary
-- Phase 2 Plan 04: ENTSO-E XML Parsers and Hourly Aggregation Summary
+- request_hash
+- iter_month_starts
 - 03 — MODULE, CLASS, AND FUNCTION CONTRACTS
-- Phase EPRA-02 Plan 05: ENTSO-E Ingest Orchestration Summary
+- latest_complete_month
 - Phase Details
 - M1 — ENTSO-E ingestion (SPEC-01 §§2–8) — merge after M2
 - SPEC-07 — Engineering, Tooling, CI/CD
 - PROJECT CHARTER — Energy Procurement Risk Analyzer (EPRA)
-- load_settings
+- ConsumerProfileCfg
 - config.py
 - SPEC-03 — Consumer Load Profile ("StyriaMetal GmbH")
 - Goal Achievement
@@ -63,82 +67,80 @@
 - write-session-snap.js
 - Doc Ingest Synthesis Summary
 - Energy Procurement Risk Analyzer (EPRA)
-- ConsumerProfileCfg
+- build_profile
 - test_scripts.py
 - 00 — MASTER PLAN: The Execution Operating System
-- Coding Conventions
+- Naming Patterns
 - Testing Patterns
-- maybe-graphify-update.js
+- ModelBuildResult
 - Requirements: Energy Procurement Risk Analyzer (EPRA)
 - format.py
 - 3. Build order and gates (from Charter §7 — expanded into agent tasks)
 - 07 — QUALITY STANDARDS (measurable thresholds)
 - SPEC-04 — Market Analytics (modules A1–A4)
 - SPEC-06 — Reporting, Dashboard, README
-- Architecture
+- Phase 4: M3 dbt Warehouse - Research
 - External Integrations
 - Phase 1: M0 Bootstrap Verification Report
-- Fixed Issues
-- load_consumer_profile
-- geosphere.py
-- conftest.py
+- CR-01: `iter_chunks` groups 3 raw calendar months without bounding the window to ING-030's 90-day maximum
+- load_strategy_config
+- ingest
 - M3 — dbt warehouse (SPEC-02)
 - M5 — Analytics (SPEC-04) — order A1→A2→A4→A3
 - M7 — Reporting, dashboard, refresh, release (SPEC-06, SPEC-07 §8)
 - 06 — CHECKLISTS
 - SPEC-08 — Governance & Quality (deliberately lightweight)
-- db.py
+- connect
 - LIMITATIONS
 - Technology Stack
-- Codebase Structure
-- build-session-briefing.js
+- setup
+- discover_station
 - Phase 2 — Validation Strategy
 - Ingestion validation report — 2026-07-22
 - AGENTS.md — Build Playbook for AI Agents
 - M2 — Auxiliary data (SPEC-01 §§9–11) — merge FIRST (R-1)
 - 04 — DEPENDENCY GRAPHS, CRITICAL PATH, PARALLELISM
 - Claude Code ↔ Cursor Continuity
-- run-graphify-rebuild.js
+- test_geosphere.py
 - Onboarding Summary
 - 02-UAT.md
 - Energy Procurement Risk Analyzer (EPRA)
-- reconcile
-- StrategyCfg
-- test_logging_and_db.py
-- calendar.py
-- oespi.py
-- _write_report
+- oespi_reconcile.py
+- gate_ing_111
+- geosphere.py
+- build_calendar
+- ContractError
+- _last_sunday
 - ADR-001: Light governance per SPEC-08; governance-bootstrap kit NOT vendored
 - ADR-002: Dev-only typing-stub packages for mypy --strict
 - ADR-003: EntsoeRawClient as transport; own Appendix-A parsers (adopts SG-01)
 - ADR-004: pyarrow as the pandas parquet engine for ingestion I/O
-- ADR-005: latest_complete_month() = min(AT prices, DE-LU prices) (adopts SG-02)
-- ADR-006: Validation gates assert over complete Vienna-local years within the ingested window
-- BUILD_LOG (append-only, per AGENTS.md W-5)
+- test_bootstrap_fixture_warehouse.py
+- parse_publication_xml
+- Phase 3: M2 Auxiliary Data - Research
 - M4 — Consumer profile (SPEC-03)
 - Phase 1: M0 Bootstrap Summary
-- Info
-- check_file
-- ingest_dataset
-- style.py
+- _ensure_entsoe_fixtures_dir
+- check_no_token_in_code.py
+- parse_geojson
+- Phase 4: M3 dbt Warehouse - Context
 - forward_risk.py
-- retrospective.py
+- Key Abstractions
 - 10 — VALIDATION GATES: the no-progression ladder
 - 11 — ACCEPTANCE CRITERIA (objective, runnable)
 - 13 — TRACEABILITY MATRIX
 - Conflict Detection Report
 - Phase 1 (M0 Bootstrap) — Plan 01: Repo, tooling, CI, pipeline skeleton
-- Deferred Items — EPRA-02 M1 ENTSO-E Ingestion
-- logging.py
-- test_smoke.py
+- test_entsoe_token_fails_fast_when_unset
+- Phase 3: M2 Auxiliary Data - Context
 - 02 — WORK BREAKDOWN STRUCTURE
 - Synthesized Decisions (ADRs)
-- 4. Scope
-- descriptive.py
-- regimes.py
-- spread.py
-- weather.py
-- charts.py
+- MonkeyPatch
+- test_calendar.py
+- Settings
+- _fetch.py
+- Phase EPRA-04 Plan 02: Staging Models (8 views) Summary
+- Phase EPRA-04 Plan 04: Price/Generation Marts (fct_price_hourly/daily/monthly, fct_generation_monthly) Summary
 - 02-01-PLAN.md
 - 02-02-PLAN.md
 - 02-03-PLAN.md
@@ -149,202 +151,238 @@
 - ENTSO-E test fixtures
 - dashboards/README.md
 - dbt/README.md
-- 14_SPEC_GAPS.md
+- is_peak_hour
 - requirements.md
-- check_ssot_consistency.py
-- export_marts.py
-- generate_golden_metrics.py
-- generate_ssot.py
+- Phase EPRA-04 Plan 05: Fixture/Stand-in Generator + Future Marts (D-04, SG-06) Summary
+- Phase EPRA-04 Plan 06: DM-050/062/064/065/066 Test Suite + D-07 Schema Contract Summary
+- test_entsoe_orchestration.py
 - epra
+- _validate_date_key
+- Phase EPRA-04 Plan 01: dbt Foundation — Schema Macro, Sources, Helper Macros Summary
+- Phase EPRA-04 Plan 03: dim_calendar + dims.yml (DM-060) Summary
+- Phase EPRA-04 Plan 07: D-02 Build-Report Writer + Makefile Operator Interface Summary
+- Phase EPRA-04 Plan 08: CI dbt-check Job + M3 Close-Out Summary
+- Ingestion validation report — 2026-07-23
+- test_stubs_fail_loudly.py
+- Phase EPRA-03 Plan 01: write_month key_column dispatcher Summary
+- Phase EPRA-03 Plan 02: Calendar hourly spine (ING-110/111) Summary
+- Shared Patterns
+- test_marts_contract.py
+- Phase 3: M2 Auxiliary Data - Discussion Log
+- Phase 3 — Validation Strategy
+- Phase 4: M3 dbt Warehouse - Discussion Log
+- Phase 4 — Validation Strategy
+- 5.1 M1 — ENTSO-E
+- Project Audit — 2026-09-30 (findings only, nothing fixed)
+- Pattern Assignments
+- Common Pitfalls
+- ADR-009: `generate_schema_name` override — literal `staging`/`marts` schemas
+- ADR-010: CI fixture bootstrap synthesizes data at run time; environment-aligned data/processed stand-ins feed the local build too
+- DiscoveryError
+- dbt build report — 2026-07-24
+- test_ingest_dataset_pages_past_100_document_cap
+- Architecture Patterns
+- Code Examples
+- _fake_token
+- test_discover_station_live_reaches_geosphere
+- 04-01-PLAN.md
+- 04-02-PLAN.md
+- 04-03-PLAN.md
+- 04-05-PLAN.md
+- 04-06-PLAN.md
+- 04-08-PLAN.md
+- _marts_schema_populated
+- Standard Stack
+- Deferred Items — EPRA-04 M3 dbt Warehouse
+- test_missing_data_root_argument_value_is_a_usage_error
+- test_calendar_main_writes_single_parquet_file
+- COVERAGE.md
+- EPRA-03-m2-auxiliary-data/deferred-items.md
 
 ## God Nodes (most connected - your core abstractions)
-1. `Communities (137 total, 18 thin omitted)` - 118 edges
-2. `Settings` - 108 edges
-3. `fetch_entsoe()` - 34 edges
-4. `Synthesized Constraints (SPECs)` - 28 edges
-5. `parse_publication_xml()` - 25 edges
-6. `ContractError` - 21 edges
-7. `_old_window()` - 21 edges
-8. `Specification gaps tracker (14_SPEC_GAPS)` - 20 edges
-9. `parse_gl_xml()` - 19 edges
-10. `Phase 2: M1 ENTSO-E Ingestion - Research` - 19 edges
+1. `Settings` - 161 edges
+2. `Communities (142 total, 18 thin omitted)` - 124 edges
+3. `write_month()` - 69 edges
+4. `ContractError` - 68 edges
+5. `fetch_entsoe()` - 51 edges
+6. `EntsoeQuery` - 47 edges
+7. `run_gates()` - 45 edges
+8. `ingest()` - 44 edges
+9. `load_settings()` - 43 edges
+10. `latest_complete_month()` - 43 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `test_fetch_entsoe_401_empty_body_never_leaks_token_via_str_exc_fallback()` --indirect_call--> `IngestAuthError`  [INFERRED]
-  tests/unit/test_fetch.py → src/epra/ingest/exceptions.py
-- `test_fetch_entsoe_401_raises_auth_error_without_retry()` --indirect_call--> `IngestAuthError`  [INFERRED]
-  tests/unit/test_fetch.py → src/epra/ingest/exceptions.py
-- `test_fetch_entsoe_403_raises_auth_error_without_retry()` --indirect_call--> `IngestAuthError`  [INFERRED]
-  tests/unit/test_fetch.py → src/epra/ingest/exceptions.py
-- `test_ingest_dataset_contract_error_leaves_no_partial_file()` --indirect_call--> `ContractError`  [INFERRED]
-  tests/unit/test_entsoe_orchestration.py → src/epra/ingest/exceptions.py
-- `test_write_month_rejects_missing_ts_utc_column()` --indirect_call--> `ContractError`  [INFERRED]
-  tests/unit/test_io.py → src/epra/ingest/exceptions.py
+- `Community 66 - "conftest.py"` --references--> `Settings`  [INFERRED]
+  .planning/graphs/GRAPH_REPORT.md → src/epra/common/config.py
+- `Configuration injection` --references--> `Settings`  [INFERRED]
+  .planning/phases/EPRA-02-m1-entso-e-ingestion/02-PATTERNS.md → src/epra/common/config.py
+- `Applicable ASVS Categories` --references--> `Settings`  [INFERRED]
+  .planning/phases/EPRA-03-m2-auxiliary-data/03-RESEARCH.md → src/epra/common/config.py
+- `T4.01 — Weight engine (algorithm steps 1–4) `[CP]`` --references--> `ConsumerProfileCfg`  [INFERRED]
+  docs/EXECUTION_BLUEPRINT/02_WBS.md → src/epra/common/config.py
+- `Don't Hand-Roll` --references--> `load_settings()`  [INFERRED]
+  .planning/phases/EPRA-02-m1-entso-e-ingestion/02-RESEARCH.md → src/epra/common/config.py
 
 ## Import Cycles
 - None detected.
 
-## Communities (142 total, 18 thin omitted)
+## Communities (186 total, 30 thin omitted)
 
-### Community 0 - "Communities (137 total, 18 thin omitted)"
+### Community 0 - "Communities (142 total, 18 thin omitted)"
 Cohesion: 0.02
-Nodes (118): Communities (137 total, 18 thin omitted), Community 0 - "entsoe.py", Community 101 - "Fixed Issues", Community 10 - "05 — IMPLEMENTATION GUIDES (the "how", per milestone)", Community 118 - "test_raw_contracts.py", Community 11 - "00_MASTER_PLAN.md", Community 120 - "_io.py", Community 121 - "Phase EPRA-02 Plan 06: ENTSO-E Validation Gate Framework Summary" (+110 more)
+Nodes (121): Communities (142 total, 18 thin omitted), Community 0 - "Communities (137 total, 18 thin omitted)", Community 100 - "M4 — Consumer profile (SPEC-03)", Community 101 - "Phase 1: M0 Bootstrap Summary", Community 102 - "Info", Community 103 - "check_file", Community 104 - "ingest_dataset", Community 105 - "style.py" (+113 more)
 
 ### Community 1 - "entsoe.py"
-Cohesion: 0.06
-Nodes (81): DocumentType, Element, Exception, _acknowledgement_reason(), _apply_a03_fill(), backfill(), _child(), _children() (+73 more)
+Cohesion: 0.14
+Nodes (16): Decisions Made, _acknowledgement_reason(), _apply_a03_fill(), _child(), _children(), _extract_points(), _local_name(), _parse_document() (+8 more)
 
-### Community 2 - "test_entsoe_orchestration.py"
-Cohesion: 0.08
-Nodes (45): Absolute path of the monthly raw parquet file for ``dataset``.      Layout is, raw_month_path(), _fake_token(), _full_month_price_frame(), _no_sleep(), _partial_month_price_frame(), DataFrame, LogCaptureFixture (+37 more)
+### Community 2 - "_read"
+Cohesion: 0.21
+Nodes (10): _read(), test_backfill_writes_real_files_for_all_datasets(), test_ingest_dataset_contract_error_leaves_no_partial_file(), test_ingest_dataset_generation_dataset_key(), test_ingest_dataset_load_dataset_key(), test_ingest_dataset_logs_a03_fill_count(), test_ingest_dataset_maps_delu_zone(), test_ingest_dataset_no_data_window_is_skipped_not_raised() (+2 more)
 
 ### Community 3 - "Phase 2: M1 ENTSO-E Ingestion - Research"
-Cohesion: 0.04
-Nodes (46): Alternatives Considered, Anti-Patterns to Avoid, Applicable ASVS Categories, Architectural Responsibility Map, Architecture Patterns, Assumptions Log, Atomic monthly parquet write (ING-003), Cache key without token (ING-009) (+38 more)
+Cohesion: 0.05
+Nodes (43): Alternatives Considered, Anti-Patterns to Avoid, Applicable ASVS Categories, Architectural Responsibility Map, Architecture Patterns, Assumptions Log, Atomic monthly parquet write (ING-003), Cache key without token (ING-009) (+35 more)
 
 ### Community 4 - "test_io.py"
-Cohesion: 0.06
-Nodes (29): Market analytics A1-A4 (SPEC-04): reads DuckDB marts, writes reports/analytics/., Consumer load profile (SPEC-03): deterministic, CALIBRATED, config-driven., Ingestion layer (SPEC-01): external sources → data/raw/ parquet.  One module per, Reporting layer (SPEC-06): formatting, chart style, executive charts., Procurement strategy simulator (SPEC-05) — the heart of the project.  Build orde, _prices_frame(), DataFrame, date (+21 more)
+Cohesion: 0.07
+Nodes (20): Task Commits, _geosphere_daily_frame(), _prices_frame(), test_raw_month_path_matches_spec01_section7_layout(), test_raw_month_path_rejects_path_traversal_dataset(), test_write_month_atomic_write_with_contract_columns(), test_write_month_date_key_applies_no_timezone_assertion(), test_write_month_date_key_happy_path() (+12 more)
 
-### Community 5 - "_fetch.py"
-Cohesion: 0.11
-Nodes (27): BaseException, entsoe_token(), Return the ENTSO-E API token from the environment, failing fast (ING-021)., IngestAuthError, Authentication/authorization failed for an external source.      Raised for miss, _cache_path(), _cache_root(), _default_transport() (+19 more)
+### Community 5 - "Summary"
+Cohesion: 0.12
+Nodes (16): epra.ingest._fetch (new, internal — created by T1.02), Surprising Connections (you probably didn't know these), Accomplishments, `src/epra/ingest/exceptions.py` (utility), CR-02: Error-detail fallback can leak the real `securityToken` via `str(exc)` when the HTTP error response has no body, Summary, IngestAuthError, IngestError (+8 more)
 
 ### Community 6 - "Synthesized Constraints (SPECs)"
 Cohesion: 0.07
-Nodes (28): SPEC-01: Calendar generation, SPEC-01: ENTSO-E client and fetch, SPEC-01: General ingestion rules, SPEC-01: Raw output contracts, SPEC-01: Resolution handling, SPEC-01: Validation gates, SPEC-01: Window management, SPEC-02: dbt tests (+20 more)
+Nodes (27): SPEC-01: ENTSO-E client and fetch, SPEC-01: General ingestion rules, SPEC-01: Raw output contracts, SPEC-01: Resolution handling, SPEC-01: Validation gates, SPEC-01: Window management, SPEC-02: dbt tests, SPEC-02: Dimension contracts (+19 more)
 
-### Community 7 - "Pattern Assignments"
-Cohesion: 0.07
-Nodes (27): CLI `main` contract, Configuration injection, Contract tests, File Classification, Functional core / imperative shell, Logging, `Makefile` (config, batch), Metadata (+19 more)
+### Community 7 - "Shared Patterns"
+Cohesion: 0.15
+Nodes (12): CLI `main` contract, Configuration injection, Contract tests, File Classification, Logging, Metadata, No Analog Found, Phase 2: M1 ENTSO-E Ingestion — Pattern Map (+4 more)
 
 ### Community 8 - "timeutil.py"
-Cohesion: 0.13
-Nodes (25): is_peak_hour(), iter_month_starts(), local_hours_in_day(), month_start(), next_month(), date, datetime, Time handling — the single most dangerous bug class in this project (T-1).  Doct (+17 more)
+Cohesion: 0.23
+Nodes (6): Reusable Assets, Anti-Patterns to Avoid, to_local(), to_utc(), test_naive_datetimes_are_rejected(), test_utc_local_round_trip()
 
-### Community 9 - "Settings"
-Cohesion: 0.18
-Nodes (26): Settings, IngestTransportError, Non-recoverable HTTP/network failure fetching from an external source.      Rais, fetch_entsoe(), Fetch raw ENTSO-E XML for `query`, using the on-disk cache (ING-009).      Rea, _old_window(), LogCaptureFixture, CR-02 regression: when the HTTP error response has an empty body,     `_error_d (+18 more)
+### Community 9 - "test_fetch.py"
+Cohesion: 0.08
+Nodes (30): _http_error(), _old_window(), _query(), test_entsoe_query_accepts_exactly_90_day_window(), test_entsoe_query_accepts_valid_window(), test_entsoe_query_is_frozen(), test_entsoe_query_rejects_end_before_start(), test_entsoe_query_rejects_equal_start_and_end() (+22 more)
 
 ### Community 10 - "run_gates"
-Cohesion: 0.13
-Nodes (19): GateFailure, A post-ingest validation gate (ING-080..085) failed.      Raised by `validate.ru, GateResult, main(), Raise ``GateFailure`` naming every failed gate id (EN-061). No-op if all passed., Run all M1 ENTSO-E gates (ING-080..085); write report; raise on failure (EN-061), One SPEC-01 §8 gate's outcome.      Attributes:         gate_id: SPEC REQ ID,, CLI: ``python -m epra.ingest.validate`` -- run all M1 gates, write the report. (+11 more)
+Cohesion: 0.06
+Nodes (46): Consequences, T1.09 — Validation gates ING-080..085 + report writer `[CP]`, epra.ingest.validate (T1.09, T2.03, T2.04), 4. P2 — Code hygiene / debt, Community 10 - "run_gates", Accomplishments, Auto-fixed Issues, Decisions Made (+38 more)
 
-### Community 11 - "test_fetch.py"
-Cohesion: 0.15
-Nodes (21): HTTPError, _fake_token(), _http_error(), Any, MonkeyPatch, _query(), Unit tests for `epra.ingest._fetch` — cache, retry, politeness, and secret-safe, Every test uses a deterministic fake token — never a real one (A-7). (+13 more)
+### Community 11 - "test_fetch_entsoe_cache_tmp_path_is_per_call_unique"
+Cohesion: 0.20
+Nodes (4): WR-02: Cache and parquet-writer temp files are not process-unique — concurrent runs can race on the same `.tmp` path, _fake_token(), _sleep_calls(), test_fetch_entsoe_cache_tmp_path_is_per_call_unique()
 
 ### Community 12 - "Specification gaps tracker (14_SPEC_GAPS)"
 Cohesion: 0.09
 Nodes (21): Authority note, SG-01 (proposed), SG-02 (proposed), SG-03 (proposed), SG-04 (proposed), SG-05 (proposed), SG-06 (proposed), SG-07 (proposed) (+13 more)
 
-### Community 13 - "validate.py"
-Cohesion: 0.14
-Nodes (21): _complete_local_years(), gate_ing_082(), gate_ing_084(), gate_ing_085(), _load_hourly(), _local_year(), DataFrame, Series (+13 more)
+### Community 13 - "_year_hourly"
+Cohesion: 0.09
+Nodes (25): Functional core / imperative shell, _complete_local_years(), gate_ing_080(), gate_ing_081(), gate_ing_082(), gate_ing_083(), gate_ing_084(), gate_ing_085() (+17 more)
 
 ### Community 14 - "test_raw_contracts.py"
 Cohesion: 0.13
-Nodes (21): _fixture_path(), Path, ING-070 raw contract drift guards.  Opens each committed §7 fixture parquet unde, entsoe_prices_at: price_eur_mwh double, resolution/zone varchar (ING-070)., entsoe_prices_delu: same shape as entsoe_prices_at, zone='DE_LU' (ING-070)., entsoe_load_at: load_mw double, resolution/zone varchar (ING-070)., entsoe_gen_at: long format, psr_type/psr_name/kind varchar, value_mw double (ING, Every §7 dataset has a committed fixture parquet, <=200 rows (ING-070). (+13 more)
+Nodes (11): _fixture_path(), test_entsoe_gen_at_dtypes_match_spec01_section7(), test_entsoe_load_at_dtypes_match_spec01_section7(), test_entsoe_prices_at_dtypes_match_spec01_section7(), test_entsoe_prices_delu_dtypes_match_spec01_section7(), test_fixture_committed_and_bounded(), test_fixture_exact_column_layout(), test_fixture_provenance_columns_present_and_typed() (+3 more)
 
 ### Community 15 - "test_ingest_gates.py"
-Cohesion: 0.17
-Nodes (19): gate_ing_080(), gate_ing_081(), gate_ing_083(), ING-080: hour coverage per zone-year (≤24 missing) + DST 23/25 correctness check, ING-081: hourly AT price plausibility, −500 ≤ price ≤ 5000 EUR/MWh.      Out-o, ING-083: negative hourly AT prices must appear in each spec-required year     t, DataFrame, Synthetic pass/fail tests for ING-080..085 validation gates (02-06 task 1).  Eac (+11 more)
+Cohesion: 0.08
+Nodes (31): Deviations from Plan, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-03 Plan 04: GeoSphere Daily Temperature Ingest Summary, Self-Check: PASSED, Task Commits, User Setup Required (+23 more)
 
 ### Community 16 - "05 — IMPLEMENTATION GUIDES (the "how", per milestone)"
+Cohesion: 0.17
+Nodes (12): 05 — IMPLEMENTATION GUIDES (the "how", per milestone), 5.2 M2 — Auxiliary data, 5.3 M3 — dbt warehouse, 5.4 M4 — Consumer profile, 5.5 M5 — Analytics, 5.6 M6 — Strategies, 5.7 M7 — Reporting & release, Anchor identity checks (cheap unit tests that catch T-5 dead) (+4 more)
+
+### Community 17 - "write_month"
+Cohesion: 0.13
+Nodes (15): Files Created/Modified, Next Phase Readiness, Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries, Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries (+7 more)
+
+### Community 19 - "fetch_entsoe"
+Cohesion: 0.12
+Nodes (18): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Files Created/Modified, Performance, Phase 2 Plan 3: ENTSO-E HTTP Transport (_fetch) Summary, Self-Check: PASSED (+10 more)
+
+### Community 20 - "bootstrap_fixture_warehouse.py"
 Cohesion: 0.11
-Nodes (19): 05 — IMPLEMENTATION GUIDES (the "how", per milestone), 5.1 M1 — ENTSO-E, 5.2 M2 — Auxiliary data, 5.3 M3 — dbt warehouse, 5.4 M4 — Consumer profile, 5.5 M5 — Analytics, 5.6 M6 — Strategies, 5.7 M7 — Reporting & release (+11 more)
-
-### Community 17 - "_io.py"
-Cohesion: 0.16
-Nodes (18): _data_raw_root(), _dataset_root(), _now_utc(), DataFrame, date, datetime, Path, Single raw parquet writer — the persistence boundary for all ENTSO-E datasets ( (+10 more)
-
-### Community 18 - "00_MASTER_PLAN.md"
-Cohesion: 0.28
-Nodes (3): 08 — DESIGN PATTERNS: exactly where each belongs, 09 — ANTI-PATTERNS: automatic PR rejection list, 12 — RISK REGISTER (execution-level; extends Charter §8 R-1..R-8)
-
-### Community 19 - "Phase 2 Plan 3: ENTSO-E HTTP Transport (_fetch) Summary"
-Cohesion: 0.12
-Nodes (15): Accomplishments, Auto-fixed Issues, Decisions Made, Dependency graph, Deviations from Plan, Files Created/Modified, Issues Encountered, Metrics (+7 more)
-
-### Community 20 - "Phase EPRA-02 Plan 06: ENTSO-E Validation Gate Framework Summary"
-Cohesion: 0.12
-Nodes (15): Accomplishments, Auto-fixed Issues, Decisions Made, Dependency graph, Deviations from Plan, Files Created/Modified, Issues Encountered, Metrics (+7 more)
+Nodes (19): _atomic_write_csv(), _atomic_write_parquet(), _build_calendar(), _build_consumer_load_hourly(), _build_gen(), _build_geosphere(), _build_load(), _build_oespi_rows() (+11 more)
 
 ### Community 21 - "Phase EPRA-02 Plan 07: M1 Close-Out (Contract Tests, Fixtures, BUILD_LOG) Summary"
-Cohesion: 0.12
-Nodes (15): Accomplishments, Auto-fixed Issues, Decisions Made, Dependency graph, Deviations from Plan, Files Created/Modified, Issues Encountered, Metrics (+7 more)
+Cohesion: 0.15
+Nodes (12): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance (+4 more)
 
 ### Community 22 - "Implementation Decisions"
-Cohesion: 0.12
-Nodes (15): Claude's Discretion, Client & Transport (ADR-003 adopts SG-01), Deferred Ideas, Established Patterns, Existing Code Insights, Implementation Decisions, Integration Points, Parquet I/O (ADR-004) (+7 more)
+Cohesion: 0.14
+Nodes (13): Claude's Discretion, Client & Transport (ADR-003 adopts SG-01), Deferred Ideas, Established Patterns, Existing Code Insights, Implementation Decisions, Parquet I/O (ADR-004), Phase 2: M1 ENTSO-E Ingestion - Context (+5 more)
 
 ### Community 23 - "SPEC-01 — Data Ingestion"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (14): 10. ÖSPI (manual, double-entry validated), 11. Calendar, 1. General ingestion rules (apply to every source), 2. ENTSO-E: registration and authentication, 3. ENTSO-E: what to fetch, 4. ENTSO-E: window management & incremental refresh, 5. Units and currencies, 6. Resolution handling (CRITICAL — R-2, R-3) (+6 more)
 
 ### Community 24 - "SPEC-05 — Procurement Strategy Simulator"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (14): 1. Scope of the decision being modeled, 2. Architecture, 3. Strategy definitions (families S1–S4; grid in dim_strategy, SPEC-02 §4), 4. Calibration anchors, 5. Retrospective engine (Q1), 6. Forward risk engine (Q3) — seasonal block bootstrap, 7. Fair-comparison and honesty rules, 8. `config/strategies.yaml` (authoritative copy) (+6 more)
 
 ### Community 25 - "Phase EPRA-02 Plan 01: Wave 0 Architecture Decisions Summary"
-Cohesion: 0.13
-Nodes (14): Accomplishments, Decisions Made, Dependency graph, Deviations from Plan, Files Created/Modified, Issues Encountered, Metrics, Next Phase Readiness (+6 more)
+Cohesion: 0.16
+Nodes (12): Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-02 Plan 01: Wave 0 Architecture Decisions Summary, Self-Check: PASSED (+4 more)
 
-### Community 26 - "Phase EPRA-02 Plan 02: Raw Parquet Writer (`_io`) Summary"
-Cohesion: 0.13
-Nodes (14): Accomplishments, Auto-fixed Issues, Decisions Made, Dependency graph, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness (+6 more)
+### Community 26 - "request_hash"
+Cohesion: 0.17
+Nodes (11): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Issues Encountered, Performance, Phase EPRA-02 Plan 02: Raw Parquet Writer (`_io`) Summary, Self-Check: PASSED (+3 more)
 
-### Community 27 - "Phase 2 Plan 04: ENTSO-E XML Parsers and Hourly Aggregation Summary"
-Cohesion: 0.13
-Nodes (14): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance (+6 more)
+### Community 27 - "iter_month_starts"
+Cohesion: 0.09
+Nodes (20): epra.ingest.entsoe (T1.04–T1.08), Community 63 - "Fixed Issues", Accomplishments, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance, Phase 2 Plan 04: ENTSO-E XML Parsers and Hourly Aggregation Summary (+12 more)
 
 ### Community 28 - "03 — MODULE, CLASS, AND FUNCTION CONTRACTS"
-Cohesion: 0.14
-Nodes (14): 03 — MODULE, CLASS, AND FUNCTION CONTRACTS, epra.analytics.* (T5.01–T5.07), epra.common (implemented — extension notes only), epra.consumer.profile (T4.01–T4.04), epra.ingest.calendar (T2.01), epra.ingest.entsoe (T1.04–T1.08), epra.ingest._fetch (new, internal — created by T1.02), epra.ingest.geosphere (T2.02–T2.03) (+6 more)
+Cohesion: 0.20
+Nodes (10): 03 — MODULE, CLASS, AND FUNCTION CONTRACTS, epra.analytics.* (T5.01–T5.07), epra.common (implemented — extension notes only), epra.consumer.profile (T4.01–T4.04), epra.ingest.calendar (T2.01), epra.ingest._io (new, internal — created by T1.01), epra.ingest.oespi (T2.04), epra.report.* (charts: T7.02; format/style: done) (+2 more)
 
-### Community 29 - "Phase EPRA-02 Plan 05: ENTSO-E Ingest Orchestration Summary"
-Cohesion: 0.14
-Nodes (13): Accomplishments, Decisions Made, Dependency graph, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance (+5 more)
+### Community 29 - "latest_complete_month"
+Cohesion: 0.07
+Nodes (37): ADR-005: latest_complete_month() = min(AT prices, DE-LU prices) (adopts SG-02), Consequences, Context, Decision, Spec deviations, 2026-07-21 — M1 ENTSO-E Ingestion (automated deliverables complete; live-data gate pending operator), T1.08 — Window management + CLI + Makefile `[CP]`, Suggested Questions (+29 more)
 
 ### Community 30 - "Phase Details"
 Cohesion: 0.14
 Nodes (13): Overview, Phase 1: M0 Bootstrap, Phase 2: M1 ENTSO-E Ingestion, Phase 3: M2 Auxiliary Data, Phase 4: M3 dbt Warehouse, Phase 5: M4 Consumer Profile, Phase 6: M5 Analytics, Phase 7: M6 Strategy Simulator (+5 more)
 
 ### Community 31 - "M1 — ENTSO-E ingestion (SPEC-01 §§2–8) — merge after M2"
-Cohesion: 0.15
-Nodes (13): M1 — ENTSO-E ingestion (SPEC-01 §§2–8) — merge after M2, T1.01 — Raw parquet writer + ING-004 metadata columns `[PAR]` `[CP]`, T1.02 — Fetch layer: cached raw client + retry + politeness `[PAR]` `[CP]`, T1.03a — Handcrafted parser fixtures (pre-token) `[PAR]`, T1.03b — Real-excerpt fixture refresh `[TOKEN]`, T1.04 — Price ingestion AT + DE-LU `[CP]`, T1.05 — Load ingestion AT `[PAR]`, T1.06 — Generation ingestion AT (long format) `[PAR]` (+5 more)
+Cohesion: 0.18
+Nodes (11): M1 — ENTSO-E ingestion (SPEC-01 §§2–8) — merge after M2, T1.01 — Raw parquet writer + ING-004 metadata columns `[PAR]` `[CP]`, T1.02 — Fetch layer: cached raw client + retry + politeness `[PAR]` `[CP]`, T1.03a — Handcrafted parser fixtures (pre-token) `[PAR]`, T1.03b — Real-excerpt fixture refresh `[TOKEN]`, T1.04 — Price ingestion AT + DE-LU `[CP]`, T1.05 — Load ingestion AT `[PAR]`, T1.06 — Generation ingestion AT (long format) `[PAR]` (+3 more)
 
 ### Community 32 - "SPEC-07 — Engineering, Tooling, CI/CD"
-Cohesion: 0.15
-Nodes (12): 1. Toolchain, 2. Repository layout (create exactly this; empty dirs get `.gitkeep`), 3. Dependencies (pin these in `pyproject.toml`; upgrades require ADR), 4. Configuration & secrets, 5. Makefile (canonical interface; targets and their meaning), 6. Logging & errors, 7. Testing policy, 8. GitHub Actions (+4 more)
+Cohesion: 0.17
+Nodes (11): 1. Toolchain, 2. Repository layout (create exactly this; empty dirs get `.gitkeep`), 3. Dependencies (pin these in `pyproject.toml`; upgrades require ADR), 4. Configuration & secrets, 5. Makefile (canonical interface; targets and their meaning), 7. Testing policy, 8. GitHub Actions, 9. Git conventions (+3 more)
 
 ### Community 33 - "PROJECT CHARTER — Energy Procurement Risk Analyzer (EPRA)"
-Cohesion: 0.15
-Nodes (13): 10. Glossary, 11. Charter change log, 1.1 The four analytical questions (Q1–Q4), 1.2 The audience, 1. The business problem (read this first), 2. The reference consumer ("StyriaMetal GmbH"), 3. Data sources (all real; no synthetic market data — ever), 5. Epistemic framework (carried over from prior portfolio work, simplified) (+5 more)
+Cohesion: 0.12
+Nodes (17): 10. Glossary, 11. Charter change log, 1.1 The four analytical questions (Q1–Q4), 1.2 The audience, 1. The business problem (read this first), 2. The reference consumer ("StyriaMetal GmbH"), 3. Data sources (all real; no synthetic market data — ever), 4.1 In scope (+9 more)
 
-### Community 34 - "load_settings"
-Cohesion: 0.22
-Nodes (12): load_settings(), Load and validate ``config/settings.yaml`` (EN-040). Cached per path., _profile_dict(), MonkeyPatch, Config loading + drift guards.  The committed YAML files are authoritative copie, test_day_shape_validator_rejects_missing_shape(), test_day_shape_validator_rejects_wrong_length(), test_entsoe_token_fails_fast_when_unset() (+4 more)
+### Community 34 - "ConsumerProfileCfg"
+Cohesion: 0.17
+Nodes (9): ConsumerProfileCfg, _profile_dict(), test_consumer_profile_matches_spec03(), test_day_shape_validator_rejects_missing_shape(), test_day_shape_validator_rejects_wrong_length(), test_seasonal_validator_requires_all_12_months(), test_settings_window_and_ingest_params(), test_settings_zones_match_spec01_appendix_a() (+1 more)
 
 ### Community 35 - "config.py"
-Cohesion: 0.29
-Nodes (11): BaseModel, ChristmasShutdownCfg, ForwardCfg, _Frozen, GeosphereCfg, IngestCfg, MaintenanceCfg, PathsCfg (+3 more)
+Cohesion: 0.22
+Nodes (10): `src/epra/common/config.py` (config — extend only if needed), ChristmasShutdownCfg, ForwardCfg, _Frozen, GeosphereCfg, IngestCfg, MaintenanceCfg, PathsCfg (+2 more)
 
 ### Community 36 - "SPEC-03 — Consumer Load Profile ("StyriaMetal GmbH")"
-Cohesion: 0.17
+Cohesion: 0.15
 Nodes (12): 1. Principles, 2. Construction algorithm (implement exactly in this order), 3.1 Day shapes (24 values each, index = hour_local 0–23), 3.2 Seasonal factors by month (mild winter uplift — process heat + lighting), 3.3 Special windows (recur every year), 3. Parameters (the values; also encoded in §6 YAML — YAML wins if they ever diverge), 4. Derived facts the rest of the project relies on, 5. Sensitivity variant (cheap, mandatory) (+4 more)
 
 ### Community 37 - "Goal Achievement"
-Cohesion: 0.17
-Nodes (11): Anti-Patterns Found, Behavioral Spot-Checks, Code Review Cycle, Gaps Summary, Goal Achievement, Human Verification Required, Key Link Verification, Observable Truths (ROADMAP Success Criteria) (+3 more)
+Cohesion: 0.20
+Nodes (9): Anti-Patterns Found, Behavioral Spot-Checks, Code Review Cycle, Gaps Summary, Goal Achievement, Human Verification Required, Observable Truths (ROADMAP Success Criteria), Phase 2 (EPRA-02): M1 ENTSO-E Ingestion Verification Report (+1 more)
 
 ### Community 38 - "Project State"
 Cohesion: 0.17
 Nodes (11): Accumulated Context, Blockers/Concerns, Current Position, Decisions, Deferred Items, Deferred Verification, Pending Todos, Performance Metrics (+3 more)
 
 ### Community 39 - "hourly_mean"
-Cohesion: 0.30
-Nodes (11): hourly_mean(), Aggregate sub-hourly rows to hourly by arithmetic MEAN — never sum (T-2)., _pt15m_hour(), DataFrame, Unit tests for `epra.ingest.entsoe.hourly_mean` — the ING-062 guard against the, One hour of 4 PT15M rows starting at `hour_start` (UTC ISO string)., test_hourly_mean_averages_quarters_not_sum(), test_hourly_mean_floors_ts_utc_to_the_hour() (+3 more)
+Cohesion: 0.19
+Nodes (11): Community 39 - "hourly_mean", Auto-fixed Issues, Deviations from Plan, Sequencing note (not a Rule 1-4 deviation, documented for transparency), hourly_mean(), _pt15m_hour(), test_hourly_mean_averages_quarters_not_sum(), test_hourly_mean_floors_ts_utc_to_the_hour() (+3 more)
 
 ### Community 40 - "01 — PHASES: Roadmap, entry/exit criteria, rollback"
 Cohesion: 0.18
@@ -359,16 +397,16 @@ Cohesion: 0.18
 Nodes (10): 1. Stack and layout, 2. Timezone doctrine (repeat of the single most dangerous bug class), 3. Staging models (exact contracts), 4. Dimensions, 5. Marts (exact contracts — the M3 exit gate diff-checks these), 6. dbt tests (minimum set; all must pass in `dbt build`), 7. Exports for BI (produced by `make export`, consumed by Power BI — SPEC-06), `dim_calendar` (grain: hour) (+2 more)
 
 ### Community 43 - "Codebase Concerns"
-Cohesion: 0.18
-Nodes (10): Codebase Concerns, Dependencies at Risk, Fragile Areas, Known Bugs, Missing Critical Features, Performance Bottlenecks, Scaling Limits, Security Considerations (+2 more)
+Cohesion: 0.20
+Nodes (9): Codebase Concerns, Dependencies at Risk, Known Bugs, Missing Critical Features, Performance Bottlenecks, Scaling Limits, Security Considerations, Tech Debt (+1 more)
 
 ### Community 44 - "Graph Report - energy-procurement-risk-analyzer  (2026-07-22)"
-Cohesion: 0.18
-Nodes (10): Community Hubs (Navigation), Corpus Check, God Nodes (most connected - your core abstractions), Graph Freshness, Graph Report - energy-procurement-risk-analyzer  (2026-07-22), Import Cycles, Knowledge Gaps, Suggested Questions (+2 more)
+Cohesion: 0.25
+Nodes (7): Community Hubs (Navigation), Corpus Check, Graph Freshness, Graph Report - energy-procurement-risk-analyzer  (2026-07-22), Import Cycles, Knowledge Gaps, Summary
 
 ### Community 45 - "write-session-snap.js"
-Cohesion: 0.29
-Nodes (10): { execSync }, extractSessionContinuity(), findContinueHere(), findPlanningRoot(), fs, gitMeta(), parseFrontmatter(), path (+2 more)
+Cohesion: 0.08
+Nodes (31): buildSessionBriefing(), findContinueHere(), findPlanningRoot(), fs, headLines(), path, resolveRepoRoot(), currentBranch() (+23 more)
 
 ### Community 46 - "Doc Ingest Synthesis Summary"
 Cohesion: 0.18
@@ -378,29 +416,29 @@ Nodes (10): Conflicts, Constraints, Context topics, Cross-ref cycle detection, D
 Cohesion: 0.18
 Nodes (10): Active, Constraints, Context, Core Value, Energy Procurement Risk Analyzer (EPRA), Key Decisions, Out of Scope, Requirements (+2 more)
 
-### Community 48 - "ConsumerProfileCfg"
-Cohesion: 0.22
-Nodes (8): ConsumerProfileCfg, SPEC-03 §6 schema. YAML wins over spec prose if they diverge., build_profile(), monthly_volumes(), DataFrame, Consumer load profile construction — "StyriaMetal GmbH" (M4).  Not yet implement, SPEC-03 §2 entrypoint: hourly ``ts_utc, load_mwh`` frame, deterministic., Aggregate to ``year_local, month_local, volume_mwh`` (LP-021).
+### Community 48 - "build_profile"
+Cohesion: 0.18
+Nodes (5): Data Flow, Directory Purposes, build_profile(), monthly_volumes(), render_executive_charts()
 
 ### Community 49 - "test_scripts.py"
-Cohesion: 0.40
-Nodes (9): CompletedProcess, Path, Tests for the implemented governance scripts (EN-003 token guard, ING-101)., _run(), test_oespi_reconcile_accepts_matching_entries(), test_oespi_reconcile_rejects_mismatch(), test_oespi_reconcile_requires_both_entries(), test_token_guard_allows_env_placeholder() (+1 more)
+Cohesion: 0.35
+Nodes (6): _run(), test_oespi_reconcile_accepts_matching_entries(), test_oespi_reconcile_rejects_mismatch(), test_oespi_reconcile_requires_both_entries(), test_token_guard_allows_env_placeholder(), test_token_guard_flags_literal()
 
 ### Community 50 - "00 — MASTER PLAN: The Execution Operating System"
 Cohesion: 0.20
 Nodes (10): 00 — MASTER PLAN: The Execution Operating System, 0.1 What this blueprint is — and is not, 0.2 Document map (reading order for a new contributor), 0.3 Mission restated (one sentence, from Charter §1), 0.4 Execution model, 0.5 Task metadata conventions, 0.6 Global Definition of Ready (DoR), 0.7 Global Definition of Done (DoD) (+2 more)
 
-### Community 51 - "Coding Conventions"
-Cohesion: 0.20
-Nodes (9): Code Style, Coding Conventions, Comments, Error Handling, Function Design, Import Organization, Logging, Module Design (+1 more)
+### Community 51 - "Naming Patterns"
+Cohesion: 0.15
+Nodes (9): Code Style, Coding Conventions, Comments, Function Design, Import Organization, Module Design, Naming Patterns, hybrid_color() (+1 more)
 
 ### Community 52 - "Testing Patterns"
-Cohesion: 0.20
-Nodes (9): Common Patterns, Coverage, Fixtures and Factories, Mocking, Test File Organization, Test Framework, Test Structure, Test Types (+1 more)
+Cohesion: 0.18
+Nodes (10): Common Patterns, Coverage, Fixtures and Factories, Mocking, Test File Organization, Test Framework, Test Structure, Test Types (+2 more)
 
-### Community 53 - "maybe-graphify-update.js"
-Cohesion: 0.31
-Nodes (9): currentBranch(), defaultBranch(), findGraphifyBin(), fs, isHeadAdvancing(), maybeGraphifyUpdate(), path, readConfig() (+1 more)
+### Community 53 - "ModelBuildResult"
+Cohesion: 0.07
+Nodes (19): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries, Files Created/Modified, build_report(), BuildReport, ModelBuildResult, _monthly_mart_coverage() (+11 more)
 
 ### Community 54 - "Requirements: Energy Procurement Risk Analyzer (EPRA)"
 Cohesion: 0.20
@@ -408,15 +446,15 @@ Nodes (9): Analytical Questions (Charter Q1–Q4), Extensions, Governance & Qual
 
 ### Community 55 - "format.py"
 Cohesion: 0.20
-Nodes (9): format_eur(), format_eur_millions(), format_eur_mwh(), format_pct(), Euro / unit formatting — the ONE shared formatter module (RP-703).  Conventions, Whole euros with thousands separators: 1234567.8 → ``€1,234,568``., Millions of euros: 1_420_000 → ``€1.42 M``., Unit price with 1 decimal: 123.456 → ``123.5 EUR/MWh``. (+1 more)
+Nodes (4): format_eur(), format_eur_millions(), format_eur_mwh(), format_pct()
 
 ### Community 56 - "3. Build order and gates (from Charter §7 — expanded into agent tasks)"
 Cohesion: 0.22
 Nodes (9): 3. Build order and gates (from Charter §7 — expanded into agent tasks), M0 — Bootstrap, M1 — ENTSO-E ingestion, M2 — Auxiliary data, M3 — dbt warehouse, M4 — Consumer profile, M5 — Analytics, M6 — Strategies (+1 more)
 
 ### Community 57 - "07 — QUALITY STANDARDS (measurable thresholds)"
-Cohesion: 0.22
-Nodes (9): 07 — QUALITY STANDARDS (measurable thresholds), 7.1 Code, 7.2 Runtime & memory budgets, 7.3 Determinism & reproducibility (hard, all from SPECs), 7.4 Scientific correctness, 7.5 Data quality, 7.6 Visualization (RP-70x, restated as pass/fail), 7.7 Documentation completeness (+1 more)
+Cohesion: 0.25
+Nodes (8): 07 — QUALITY STANDARDS (measurable thresholds), 7.1 Code, 7.2 Runtime & memory budgets, 7.3 Determinism & reproducibility (hard, all from SPECs), 7.4 Scientific correctness, 7.5 Data quality, 7.6 Visualization (RP-70x, restated as pass/fail), 7.7 Documentation completeness
 
 ### Community 58 - "SPEC-04 — Market Analytics (modules A1–A4)"
 Cohesion: 0.22
@@ -426,33 +464,29 @@ Nodes (8): §5 Degree-day definitions, §6 Deliverables checklist for M5 (all mu
 Cohesion: 0.22
 Nodes (8): 1. Artifact inventory, 2. Executive charts (exactly these four, in `reports/executive_charts/`), 3. Chart data flow, 4. Power BI dashboard (manual step, precisely specified), 5. `reports/EXEC_SUMMARY.md` (≤ 2 pages, structure mandatory), 6. README.md structure (order mandatory), 7. Chart standards (apply to every PNG in the repo), SPEC-06 — Reporting, Dashboard, README
 
-### Community 60 - "Architecture"
-Cohesion: 0.22
-Nodes (8): Architecture, Cross-Cutting Concerns, Data Flow, Entry Points, Error Handling, Key Abstractions, Layers, Pattern Overview
+### Community 60 - "Phase 4: M3 dbt Warehouse - Research"
+Cohesion: 0.05
+Nodes (38): Anti-Patterns to Avoid, Applicable ASVS Categories, Architecture Patterns, Assumptions Log, Claude's Discretion, Code Examples, Deferred Ideas (OUT OF SCOPE), Don't Hand-Roll (+30 more)
 
 ### Community 61 - "External Integrations"
-Cohesion: 0.22
-Nodes (8): APIs & External Services, Authentication & Identity, CI/CD & Deployment, Data Storage, Environment Configuration, External Integrations, Monitoring & Observability, Webhooks & Callbacks
+Cohesion: 0.25
+Nodes (7): APIs & External Services, Authentication & Identity, CI/CD & Deployment, Environment Configuration, External Integrations, Monitoring & Observability, Webhooks & Callbacks
 
 ### Community 62 - "Phase 1: M0 Bootstrap Verification Report"
 Cohesion: 0.22
 Nodes (8): Gaps Summary, Goal Achievement, Human Verification Required, Observable Truths, Phase 1: M0 Bootstrap Verification Report, Required Artifacts, Requirements Coverage, Verification Metadata
 
-### Community 63 - "Fixed Issues"
-Cohesion: 0.22
-Nodes (8): CR-01: `iter_chunks` groups 3 raw calendar months without bounding the window to ING-030's 90-day maximum, CR-02: Error-detail fallback can leak the real `securityToken` via `str(exc)` when the HTTP error response has no body, Fixed Issues, Phase EPRA-02: Code Review Fix Report — M1 ENTSO-E Ingestion, Skipped Issues, WR-01: `latest_complete_month`'s "complete" check only requires >=1 row per UTC day, not full-hour coverage, WR-02: Cache and parquet-writer temp files are not process-unique — concurrent runs can race on the same `.tmp` path, WR-03: `_dataset_root`/`_now_utc` helpers are independently reimplemented across modules
+### Community 63 - "CR-01: `iter_chunks` groups 3 raw calendar months without bounding the window to ING-030's 90-day maximum"
+Cohesion: 0.15
+Nodes (9): CR-01: `iter_chunks` groups 3 raw calendar months without bounding the window to ING-030's 90-day maximum, Fixed Issues, Phase EPRA-02: Code Review Fix Report — M1 ENTSO-E Ingestion, Skipped Issues, WR-03: `_dataset_root`/`_now_utc` helpers are independently reimplemented across modules, test_iter_chunks_apr_may_jun_91_day_span_is_split_not_rejected(), test_iter_chunks_covers_full_window_with_no_gaps_or_overlaps(), test_iter_chunks_never_exceeds_90_days_across_2019_2025() (+1 more)
 
-### Community 64 - "load_consumer_profile"
-Cohesion: 0.28
-Nodes (9): load_consumer_profile(), load_strategy_config(), Any, Path, Load and validate ``config/consumer_profile.yaml`` (LP-002)., Load and validate ``config/strategies.yaml`` (ST-003)., _read_yaml(), test_consumer_profile_matches_spec03() (+1 more)
+### Community 64 - "load_strategy_config"
+Cohesion: 0.12
+Nodes (12): 2026-07-19 — Execution Blueprint (planning deliverable, owner-requested), 2026-07-19 — M0 Bootstrap (complete) + breadth foundation, 2026-07-22 — M1 live backfill run: two data-loss bugs found and fixed, 2026-07-24 — M3 dbt Warehouse (SPEC-02) — both builds green, schema contract byte-matched, BUILD_LOG (append-only, per AGENTS.md W-5), Fragile Areas, Pitfall 3: Calendar horizon coupling to M6 config, load_consumer_profile() (+4 more)
 
-### Community 65 - "geosphere.py"
-Cohesion: 0.22
-Nodes (8): discover_station(), ingest(), main(), date, GeoSphere Austria ingestion — daily mean temperature, Graz (M2).  Not yet implem, ING-091 discovery: return the chosen station's id/name/lat/lon.      The result, Ingest daily temperatures into monthly parquet per SPEC-01 §7 contract., CLI: ``python -m epra.ingest.geosphere --start YYYY-MM-DD --end YYYY-MM-DD`` (IN
-
-### Community 66 - "conftest.py"
-Cohesion: 0.28
-Nodes (8): _ensure_entsoe_fixtures_dir(), entsoe_fixtures_dir(), Path, Shared pytest fixtures for ingest tests — tmp_path-backed Settings and the commi, Create `tests/fixtures/entsoe/` with a placeholder README if it's empty.      Ru, `Settings` with `data_raw`, `data_cache`, and `reports` redirected to `tmp_path`, Path to the committed ENTSO-E fixture directory (ING-070, T1.03a)., tmp_settings()
+### Community 65 - "ingest"
+Cohesion: 0.12
+Nodes (14): 08 — DESIGN PATTERNS: exactly where each belongs, Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries, Files Created/Modified, _default_data_transport(), _fetch_geosphere(), ingest() (+6 more)
 
 ### Community 67 - "M3 — dbt warehouse (SPEC-02)"
 Cohesion: 0.25
@@ -474,29 +508,29 @@ Nodes (8): 06 — CHECKLISTS, 6.1 Global implementation checklist (every PR), 6.
 Cohesion: 0.25
 Nodes (8): 1. Epistemic tags, 2. ADRs (Architecture Decision Records), 3. SSOT mechanism, 4. CI gates summary (defined in SPEC-07 §8; listed here as the quality contract), 5. Data quality gates index (where they live), 6. LIMITATIONS.md (must contain at least these sections, honestly written), 7. What deliberately does NOT exist here, SPEC-08 — Governance & Quality (deliberately lightweight)
 
-### Community 72 - "db.py"
-Cohesion: 0.29
-Nodes (7): DuckDBPyConnection, connect(), Path, DuckDB warehouse access (DM-001).  One helper, one file: ``data/warehouse/epra.d, Absolute path of the DuckDB warehouse file., Open the project warehouse, creating its parent directory if needed., warehouse_path()
+### Community 72 - "connect"
+Cohesion: 0.22
+Nodes (3): Data Storage, connect(), warehouse_path()
 
 ### Community 73 - "LIMITATIONS"
-Cohesion: 0.25
+Cohesion: 0.22
 Nodes (8): 1. The consumer load profile is constructed, not measured, 2. ÖSPI as forward/contract price proxy, 3. The fixed-price premium is an assumption, 4. The bootstrap cannot simulate an unprecedented regime, 5. Grid fees, taxes, and levies are excluded, 6. Data-quality caveats for 2025, 7. No forecast-skill claim, LIMITATIONS
 
 ### Community 74 - "Technology Stack"
 Cohesion: 0.25
 Nodes (7): Configuration, Frameworks, Key Dependencies, Languages, Platform Requirements, Runtime, Technology Stack
 
-### Community 75 - "Codebase Structure"
-Cohesion: 0.25
-Nodes (7): Codebase Structure, Directory Layout, Directory Purposes, Key File Locations, Naming Conventions, Special Directories, Where to Add New Code
+### Community 75 - "setup"
+Cohesion: 0.11
+Nodes (15): 6. Logging & errors, Architecture, Cross-Cutting Concerns, Entry Points, Layers, Pattern Overview, Logging, Codebase Structure (+7 more)
 
-### Community 76 - "build-session-briefing.js"
-Cohesion: 0.39
-Nodes (7): buildSessionBriefing(), findContinueHere(), findPlanningRoot(), fs, headLines(), path, resolveRepoRoot()
+### Community 76 - "discover_station"
+Cohesion: 0.08
+Nodes (27): ADR-007: GeoSphere station selection (ING-091), Consequences, Context, Decision, Spec deviations, Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries (+19 more)
 
 ### Community 77 - "Phase 2 — Validation Strategy"
-Cohesion: 0.25
-Nodes (7): Manual-Only Verifications, Per-Task Verification Map, Phase 2 — Validation Strategy, Sampling Rate, Test Infrastructure, Validation Sign-Off, Wave 0 Requirements
+Cohesion: 0.14
+Nodes (11): ADR-006: Validation gates assert over complete Vienna-local years within the ingested window, Context, Decision, Spec deviations, Manual-Only Verifications, Per-Task Verification Map, Phase 2 — Validation Strategy, Sampling Rate (+3 more)
 
 ### Community 78 - "Ingestion validation report — 2026-07-22"
 Cohesion: 0.25
@@ -518,9 +552,9 @@ Nodes (7): 04 — DEPENDENCY GRAPHS, CRITICAL PATH, PARALLELISM, 4.1 Module depe
 Cohesion: 0.29
 Nodes (6): Claude Code ↔ Cursor Continuity, Graphify, Hook behavior (local), Skill sync (after `/gsd-update`), Source of truth, Switch / resume protocol
 
-### Community 83 - "run-graphify-rebuild.js"
-Cohesion: 0.29
-Nodes (5): fs, path, { spawnSync }, status, [statusFile, lockFile, headSha, msStart, graphifyBin, repoRoot]
+### Community 83 - "test_geosphere.py"
+Cohesion: 0.12
+Nodes (23): _fixture_geojson(), _fixture_metadata(), _settings(), _sleep_calls(), test_discover_station_filters_out_non_graz_and_shorter_records(), test_discover_station_prefers_graz_universitaet(), test_discover_station_raises_when_no_graz_station(), test_discover_station_rejects_malformed_top_level_shape() (+15 more)
 
 ### Community 84 - "Onboarding Summary"
 Cohesion: 0.29
@@ -531,32 +565,28 @@ Cohesion: 0.29
 Nodes (6): 1. Live backfill produces four dataset trees under data/raw/, 2. make validate-ingest reports ING-080..085 PASS on real data, Current Test, Gaps, Summary, Tests
 
 ### Community 86 - "Energy Procurement Risk Analyzer (EPRA)"
-Cohesion: 0.29
-Nodes (7): Architecture, Data sources, Energy Procurement Risk Analyzer (EPRA), How to reproduce (once M1+ lands), License & author, Project status, What is real vs. modeled
+Cohesion: 0.15
+Nodes (13): Architecture, Author, Data, Energy Procurement Risk Analyzer (EPRA), Explore this project, License, Limitations, Method (+5 more)
 
-### Community 87 - "reconcile"
-Cohesion: 0.43
-Nodes (6): main(), Path, ÖSPI double-entry reconciliation (ING-101).  Workflow: a human (or two independe, Diff the two transcriptions; write ``out`` only if they fully agree., _read(), reconcile()
+### Community 87 - "oespi_reconcile.py"
+Cohesion: 0.36
+Nodes (3): main(), _read(), reconcile()
 
-### Community 88 - "StrategyCfg"
-Cohesion: 0.33
-Nodes (6): SPEC-05 §8 schema — all simulator tunables (ST-003)., StrategyCfg, compute_anchors(), DataFrame, Calibration anchors — 2019 reference prices and ÖSPI base values (M6).  Not yet, Return the four anchors as a one-row frame; persisted for SSOT (ST-204).
+### Community 88 - "gate_ing_111"
+Cohesion: 0.10
+Nodes (20): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness (+12 more)
 
-### Community 89 - "test_logging_and_db.py"
-Cohesion: 0.33
-Nodes (5): Shared infrastructure: settings, logging, time handling, warehouse access., Path, Tests for epra.common.logging (EN-060) and epra.common.db (DM-001)., test_db_connect_creates_warehouse(), test_logging_setup_is_idempotent()
+### Community 89 - "geosphere.py"
+Cohesion: 0.10
+Nodes (7): load_settings(), main(), _dataset_root(), main(), _write_report(), test_db_connect_creates_warehouse(), test_logging_setup_is_idempotent()
 
-### Community 90 - "calendar.py"
-Cohesion: 0.29
-Nodes (6): build_calendar(), main(), DataFrame, Calendar generation — hourly spine with Austrian/Styrian holidays (M2).  Not yet, Return the hourly calendar frame per ING-110 (also persisted to parquet)., CLI: ``python -m epra.ingest.calendar`` (ING-002).
+### Community 90 - "build_calendar"
+Cohesion: 0.10
+Nodes (17): Files Created/Modified, Integration Points, 1. Real ÖSPI double-entry transcription and reconciliation, Anti-Patterns Found, Behavioral Spot-Checks, Gaps Summary, Goal Achievement, Human Verification Required (+9 more)
 
-### Community 91 - "oespi.py"
-Cohesion: 0.29
-Nodes (6): load_oespi(), main(), DataFrame, ÖSPI loader — hand-curated monthly index CSV (M2).  Not yet implemented. Binding, Load + gate-check the reconciled ÖSPI CSV; returns month-indexed frame., CLI: ``python -m epra.ingest.oespi`` — validate the committed CSV (ING-103).
-
-### Community 92 - "_write_report"
-Cohesion: 0.29
-Nodes (6): _last_sunday(), date, Path, First day-of-month's last Sunday — used for the ING-080 DST check dates., Render the full report: header, overall status, then every gate section., _write_report()
+### Community 91 - "ContractError"
+Cohesion: 0.08
+Nodes (31): ADR-008: ÖSPI series methodology — one pinned source, pending human confirmation (ING-102), Consequences, Context, Decision, Spec deviations, Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries (+23 more)
 
 ### Community 93 - "ADR-001: Light governance per SPEC-08; governance-bootstrap kit NOT vendored"
 Cohesion: 0.33
@@ -574,17 +604,17 @@ Nodes (5): ADR-003: EntsoeRawClient as transport; own Appendix-A parsers (adopts
 Cohesion: 0.33
 Nodes (5): ADR-004: pyarrow as the pandas parquet engine for ingestion I/O, Consequences, Context, Decision, Spec deviations
 
-### Community 97 - "ADR-005: latest_complete_month() = min(AT prices, DE-LU prices) (adopts SG-02)"
-Cohesion: 0.33
-Nodes (5): ADR-005: latest_complete_month() = min(AT prices, DE-LU prices) (adopts SG-02), Consequences, Context, Decision, Spec deviations
+### Community 97 - "test_bootstrap_fixture_warehouse.py"
+Cohesion: 0.17
+Nodes (10): _dummy_raw_price_file(), _read_dataset(), _run(), test_default_window_covers_2022_2024_with_dst_days_and_crisis_month(), test_determinism_same_seed_identical_data_across_two_runs(), test_force_guard_proceeds_with_force(), test_force_guard_refuses_populated_manual_oespi_without_force(), test_force_guard_refuses_populated_raw_without_force() (+2 more)
 
-### Community 98 - "ADR-006: Validation gates assert over complete Vienna-local years within the ingested window"
-Cohesion: 0.33
-Nodes (5): ADR-006: Validation gates assert over complete Vienna-local years within the ingested window, Consequences, Context, Decision, Spec deviations
+### Community 98 - "parse_publication_xml"
+Cohesion: 0.25
+Nodes (18): parse_publication_xml(), _read(), test_infer_resolution_matches_load_fixture(), test_infer_resolution_matches_pt15m_fixture(), test_infer_resolution_matches_pt60m_fixture(), test_parse_gl_xml_acknowledgement_raises_no_data_error(), test_parse_gl_xml_generation_long_format(), test_parse_gl_xml_load_columns() (+10 more)
 
-### Community 99 - "BUILD_LOG (append-only, per AGENTS.md W-5)"
-Cohesion: 0.33
-Nodes (5): 2026-07-19 — Execution Blueprint (planning deliverable, owner-requested), 2026-07-19 — M0 Bootstrap (complete) + breadth foundation, 2026-07-21 — M1 ENTSO-E Ingestion (automated deliverables complete; live-data gate pending operator), 2026-07-22 — M1 live backfill run: two data-loss bugs found and fixed, BUILD_LOG (append-only, per AGENTS.md W-5)
+### Community 99 - "Phase 3: M2 Auxiliary Data - Research"
+Cohesion: 0.10
+Nodes (20): Architectural Responsibility Map, Assumptions Log, Claude's Discretion, Core, Deferred Ideas (OUT OF SCOPE), Environment Availability, Locked Decisions, Metadata (+12 more)
 
 ### Community 100 - "M4 — Consumer profile (SPEC-03)"
 Cohesion: 0.33
@@ -594,29 +624,21 @@ Nodes (6): M4 — Consumer profile (SPEC-03), T4.01 — Weight engine (algorithm
 Cohesion: 0.33
 Nodes (5): Accomplishments, Files Created/Modified, Next Phase Readiness, Phase 1: M0 Bootstrap Summary, Task Commits
 
-### Community 102 - "Info"
-Cohesion: 0.33
-Nodes (5): IN-01: `ingested_at_utc` provenance column is a plain ISO string, inconsistent with `ts_utc`'s tz-aware timestamp dtype, IN-02: Fixture provenance documentation is inconsistent between `conftest.py`'s README template and `test_raw_contracts.py`'s docstring, Info, Phase EPRA-02: Code Review Report — M1 ENTSO-E Ingestion (Iteration 2), Summary
+### Community 102 - "_ensure_entsoe_fixtures_dir"
+Cohesion: 0.25
+Nodes (5): IN-01: `ingested_at_utc` provenance column is a plain ISO string, inconsistent with `ts_utc`'s tz-aware timestamp dtype, IN-02: Fixture provenance documentation is inconsistent between `conftest.py`'s README template and `test_raw_contracts.py`'s docstring, Info, Phase EPRA-02: Code Review Report — M1 ENTSO-E Ingestion (Iteration 2), _ensure_entsoe_fixtures_dir()
 
-### Community 103 - "check_file"
-Cohesion: 0.47
-Nodes (5): check_file(), main(), Path, Pre-commit guard: no ENTSO-E token literal anywhere in the repo (EN-003, A-7)., Return violation descriptions ('file:line') for one file.
+### Community 104 - "parse_geojson"
+Cohesion: 0.10
+Nodes (16): Common Pitfalls, Phase Requirements → Test Map, Pitfall 1: `_io.write_month()` rejects GeoSphere's date-keyed frame out of the box, Pitfall 2: Splicing the two ÖSPI methodologies, Pitfall 4: `holidays.Austria(subdiv='6', years=...)` needs a dynamic year range, not a fixed list, Pitfall 5: GeoSphere response parsing — GeoJSON nesting, not a flat table, Pitfall 6: ING-080-style false-missing-hours does NOT apply to daily GeoSphere data the same way, but coverage arithmetic still needs the right denominator, Sampling Rate (+8 more)
 
-### Community 104 - "ingest_dataset"
-Cohesion: 0.33
-Nodes (6): ingest_dataset(), Fetch, parse, and persist one §7 dataset over `[start, end]` (ING-001, ING-030)., _cache_request_url(), Deterministic, cache-key-only URL — never sent over the network.      `EntsoeR, sha256 hex digest of ``url`` with the ``securitytoken`` query param removed., request_hash()
+### Community 105 - "Phase 4: M3 dbt Warehouse - Context"
+Cohesion: 0.10
+Nodes (19): Canonical References, CI fixture bootstrap (Area B — SG-06, T3.06), Claude's Discretion, Contract & ADR governance (Area D — SG-05, T3.05), Deferred Ideas, Downstream consumers (context, not modified here), Established Patterns, Existing Code Insights (+11 more)
 
-### Community 105 - "style.py"
-Cohesion: 0.40
-Nodes (5): hybrid_color(), _interpolate_hex(), Chart style constants — colors defined ONCE, stable across every chart (RP-704)., Linear RGB interpolation between two hex colors, t ∈ [0, 1]., Color for HYBRID_h: interpolate S1 (spot, ratio 0) → S3 (fixed, ratio 1).
-
-### Community 106 - "forward_risk.py"
-Cohesion: 0.33
-Nodes (5): main(), Forward risk engine — seasonal block bootstrap, next 12 months (M6, Q3).  Not ye, Simulate N seeded paths; write forward_risk_summary + charts., CLI: ``python -m epra.strategies.forward_risk`` (ST-002)., run()
-
-### Community 107 - "retrospective.py"
-Cohesion: 0.33
-Nodes (5): main(), Retrospective engine — what each strategy actually cost, 2021-2025 (M6, Q1).  No, Compute cost(strategy, year, month) for 2021-2025 + sensitivities., CLI: ``python -m epra.strategies.retrospective`` (ST-002)., run()
+### Community 107 - "Key Abstractions"
+Cohesion: 0.18
+Nodes (4): Key Abstractions, run(), main(), run()
 
 ### Community 108 - "10 — VALIDATION GATES: the no-progression ladder"
 Cohesion: 0.40
@@ -638,13 +660,13 @@ Nodes (4): BLOCKERS (0), Conflict Detection Report, INFO (6), WARNINGS (11)
 Cohesion: 0.40
 Nodes (4): Objective, Phase 1 (M0 Bootstrap) — Plan 01: Repo, tooling, CI, pipeline skeleton, Requirements, Scope delivered (see commit c043933)
 
-### Community 114 - "Deferred Items — EPRA-02 M1 ENTSO-E Ingestion"
-Cohesion: 0.40
-Nodes (4): Deferred Items — EPRA-02 M1 ENTSO-E Ingestion, From 02-02 (raw parquet writer `_io`), From 02-05 (ingest orchestration, CLI, Makefile), From 02-06 (validation gate framework, `validate-ingest`)
+### Community 114 - "test_entsoe_token_fails_fast_when_unset"
+Cohesion: 0.32
+Nodes (6): Issues Encountered, Deferred Items — EPRA-02 M1 ENTSO-E Ingestion, From 02-02 (raw parquet writer `_io`), From 02-05 (ingest orchestration, CLI, Makefile), From 02-06 (validation gate framework, `validate-ingest`), test_entsoe_token_fails_fast_when_unset()
 
-### Community 115 - "logging.py"
-Cohesion: 0.40
-Nodes (4): Path, Logging setup — stdlib logging, one canonical format.  Implements: EN-060 (forma, Configure root logging: INFO to stdout; optionally also to ``logfile``.      Ide, setup()
+### Community 115 - "Phase 3: M2 Auxiliary Data - Context"
+Cohesion: 0.11
+Nodes (17): Binding spec (authority), Calendar forward horizon (SPEC-01 §11 · SG-15), Canonical References, Claude's Discretion, Deferred Ideas, Established Patterns, Existing Code Insights, Implementation Decisions (+9 more)
 
 ### Community 117 - "02 — WORK BREAKDOWN STRUCTURE"
 Cohesion: 0.50
@@ -654,49 +676,201 @@ Nodes (4): 02 — WORK BREAKDOWN STRUCTURE, TP.01 — Activate ENTSO-E token `[H
 Cohesion: 0.50
 Nodes (3): ADR-001: Light governance per SPEC-08; governance-bootstrap kit NOT vendored, ADR-002: Dev-only typing-stub packages for mypy --strict, Synthesized Decisions (ADRs)
 
-### Community 119 - "4. Scope"
-Cohesion: 0.50
-Nodes (4): 4.1 In scope, 4.2 Explicitly OUT of scope (do not build these, even if tempting), 4.3 Analysis window, 4. Scope
+### Community 119 - "MonkeyPatch"
+Cohesion: 0.15
+Nodes (11): test_backfill_iterates_all_four_dataset_keys_in_order(), spy_ingest_dataset(), test_ingest_incremental_uses_45_day_lookback_from_today(), test_main_backfill_defaults_start_and_uses_latest_complete_month(), test_main_backfill_falls_back_to_conservative_end_when_no_data(), test_main_backfill_invokes_backfill_with_explicit_window(), fake_backfill(), test_main_backfill_no_cache_flag_forwarded() (+3 more)
 
-### Community 120 - "descriptive.py"
-Cohesion: 0.50
-Nodes (3): A1 — Descriptive market structure (M5).  Not yet implemented. Binding contract:, Produce all A1 artifacts from marts; deterministic (AN-705)., run()
+### Community 120 - "test_calendar.py"
+Cohesion: 0.16
+Nodes (4): calendar_frame(), test_build_calendar_ing_111_holiday_count_and_fixed_holidays(), test_build_calendar_ing_111_peak_hours(), test_build_calendar_spine_covers_2019_through_end()
 
-### Community 121 - "regimes.py"
-Cohesion: 0.50
-Nodes (3): A3 — Volatility regimes: HMM + GARCH complement (M5, build LAST).  Not yet imple, Produce all A3 artifacts from marts; seeded, deterministic (AN-705)., run()
+### Community 121 - "Settings"
+Cohesion: 0.07
+Nodes (23): 7.8 Coding standards (beyond lint — normative), Error Handling, Error Handling, God Nodes (most connected - your core abstractions), Pattern Assignments, `src/epra/ingest/entsoe.py` (service, batch + file-I/O), `src/epra/ingest/_fetch.py` (service, request-response), `src/epra/ingest/_io.py` (utility, file-I/O) (+15 more)
 
-### Community 122 - "spread.py"
-Cohesion: 0.50
-Nodes (3): A2 — AT vs DE-LU spread (M5).  Not yet implemented. Binding contract: SPEC-04 A2, Produce all A2 artifacts from marts; deterministic (AN-705)., run()
+### Community 122 - "_fetch.py"
+Cohesion: 0.16
+Nodes (3): _cache_path(), _cache_root(), _default_transport()
 
-### Community 123 - "weather.py"
-Cohesion: 0.50
-Nodes (3): A4 — Weather & load sensitivity (M5, deliberately small).  Not yet implemented., Produce a4_load_vs_hdd.png + a4_load_weather.md from marts., run()
+### Community 123 - "Phase EPRA-04 Plan 02: Staging Models (8 views) Summary"
+Cohesion: 0.15
+Nodes (12): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance (+4 more)
 
-### Community 124 - "charts.py"
+### Community 124 - "Phase EPRA-04 Plan 04: Price/Generation Marts (fct_price_hourly/daily/monthly, fct_generation_monthly) Summary"
+Cohesion: 0.15
+Nodes (12): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance (+4 more)
+
+### Community 135 - "is_peak_hour"
+Cohesion: 0.17
+Nodes (12): ADR-011: One holiday-aware `is_peak_hour` drives every peak-price computation, Consequences, Context, Decision, Spec deviations, 14 — SPECIFICATION GAPS & AMBIGUITY RESOLUTIONS, SPEC-01: Calendar generation, Artifacts this phase produces (this plan) (+4 more)
+
+### Community 138 - "Phase EPRA-04 Plan 05: Fixture/Stand-in Generator + Future Marts (D-04, SG-06) Summary"
+Cohesion: 0.15
+Nodes (12): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance (+4 more)
+
+### Community 139 - "Phase EPRA-04 Plan 06: DM-050/062/064/065/066 Test Suite + D-07 Schema Contract Summary"
+Cohesion: 0.15
+Nodes (12): Accomplishments, Auto-fixed Issues, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance (+4 more)
+
+### Community 140 - "test_entsoe_orchestration.py"
+Cohesion: 0.24
+Nodes (5): _full_month_price_frame(), _partial_month_price_frame(), test_latest_complete_month_excludes_incomplete_month(), test_latest_complete_month_raises_when_no_data_ingested(), test_latest_complete_month_returns_min_of_at_and_delu()
+
+### Community 142 - "_validate_date_key"
+Cohesion: 0.27
+Nodes (6): Accomplishments, Decisions Made, Files Created/Modified, _month_bounds(), _validate_date_key(), _validate_ts_utc_key()
+
+### Community 143 - "Phase EPRA-04 Plan 01: dbt Foundation — Schema Macro, Sources, Helper Macros Summary"
+Cohesion: 0.17
+Nodes (11): Accomplishments, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-04 Plan 01: dbt Foundation — Schema Macro, Sources, Helper Macros Summary (+3 more)
+
+### Community 144 - "Phase EPRA-04 Plan 03: dim_calendar + dims.yml (DM-060) Summary"
+Cohesion: 0.17
+Nodes (11): Accomplishments, Decisions Made, Deviations from Plan, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-04 Plan 03: dim_calendar + dims.yml (DM-060) Summary (+3 more)
+
+### Community 145 - "Phase EPRA-04 Plan 07: D-02 Build-Report Writer + Makefile Operator Interface Summary"
+Cohesion: 0.18
+Nodes (10): Auto-fixed Issues, Decisions Made, Deviations from Plan, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-04 Plan 07: D-02 Build-Report Writer + Makefile Operator Interface Summary, Self-Check: PASSED (+2 more)
+
+### Community 146 - "Phase EPRA-04 Plan 08: CI dbt-check Job + M3 Close-Out Summary"
+Cohesion: 0.18
+Nodes (10): Accomplishments, Decisions Made, Files Created/Modified, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-04 Plan 08: CI dbt-check Job + M3 Close-Out Summary, Self-Check: PASSED (+2 more)
+
+### Community 147 - "Ingestion validation report — 2026-07-23"
+Cohesion: 0.18
+Nodes (10): ING-080 — PASS, ING-081 — PASS, ING-082 — PASS, ING-083 — PASS, ING-084 — PASS, ING-085 — PASS, ING-094 — PASS, ING-103 — PASS (+2 more)
+
+### Community 149 - "Phase EPRA-03 Plan 01: write_month key_column dispatcher Summary"
+Cohesion: 0.20
+Nodes (9): Deviations from Plan, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-03 Plan 01: write_month key_column dispatcher Summary, Self-Check: PASSED, TDD Gate Compliance, User Setup Required (+1 more)
+
+### Community 150 - "Phase EPRA-03 Plan 02: Calendar hourly spine (ING-110/111) Summary"
+Cohesion: 0.20
+Nodes (9): Auto-fixed Issues, Deviations from Plan, Issues Encountered, Next Phase Readiness, Performance, Phase EPRA-03 Plan 02: Calendar hourly spine (ING-110/111) Summary, Self-Check: PASSED, Task Commits (+1 more)
+
+### Community 151 - "Shared Patterns"
+Cohesion: 0.20
+Nodes (9): CLI script shape (`argparse` + `main(argv) -> int` + `sys.exit`/`raise SystemExit`), Contract-table-as-YAML + parametrized pytest diff, DuckDB access via shared helper, `Implements: XXX-nnn` spec-ID citation, Metadata, No Analog Found, Phase 4: M3 dbt Warehouse - Pattern Map, Shared Patterns (+1 more)
+
+### Community 152 - "test_marts_contract.py"
+Cohesion: 0.24
+Nodes (3): _actual_columns(), _expected_columns(), test_mart_schema_matches_contract()
+
+### Community 153 - "Phase 3: M2 Auxiliary Data - Discussion Log"
+Cohesion: 0.25
+Nodes (7): Calendar horizon (SG-15 / ING-110), Claude's Discretion, Deferred Ideas, Phase 3: M2 Auxiliary Data - Discussion Log, Real-data boundary & phase close, ÖSPI series & fallback (ING-102 / ING-104), ÖSPI transcription (ING-101 double-entry)
+
+### Community 154 - "Phase 3 — Validation Strategy"
+Cohesion: 0.25
+Nodes (7): Manual-Only Verifications, Per-Task Verification Map, Phase 3 — Validation Strategy, Sampling Rate, Test Infrastructure, Validation Sign-Off, Wave 0 Requirements
+
+### Community 155 - "Phase 4: M3 dbt Warehouse - Discussion Log"
+Cohesion: 0.25
+Nodes (7): CI fixture bootstrap, Claude's Discretion, Contract & ADR governance, Deferred Ideas, Future-mart stand-ins, Phase 4: M3 dbt Warehouse - Discussion Log, Real-data close boundary
+
+### Community 156 - "Phase 4 — Validation Strategy"
+Cohesion: 0.25
+Nodes (7): Manual-Only Verifications, Per-Task Verification Map, Phase 4 — Validation Strategy, Sampling Rate, Test Infrastructure, Validation Sign-Off, Wave 0 Requirements
+
+### Community 158 - "5.1 M1 — ENTSO-E"
+Cohesion: 0.29
+Nodes (7): 5.1 M1 — ENTSO-E, A03 forward-fill (ING-063), Chunking loop shape, Client strategy (SG-01, adopt via ADR in T1.02's commit range), ING-082 failure investigation protocol (do IN ORDER, stop when found), Live backfill runbook (T1.10), Timezone recipe (T-1/T-4, do exactly this)
+
+### Community 159 - "Project Audit — 2026-09-30 (findings only, nothing fixed)"
+Cohesion: 0.29
+Nodes (6): 1. P0 — Blocks the deliverable, 3. P1 — Stale / wrong claims in docs and planning, 5. Additional findings from the docs-consistency pass, P1, P2, Project Audit — 2026-09-30 (findings only, nothing fixed)
+
+### Community 160 - "Pattern Assignments"
+Cohesion: 0.29
+Nodes (7): dbt models/macros/tests/YAML (D-01–D-08, T3.01–T3.06), `.github/workflows/ci.yml` `dbt-check` job (config, event-driven), `Makefile` `transform:` target (config, batch), Pattern Assignments, `scripts/bootstrap_fixture_warehouse.py` (utility, batch/file-I/O), `tests/unit/test_bootstrap_fixture_warehouse.py` (test, batch), `tests/unit/test_marts_contract.py` (test, request-response / schema-diff)
+
+### Community 161 - "Common Pitfalls"
+Cohesion: 0.29
+Nodes (7): Common Pitfalls, Pitfall 1: Relative-path mismatch between `dbt/` cwd and `data/`, Pitfall 2: Native `generate_schema_name` override breaks CI/dev isolation if ever multi-environment, Pitfall 3: `dbt/contracts/marts_contract.yml` silently ignored by dbt, Pitfall 4: 15-minute vs 60-minute resolution mixed-month aggregation off-by-one, Pitfall 5: TIMESTAMPTZ vs plain TIMESTAMP dtype mismatch across sources, Pitfall 6: `union_by_name` needed if any monthly parquet ever has reordered columns
+
+### Community 162 - "ADR-009: `generate_schema_name` override — literal `staging`/`marts` schemas"
+Cohesion: 0.33
+Nodes (5): ADR-009: `generate_schema_name` override — literal `staging`/`marts` schemas, Consequences, Context, Decision, Spec deviations
+
+### Community 163 - "ADR-010: CI fixture bootstrap synthesizes data at run time; environment-aligned data/processed stand-ins feed the local build too"
+Cohesion: 0.33
+Nodes (5): ADR-010: CI fixture bootstrap synthesizes data at run time; environment-aligned data/processed stand-ins feed the local build too, Consequences, Context, Decision, Spec deviations
+
+### Community 164 - "DiscoveryError"
+Cohesion: 0.33
+Nodes (4): epra.ingest.geosphere (T2.02–T2.03), DiscoveryError, _require_station_id(), fake_ingest()
+
+### Community 165 - "dbt build report — 2026-07-24"
+Cohesion: 0.33
+Nodes (5): 2022-08 reconciliation delta (DM-064) — PASS, dbt build report — 2026-07-24, fct_price_hourly row counts (DM-062) — PASS, future marts — PASS, monthly-mart month coverage (DM-050) — PASS
+
+### Community 167 - "test_ingest_dataset_pages_past_100_document_cap"
+Cohesion: 0.33
+Nodes (3): _synth_prices_xml(), test_ingest_dataset_pages_past_100_document_cap(), capped_transport()
+
+### Community 168 - "Architecture Patterns"
+Cohesion: 0.40
+Nodes (5): Architecture Patterns, Pattern 1: Extend the shared writer for date-keyed (non-hourly) raw datasets, Pattern 2: GeoSphere discovery-then-ingest, ADR-gated, Recommended Project Structure, System Architecture Diagram
+
+### Community 169 - "Code Examples"
+Cohesion: 0.40
+Nodes (5): Code Examples, Existing pattern to mirror: `_io.write_month`'s atomicity (already built, M1), Existing pattern to mirror: `latest_complete_month()` — the M1 function `calendar.py` must wire as its dynamic `--end` default (D-09), GeoSphere endpoint shape (CITED, not exhaustively verified against a live response this session), Verified: `holidays` package Austria/Styria subdivision (installed-package introspection, this session)
+
+### Community 172 - "04-01-PLAN.md"
 Cohesion: 0.50
-Nodes (3): Executive + module charts (M5/M7).  Not yet implemented. Binding contracts: SPEC, Write the four executive PNGs to reports/executive_charts/., render_executive_charts()
+Nodes (3): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries
+
+### Community 173 - "04-02-PLAN.md"
+Cohesion: 0.50
+Nodes (3): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries
+
+### Community 174 - "04-03-PLAN.md"
+Cohesion: 0.50
+Nodes (3): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries
+
+### Community 175 - "04-05-PLAN.md"
+Cohesion: 0.50
+Nodes (3): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries
+
+### Community 176 - "04-06-PLAN.md"
+Cohesion: 0.50
+Nodes (3): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries
+
+### Community 177 - "04-08-PLAN.md"
+Cohesion: 0.50
+Nodes (3): Artifacts this phase produces (this plan), STRIDE Threat Register, Trust Boundaries
+
+### Community 178 - "_marts_schema_populated"
+Cohesion: 0.50
+Nodes (3): Auto-fixed Issues, Deviations from Plan, _marts_schema_populated()
+
+### Community 179 - "Standard Stack"
+Cohesion: 0.50
+Nodes (4): Alternatives Considered, Core, Standard Stack, Supporting
+
+### Community 180 - "Deferred Items — EPRA-04 M3 dbt Warehouse"
+Cohesion: 0.50
+Nodes (3): 04-04, 04-07, Deferred Items — EPRA-04 M3 dbt Warehouse
 
 ## Knowledge Gaps
-- **808 isolated node(s):** `fs`, `path`, `fs`, `path`, `{ spawn, execSync }` (+803 more)
-  These have ≤1 connection - possible missing edges or undocumented components.
-- **18 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **941 isolated node(s):** `fs`, `path`, `fs`, `path`, `{ spawn, execSync }` (+936 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1414 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Settings` connect `Settings` to `entsoe.py`, `test_entsoe_orchestration.py`, `test_io.py`, `_fetch.py`, `run_gates`, `test_fetch.py`, `validate.py`, `_io.py`, `load_settings`, `config.py`, `geosphere.py`, `conftest.py`, `db.py`, `StrategyCfg`, `calendar.py`, `oespi.py`, `_write_report`, `ingest_dataset`, `forward_risk.py`, `retrospective.py`, `descriptive.py`, `regimes.py`, `spread.py`, `weather.py`, `charts.py`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Why does `02 — WORK BREAKDOWN STRUCTURE` connect `02 — WORK BREAKDOWN STRUCTURE` to `M3 — dbt warehouse (SPEC-02)`, `M4 — Consumer profile (SPEC-03)`, `M5 — Analytics (SPEC-04) — order A1→A2→A4→A3`, `M7 — Reporting, dashboard, refresh, release (SPEC-06, SPEC-07 §8)`, `M6 — Strategies (SPEC-05) — the heart; sequence is mandatory`, `M2 — Auxiliary data (SPEC-01 §§9–11) — merge FIRST (R-1)`, `00_MASTER_PLAN.md`, `M1 — ENTSO-E ingestion (SPEC-01 §§2–8) — merge after M2`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Are the 4 inferred relationships involving `Settings` (e.g. with `_DatasetSpec` and `EntsoeQuery`) actually correct?**
-  _`Settings` has 4 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `fs`, `path`, `fs` to the rest of the system?**
-  _808 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Communities (137 total, 18 thin omitted)` be split into smaller, more focused modules?**
-  _Cohesion score 0.01694915254237288 - nodes in this community are weakly interconnected._
-- **Should `entsoe.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.056429463171036205 - nodes in this community are weakly interconnected._
-- **Should `test_entsoe_orchestration.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.08 - nodes in this community are weakly interconnected._
+- **Why does `Settings` connect `Settings` to `Communities (142 total, 18 thin omitted)`, `entsoe.py`, `_read`, `test_io.py`, `Summary`, `Shared Patterns`, `test_fetch.py`, `run_gates`, `test_fetch_entsoe_cache_tmp_path_is_per_call_unique`, `test_entsoe_orchestration.py`, `_year_hourly`, `test_ingest_gates.py`, `write_month`, `fetch_entsoe`, `bootstrap_fixture_warehouse.py`, `Phase EPRA-02 Plan 01: Wave 0 Architecture Decisions Summary`, `latest_complete_month`, `SPEC-07 — Engineering, Tooling, CI/CD`, `config.py`, `DiscoveryError`, `test_ingest_dataset_pages_past_100_document_cap`, `build_profile`, `Naming Patterns`, `ModelBuildResult`, `test_calendar_main_writes_single_parquet_file`, `load_strategy_config`, `ingest`, `connect`, `setup`, `discover_station`, `test_geosphere.py`, `geosphere.py`, `build_calendar`, `ContractError`, `forward_risk.py`, `Key Abstractions`, `MonkeyPatch`, `_fetch.py`?**
+  _High betweenness centrality (0.254) - this node is a cross-community bridge._
+- **Why does `Communities (142 total, 18 thin omitted)` connect `Communities (142 total, 18 thin omitted)` to `run_gates`, `iter_month_starts`, `Graph Report - energy-procurement-risk-analyzer  (2026-07-22)`, `hourly_mean`?**
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
+- **Why does `is_peak_hour()` connect `is_peak_hour` to `timeutil.py`, `run_gates`, `Phase EPRA-04 Plan 05: Fixture/Stand-in Generator + Future Marts (D-04, SG-06) Summary`, `Specification gaps tracker (14_SPEC_GAPS)`, `Phase EPRA-04 Plan 03: dim_calendar + dims.yml (DM-060) Summary`, `write_month`, `bootstrap_fixture_warehouse.py`, `SPEC-02 — Data Model (DuckDB + dbt)`, `Codebase Concerns`, `04-03-PLAN.md`, `Phase 4: M3 dbt Warehouse - Research`, `load_strategy_config`, `LIMITATIONS`, `M2 — Auxiliary data (SPEC-01 §§9–11) — merge FIRST (R-1)`, `geosphere.py`, `build_calendar`, `ContractError`, `Phase 3: M2 Auxiliary Data - Research`, `Phase 4: M3 dbt Warehouse - Context`, `Phase 3: M2 Auxiliary Data - Context`, `Phase EPRA-04 Plan 04: Price/Generation Marts (fct_price_hourly/daily/monthly, fct_generation_monthly) Summary`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+- **Are the 141 inferred relationships involving `Settings` (e.g. with `7.8 Coding standards (beyond lint — normative)` and `08 — DESIGN PATTERNS: exactly where each belongs`) actually correct?**
+  _`Settings` has 141 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 47 inferred relationships involving `write_month()` (e.g. with `Decision` and `2026-07-21 — M1 ENTSO-E Ingestion (automated deliverables complete; live-data gate pending operator)`) actually correct?**
+  _`write_month()` has 47 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 44 inferred relationships involving `ContractError` (e.g. with `Context` and `Consequences`) actually correct?**
+  _`ContractError` has 44 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 19 inferred relationships involving `fetch_entsoe()` (e.g. with `God Nodes (most connected - your core abstractions)` and `Accomplishments`) actually correct?**
+  _`fetch_entsoe()` has 19 INFERRED edges - model-reasoned connections that need verification._

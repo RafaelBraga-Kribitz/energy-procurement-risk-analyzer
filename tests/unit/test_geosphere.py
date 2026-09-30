@@ -20,14 +20,16 @@ import json
 import time
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import pytest
 
 import epra.ingest.geosphere as geosphere_module
-from epra.common.config import Settings, load_settings
-from epra.ingest.exceptions import ContractError, DiscoveryError
+from epra.common import logging as common_logging
+from epra.common.config import REPO_ROOT, Settings, load_settings
+from epra.common.timeutil import iter_month_starts, today_local
+from epra.ingest.exceptions import ContractError, DiscoveryError, IngestTransportError
 from epra.ingest.geosphere import (
     StationInfo,
     _fetch_geosphere,
@@ -43,11 +45,11 @@ GEOJSON_FIXTURE_PATH = (
 
 
 def _fixture_metadata() -> dict[str, Any]:
-    return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(FIXTURE_PATH.read_text(encoding="utf-8")))
 
 
 def _fixture_geojson() -> dict[str, Any]:
-    return json.loads(GEOJSON_FIXTURE_PATH.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads(GEOJSON_FIXTURE_PATH.read_text(encoding="utf-8")))
 
 
 def _settings() -> Settings:
@@ -326,7 +328,7 @@ def test_main_defaults_start_and_end(
 
     assert code == 0
     assert captured["start"] == tmp_settings.window.start_date
-    assert captured["end"] == date.today()
+    assert captured["end"] == today_local()
 
 
 def test_main_rejects_inverted_window(
@@ -357,3 +359,190 @@ def test_main_returns_1_when_station_id_unset(
     code = geosphere_module.main(["--start", "2019-01-01", "--end", "2019-02-01"])
 
     assert code == 1
+
+
+# ---------------------------------------------------------------------------
+# Audit 2026-09-30 §5: the GeoSphere pull ended at 2023-12 although ING-093
+# says 2019 -> latest. These pin down the code paths that could truncate a
+# pull: year-boundary chunking, empty months, transient HTTP errors, and
+# stale-cache replay.
+# ---------------------------------------------------------------------------
+
+
+def _month_payload(month: date, value: float = 5.0) -> dict[str, Any]:
+    """Synthetic GeoSphere-shaped payload: one `tl_mittel` value per day of `month`."""
+    days = pd.date_range(month, periods=geosphere_module._month_end(month).day, freq="D")
+    return {
+        "type": "FeatureCollection",
+        "timestamps": [f"{d:%Y-%m-%d}T00:00+00:00" for d in days],
+        "features": [{"properties": {"parameters": {"tl_mittel": {"data": [value] * len(days)}}}}],
+    }
+
+
+class _HTTPError(Exception):
+    """`requests.HTTPError`-shaped stand-in carrying ``.response.status_code``/``.text``."""
+
+    def __init__(self, status: int, text: str = "boom") -> None:
+        super().__init__(f"HTTP {status}")
+        self.response = type("R", (), {"status_code": status, "text": text})()
+
+
+def test_ingest_crosses_year_boundary_without_truncating(tmp_settings: Settings) -> None:
+    """Nothing in the month loop stops at a year end: 2023-11 -> 2024-02 writes all four."""
+
+    def stub_transport(settings: Settings, station_id: str, month: date) -> Any:
+        return _month_payload(month)
+
+    written = ingest(tmp_settings, date(2023, 11, 1), date(2024, 2, 15), transport=stub_transport)
+
+    assert written == [date(2023, 11, 1), date(2023, 12, 1), date(2024, 1, 1), date(2024, 2, 1)]
+    root = tmp_settings.paths.data_raw / "geosphere_graz_daily"
+    assert sorted(p.name for p in root.glob("*/*.parquet")) == [
+        "geosphere_graz_daily_2023-11.parquet",
+        "geosphere_graz_daily_2023-12.parquet",
+        "geosphere_graz_daily_2024-01.parquet",
+        "geosphere_graz_daily_2024-02.parquet",
+    ]
+
+
+def test_ingest_warns_and_summarises_empty_months(
+    tmp_settings: Settings, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An empty response is never skipped silently: WARNING per month + summary line."""
+
+    def stub_transport(settings: Settings, station_id: str, month: date) -> Any:
+        if month >= date(2024, 1, 1):
+            return {"timestamps": [], "features": []}
+        return _month_payload(month)
+
+    with caplog.at_level("INFO", logger="epra.ingest.geosphere"):
+        written = ingest(
+            tmp_settings, date(2023, 12, 1), date(2024, 2, 1), transport=stub_transport
+        )
+
+    assert written == [date(2023, 12, 1)]
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert any("2024-01" in m for m in warnings)
+    assert any("2024-02" in m for m in warnings)
+    summary = [r.getMessage() for r in caplog.records if "months_written=" in r.getMessage()]
+    assert summary == [
+        "dataset=geosphere_graz_daily requested=2023-12-01..2024-02-01 months_written=1 "
+        "last_written=2023-12 empty_months=['2024-01', '2024-02']"
+    ]
+
+
+def test_fetch_geosphere_does_not_cache_a_not_yet_eligible_month(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ING-009: a response for a month that ended < 7 days ago may be incomplete; it must not
+    be persisted and later replayed once the month becomes cache-eligible."""
+    month = date(2024, 1, 1)
+    now = {"value": pd.Timestamp("2024-02-03T12:00", tz="UTC").to_pydatetime()}
+    monkeypatch.setattr(geosphere_module, "_now_utc", lambda: now["value"])
+    calls: list[int] = []
+
+    def stub_transport(settings: Settings, station_id: str, m: date) -> Any:
+        calls.append(1)
+        return _month_payload(m, value=float(len(calls)))
+
+    first = _fetch_geosphere(tmp_settings, "30", month, transport=stub_transport)
+    assert not list((tmp_settings.paths.data_cache / "geosphere").glob("*.json"))
+
+    now["value"] = pd.Timestamp("2024-03-01T12:00", tz="UTC").to_pydatetime()  # now eligible
+    second = _fetch_geosphere(tmp_settings, "30", month, transport=stub_transport)
+    third = _fetch_geosphere(tmp_settings, "30", month, transport=stub_transport)
+
+    assert len(calls) == 2  # re-fetched once eligible, then served from cache
+    assert first != second == third
+
+
+def test_fetch_geosphere_retries_transient_errors(
+    tmp_settings: Settings, _sleep_calls: list[float]
+) -> None:
+    """ING-006: 503/429 are retried, so one transient error cannot cut a pull short."""
+    failures = [_HTTPError(503), _HTTPError(429)]
+
+    def flaky_transport(settings: Settings, station_id: str, month: date) -> Any:
+        if failures:
+            raise failures.pop(0)
+        return _month_payload(month)
+
+    payload = _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=flaky_transport)
+
+    assert payload == _month_payload(date(2019, 1, 1))
+    assert failures == []
+
+
+def test_fetch_geosphere_does_not_retry_400_and_raises_ingest_error(
+    tmp_settings: Settings, _sleep_calls: list[float]
+) -> None:
+    calls: list[int] = []
+
+    def bad_request(settings: Settings, station_id: str, month: date) -> Any:
+        calls.append(1)
+        raise _HTTPError(400, "end date out of range")
+
+    with pytest.raises(IngestTransportError) as excinfo:
+        _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=bad_request)
+
+    assert calls == [1]
+    assert excinfo.value.status_code == 400
+    assert "end date out of range" in str(excinfo.value)
+    assert "month=2019-01" in str(excinfo.value)
+
+
+def test_fetch_geosphere_raises_ingest_error_after_exhausted_retries(
+    tmp_settings: Settings, _sleep_calls: list[float]
+) -> None:
+    calls: list[int] = []
+
+    def always_503(settings: Settings, station_id: str, month: date) -> Any:
+        calls.append(1)
+        raise _HTTPError(503)
+
+    with pytest.raises(IngestTransportError):
+        _fetch_geosphere(tmp_settings, "30", date(2019, 1, 1), transport=always_503)
+    assert len(calls) == 6  # stop_after_attempt(6), ING-006
+
+
+def test_main_returns_1_on_transport_failure(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(geosphere_module, "load_settings", lambda: tmp_settings)
+
+    def failing_ingest(settings: Settings, start: date, end: date, transport: Any = None) -> None:
+        raise IngestTransportError("geosphere", "month=2024-01 status=503: boom", 503)
+
+    monkeypatch.setattr(geosphere_module, "ingest", failing_ingest)
+
+    assert geosphere_module.main(["--start", "2019-01-01", "--end", "2024-02-01"]) == 1
+
+
+def test_main_anchors_relative_reports_path_at_repo_root(
+    tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The logfile path never depends on the caller's cwd (audit 2026-09-30 §2)."""
+    relative = tmp_settings.model_copy(
+        update={"paths": tmp_settings.paths.model_copy(update={"reports": Path("reports")})}
+    )
+    monkeypatch.setattr(geosphere_module, "load_settings", lambda: relative)
+    monkeypatch.setattr(geosphere_module, "ingest", lambda *a, **k: [])
+    captured: dict[str, Path | None] = {}
+    monkeypatch.setattr(
+        common_logging,
+        "setup",
+        lambda logfile=None, **_: captured.update(logfile=logfile),
+    )
+
+    assert geosphere_module.main(["--start", "2019-01-01", "--end", "2019-02-01"]) == 0
+    assert captured["logfile"] == (
+        REPO_ROOT / "reports" / "ingestion" / f"geosphere_{today_local():%Y-%m-%d}.log"
+    )
+
+
+def test_month_loop_covers_every_month_to_the_requested_end() -> None:
+    """ING-093 chunking: 2019-01-01 -> 2026-09-30 is 93 consecutive months, no cap."""
+    months = list(iter_month_starts(date(2019, 1, 1), date(2026, 9, 30)))
+    assert len(months) == 93
+    assert months[0] == date(2019, 1, 1)
+    assert months[-1] == date(2026, 9, 1)

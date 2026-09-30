@@ -1,9 +1,9 @@
 {
-  "output": "C:\\Users\\Benutzer1\\Dev\\portfolio-readme-work\\energy-procurement-risk-analyzer\\docs\\assets\\hero.png",
+  "output": "docs/assets/hero.png",
   "width": 1600,
   "height": 640,
   "mode": "light",
-  "fonts": "Söhne from C:\\Users\\Benutzer1\\Dev\\braga-design-system-template\\public\\fonts",
+  "fonts": "Söhne (licensed font files, not included in this repository)",
   "title_size": 112,
   "descriptor_size": 34,
   "attempts": 2,

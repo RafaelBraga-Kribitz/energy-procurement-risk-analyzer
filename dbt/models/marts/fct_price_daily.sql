@@ -33,7 +33,7 @@ daily as (
         min(price_at_eur_mwh) as price_min,
         max(price_at_eur_mwh) as price_max,
         stddev_samp(price_at_eur_mwh) as price_std,
-        sum(case when is_negative_price then 1 else 0 end) as n_negative_hours,
+        cast(count(*) filter (where is_negative_price) as bigint) as n_negative_hours,
         max(hdd_18) as hdd_18,
         max(cdd_22) as cdd_22
     from hourly

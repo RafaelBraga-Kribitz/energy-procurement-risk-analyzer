@@ -6,6 +6,7 @@ boundary.
 
 from __future__ import annotations
 
+import os
 from datetime import UTC, date, datetime
 
 import pandas as pd
@@ -161,13 +162,13 @@ def test_write_month_replaces_via_tmp_file_and_os_replace(
     req_hash = "h" * 64
 
     replace_calls: list[tuple[str, str]] = []
-    real_replace = _io.os.replace
+    real_replace = os.replace
 
-    def _spy_replace(src: object, dst: object) -> None:
+    def _spy_replace(src: str, dst: str) -> None:
         replace_calls.append((str(src), str(dst)))
         real_replace(src, dst)
 
-    monkeypatch.setattr(_io.os, "replace", _spy_replace)
+    monkeypatch.setattr(os, "replace", _spy_replace)
 
     path = _io.write_month(frame, "entsoe_prices_at", month, req_hash, tmp_settings)
 
@@ -191,13 +192,13 @@ def test_write_month_tmp_path_is_per_call_unique(
     frame = _prices_frame(month)
 
     tmp_srcs: list[str] = []
-    real_replace = _io.os.replace
+    real_replace = os.replace
 
-    def _spy_replace(src: object, dst: object) -> None:
+    def _spy_replace(src: str, dst: str) -> None:
         tmp_srcs.append(str(src))
         real_replace(src, dst)
 
-    monkeypatch.setattr(_io.os, "replace", _spy_replace)
+    monkeypatch.setattr(os, "replace", _spy_replace)
 
     _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
     _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
@@ -364,3 +365,22 @@ def test_write_month_default_key_column_still_rejects_naive_ts_utc(
     frame["ts_utc"] = frame["ts_utc"].dt.tz_localize(None)
     with pytest.raises(ValueError, match="tz-aware"):
         _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
+
+
+def test_write_month_keeps_per_row_request_hash(tmp_settings: Settings) -> None:
+    """ING-004: `request_hash=None` keeps each row's own origin hash."""
+    month = date(2021, 3, 1)
+    frame = _prices_frame(month).assign(request_hash=["a" * 64, "b" * 64, "b" * 64])
+
+    path = _io.write_month(frame, "entsoe_prices_at", month, None, tmp_settings)
+
+    out = pd.read_parquet(path)
+    assert list(out.columns)[-3:] == ["ingested_at_utc", "source", "request_hash"]
+    assert out["request_hash"].tolist() == ["a" * 64, "b" * 64, "b" * 64]
+    assert list(out.columns).count("request_hash") == 1
+
+
+def test_write_month_without_any_request_hash_raises(tmp_settings: Settings) -> None:
+    month = date(2021, 3, 1)
+    with pytest.raises(ContractError):
+        _io.write_month(_prices_frame(month), "entsoe_prices_at", month, None, tmp_settings)

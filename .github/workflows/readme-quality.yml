@@ -1,6 +1,7 @@
-# README Quality Gate — drop this file into .github/workflows/ of a portfolio repository.
-# Runs in ~10 s: clones the contract repo, installs PyYAML + Pillow + fontTools, audits this repository's README.
-# Fails the check only when a required requirement FAILs (exit 1). BLOCKED_HUMAN (exit 2) and WARN do not fail CI.
+# README Quality Gate — audits this repository's README against the portfolio contract
+# kept in RafaelBraga-Kribitz/braga-portfolio-docs (package `readme_quality`).
+# Runs in ~10 s. Fails the check only when a required requirement FAILs (exit 1).
+# BLOCKED_HUMAN (exit 2) and WARN do not fail CI.
 name: README quality gate
 
 on:
@@ -24,23 +25,27 @@ jobs:
           repository: RafaelBraga-Kribitz/braga-portfolio-docs
           path: contract
           fetch-depth: 0
-      - name: Use the gate branch until it is merged into main
+      # The contract package may still live only on its `readme-quality-gate`
+      # branch. Fall back to it VISIBLY (a warning on every run) so the
+      # fallback cannot linger unnoticed; delete this step once main has it.
+      - name: Resolve the contract package
         working-directory: contract
         run: |
           if [ ! -d readme_quality ] && git show-ref --verify --quiet refs/remotes/origin/readme-quality-gate; then
+            echo "::warning::readme_quality not on the contract repo's main; using branch readme-quality-gate"
             git checkout -q readme-quality-gate
           fi
           test -d readme_quality || { echo "::error::contract repo has no readme_quality package"; exit 1; }
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -q pyyaml pillow fonttools
+      - run: pip install -q "pyyaml==6.0.3" "pillow==11.3.0" "fonttools==4.59.0"
       - name: Audit README against the portfolio contract
         working-directory: contract
-        shell: bash {0}
         run: |
-          python -m readme_quality audit --repo "$GITHUB_WORKSPACE/repo" --verbose
-          code=$?
+          set -uo pipefail
+          code=0
+          python -m readme_quality audit --repo "$GITHUB_WORKSPACE/repo" --verbose || code=$?
           case "$code" in
             0) echo "README passes the portfolio contract" ;;
             2) echo "::warning::README is BLOCKED_HUMAN on at least one requirement (see log)" ;;

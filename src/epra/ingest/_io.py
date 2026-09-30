@@ -7,9 +7,10 @@ provenance columns are enforced in exactly one place, never reimplemented
 per source (`docs/EXECUTION_BLUEPRINT/03_MODULES.md` §`_io`).
 
 Implements: ING-003 (temp-file-then-rename atomic overwrite idempotency),
-ING-004 (raw + provenance columns only — no unit conversion/dedup), ING-005
-(rejects non-UTC/naive `ts_utc`), ING-070 (fixed, contract-stable column
-layout consumed by `tests/test_raw_contracts.py`).
+ING-004 (raw + provenance columns only — no unit conversion, gap fill or
+dedup), ING-005 (rejects non-UTC/naive `ts_utc`), ING-070 (fixed,
+contract-stable column layout consumed by `tests/test_raw_contracts.py`).
+The parquet engine is pyarrow per ADR-004.
 """
 
 from __future__ import annotations
@@ -25,7 +26,7 @@ from uuid import uuid4
 
 import pandas as pd
 
-from epra.common.config import REPO_ROOT, Settings
+from epra.common.config import Settings, resolve_repo_path
 from epra.ingest.exceptions import ContractError
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,8 @@ def request_hash(url: str) -> str:
 
     Raises:
         ValueError: ``url`` is empty.
+
+    Implements: ING-004, ING-008, ING-009.
     """
     if not url:
         raise ValueError("request_hash() requires a non-empty url")
@@ -67,15 +70,15 @@ def request_hash(url: str) -> str:
 
 def _data_raw_root(settings: Settings) -> Path:
     """Absolute path of the `data/raw/` root (mirrors `db.warehouse_path`)."""
-    p = settings.paths.data_raw
-    return p if p.is_absolute() else REPO_ROOT / p
+    return resolve_repo_path(settings.paths.data_raw)
 
 
-def _dataset_root(dataset: str, settings: Settings) -> Path:
+def dataset_root(dataset: str, settings: Settings) -> Path:
     """Absolute `data/raw/<dataset>/` root.
 
-    Single canonical implementation (WR-03) -- `entsoe.py` and `validate.py`
-    both import this instead of reimplementing the same
+    Implements: ING-003 (the single §7 raw-layout root every reader and writer
+    shares). Single canonical implementation (WR-03) -- `entsoe.py`,
+    `validate.py` and `calendar.py` all import this instead of reimplementing the same
     `data_raw / dataset` path resolution independently, so a future change
     to path resolution only has to happen here.
     """
@@ -91,6 +94,8 @@ def raw_month_path(dataset: str, month: date, settings: Settings) -> Path:
     Raises:
         ValueError: ``dataset`` is not a safe filesystem identifier
             (T-02-03 — rejects path separators, ``..``, etc.).
+
+    Implements: ING-003 (SPEC-01 §7 layout).
     """
     if not _DATASET_NAME_RE.fullmatch(dataset):
         raise ValueError(
@@ -193,44 +198,54 @@ def _validate_date_key(frame: pd.DataFrame, dataset: str, month: date, key_colum
         )
 
 
+def _with_provenance(frame: pd.DataFrame, dataset: str, req_hash: str | None) -> pd.DataFrame:
+    """`frame` plus the ING-004 columns, in the fixed ING-070 column order.
+
+    ``req_hash=None`` means the frame already carries a per-row
+    ``request_hash`` column (one value per originating request); it is moved
+    to its provenance slot rather than overwritten.
+    """
+    if req_hash is None and "request_hash" not in frame.columns:
+        raise ContractError(
+            dataset,
+            expected="a request_hash argument or a per-row 'request_hash' column",
+            actual=f"columns={list(frame.columns)}",
+        )
+    data_cols = [c for c in frame.columns if req_hash is not None or c != "request_hash"]
+    out = frame[data_cols].copy()
+    out["ingested_at_utc"] = _now_utc().isoformat()
+    out["source"] = dataset.split("_", 1)[0]
+    out["request_hash"] = req_hash if req_hash is not None else frame["request_hash"].to_numpy()
+    return out[[*data_cols, *_PROVENANCE_COLUMNS]]
+
+
 def write_month(
     frame: pd.DataFrame,
     dataset: str,
     month: date,
-    request_hash: str,
+    request_hash: str | None,
     settings: Settings,
     *,
     key_column: str = "ts_utc",
 ) -> Path:
     """Persist one calendar-month slice of raw ``dataset`` rows, atomically.
 
-    Implements ING-003 (temp-file-then-``os.replace`` atomic overwrite — a
+    Implements: ING-003 (temp-file-then-``os.replace`` atomic overwrite — a
     re-run with identical input and clock is byte-identical), ING-004
     (appends ``ingested_at_utc``/``source``/``request_hash``; never unit-
-    converts or deduplicates the raw values), ING-005 (rejects any frame
-    whose ``ts_utc`` is not tz-aware UTC), and ING-070 (fixed column order —
-    the frame's own columns unchanged, then the three ING-004 columns — the
-    layout `tests/test_raw_contracts.py` asserts against).
+    converts, gap-fills or deduplicates the raw values), ING-005 (rejects a
+    ``ts_utc`` that is not tz-aware UTC), ING-070 (fixed column order: the
+    frame's own columns unchanged, then the three ING-004 columns).
 
-    ``key_column`` selects which write-key grain to validate against
-    ``month``'s calendar bounds. It defaults to ``"ts_utc"``, which preserves
-    ING-005's tz-aware-UTC contract byte-for-byte for every existing
-    ENTSO-E caller. Passing ``key_column="date"`` (or any other non-
-    ``"ts_utc"`` column name) switches to a plain, tz-naive date-grain
-    validation path with no UTC assertion — for date-keyed datasets such as
-    GeoSphere daily temperature (SPEC-01 §7) that have no ``ts_utc`` column
-    at all. Both paths share the same atomic write, ING-004 provenance
-    columns, and ING-070 column-order guarantee below.
-
-    ``source`` is derived from ``dataset``'s prefix before the first
-    underscore (``entsoe_prices_at`` -> ``entsoe``, ``geosphere_graz_daily``
-    -> ``geosphere``) so callers never pass a fourth provenance argument
-    that could drift out of sync with the dataset name.
-
-    Does NOT deduplicate rows or convert units — raw means raw (ING-004).
+    ``request_hash`` is one hash for the whole slice, or ``None`` when the
+    frame carries a per-row ``request_hash`` column (a month assembled from
+    several requests keeps each row's own origin). ``key_column="ts_utc"``
+    (default) enforces ING-005; any other name (e.g. GeoSphere's ``date``)
+    validates a tz-naive date grain instead. ``source`` is the dataset prefix
+    before the first underscore (``entsoe_prices_at`` -> ``entsoe``).
 
     Raises:
-        ContractError: ``key_column`` missing.
+        ContractError: ``key_column`` missing, or no request hash supplied.
         ValueError: (``ts_utc`` path only) naive/non-UTC key, a row falls
             outside ``month``, or ``dataset`` is not a safe filesystem
             identifier (T-02-03).
@@ -239,23 +254,14 @@ def write_month(
         _validate_ts_utc_key(frame, dataset, month)
     else:
         _validate_date_key(frame, dataset, month, key_column)
-
-    out = frame.copy()
-    out["ingested_at_utc"] = _now_utc().isoformat()
-    out["source"] = dataset.split("_", 1)[0]
-    out["request_hash"] = request_hash
-    out = out[[*frame.columns, *_PROVENANCE_COLUMNS]]
+    out = _with_provenance(frame, dataset, request_hash)
 
     path = raw_month_path(dataset, month, settings)
     path.parent.mkdir(parents=True, exist_ok=True)
-    # Per-call-unique temp name (PID + short uuid4) so two processes writing
-    # the same month file concurrently never share a `.tmp` path and clobber
-    # each other's partially-written temp file before either `os.replace`
-    # (WR-02) -- the fixed `<name>.tmp` scheme this replaces defeated the
-    # atomicity guarantee in exactly the concurrent-writer scenario it was
-    # meant to protect against.
+    # Per-call-unique temp name (PID + short uuid4) so concurrent writers of
+    # the same month never share a `.tmp` path (WR-02).
     tmp_path = path.parent / f"{path.name}.{os.getpid()}.{uuid4().hex[:8]}.tmp"
-    out.to_parquet(tmp_path, index=False, engine="pyarrow")
+    out.to_parquet(tmp_path, index=False, engine="pyarrow")  # engine per ADR-004
     os.replace(tmp_path, path)
 
     logger.info(

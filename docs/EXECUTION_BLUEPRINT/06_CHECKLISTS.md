@@ -92,3 +92,33 @@ key set complete · SG-07/SG-08/SG-09 ADRs merged.
 rehearsal executed · refresh dry-run succeeded · screenshots embedded · GV-303
 green over README + EXEC_SUMMARY · LIMITATIONS sections 1–7 finalized ·
 SPEC-08 §7 sentence present in README.
+
+## 6.8 Milestone record M1–M3 (reconciled 2026-09-30)
+
+§6.1–6.6 are per-PR templates and stay unticked here; each milestone PR
+reproduces and ticks them in its PR description, which this file does not
+mirror. This section ticks the §6.7
+per-milestone specifics that the repository itself evidences. An unticked row
+is not done.
+
+**M1**
+- [x] ING-070 contract tests green on real-excerpt fixtures — `tests/test_raw_contracts.py`, fixtures under `tests/fixtures/entsoe/` (`docs/BUILD_LOG.md` 2026-07-21)
+- [ ] ING-080..085 green on real 2019→latest — green only on data through 2024-02, with pass/fail scoped to complete years 2019–2023 (ADR-006, `reports/ingestion/validation_2026-07-23.md`); re-backfill to latest complete month outstanding
+- [x] Validation report committed — `reports/ingestion/validation_2026-07-23.md`
+- [x] SG-01/SG-02 ADRs merged — ADR-003, ADR-005
+- [x] Cache dir ignored by git — `.gitignore` `data/cache/*`
+
+**M2**
+- [x] ING-111/094/103 green — `reports/ingestion/validation_2026-07-23.md`
+- [x] ING-101 reconcile run exit 0 — recorded in `.planning/phases/EPRA-03-m2-auxiliary-data/03-VERIFICATION.md` (Post-Verification Resolution); not reproduced as a committed log
+- [x] Reconciled ÖSPI CSV committed; entry files not in the repository — `data/manual/oespi_monthly.csv` (commit `9ab8999`); no `oespi_monthly_entry*.csv` tracked
+- [ ] Station ADR + series ADR merged (§6.7 says "ADR-003 station + ADR-004 series"; the actual numbers are ADR-007 and ADR-008) — ADR-007 accepted; ADR-008 still `Status: proposed`
+- [x] Calendar parquet covers the forward window — `dim_calendar`-spined marts run to 2028-01 (`reports/warehouse/dbt_build_2026-07-24.md`)
+
+**M3**
+- [x] `dbt build` green on real AND fixture data — `docs/BUILD_LOG.md` 2026-07-24 (real: PASS=63 WARN=1; fixture: PASS=64)
+- [x] Schema contract test pinning §5 columns — `tests/unit/test_marts_contract.py` vs `dbt/contracts/marts_contract.yml`
+- [ ] CI job 3 required — `dbt-check` job exists in `.github/workflows/ci.yml`; making it a required check (TP.02) is an open operator action (`.planning/STATE.md`)
+- [x] SG-06/SG-13 ADRs merged — ADR-010, ADR-009
+- [x] No model reads files outside the sources.yml mechanism — no `read_parquet`/`read_csv` in `dbt/models/` outside `sources.yml`
+

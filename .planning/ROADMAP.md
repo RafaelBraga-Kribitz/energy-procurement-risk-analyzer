@@ -2,16 +2,16 @@
 
 ## Overview
 
-Deliver a reproducible batch pipeline from real Austrian market data through dbt marts to strategy cost comparison and forward risk — aligned to Charter milestones M0–M7. M0 is shipped; execution begins at M1 ENTSO-E ingestion. Success is DL-1..DL-10 all green with README leading in euros traceable to `reports/NUMERIC_SSOT.md`.
+Deliver a reproducible batch pipeline from real Austrian market data through dbt marts to strategy cost comparison and forward risk — aligned to Charter milestones M0–M7. M0–M3 are built (M3 formal phase verification pending); M4–M7 are not started. Open data-horizon gap: real ENTSO-E prices end 2024-02 and GeoSphere 2023-12, so the "2019→latest" wording of the M1/M2 criteria is not yet met on current data (`.planning/AUDIT-2026-09-30.md` §1, `LIMITATIONS.md` §6). Success is DL-1..DL-10 all green with README leading in euros traceable to `reports/NUMERIC_SSOT.md`.
 
 ## Phases
 
 **Phase Numbering:** Phases 1–8 map 1:1 to Charter milestones M0–M7.
 
 - [x] **Phase 1: M0 Bootstrap** — Repo layout, tooling, CI, smoke tests (shipped)
-- [ ] **Phase 2: M1 ENTSO-E Ingestion** — Prices, load, generation with validation
-- [x] **Phase 3: M2 Auxiliary Data** — GeoSphere, ÖSPI, calendar (completed 2026-07-23)
-- [x] **Phase 4: M3 dbt Warehouse** — Staging + marts on DuckDB (plans complete 2026-09-01; pending verify-work)
+- [x] **Phase 2: M1 ENTSO-E Ingestion** — Prices, load, generation with validation (verified 2026-07-22, `02-VERIFICATION.md`; data ends 2024-02 — re-backfill to latest complete month outstanding)
+- [x] **Phase 3: M2 Auxiliary Data** — GeoSphere, ÖSPI, calendar (verified 2026-07-23, `03-VERIFICATION.md`; GeoSphere ends 2023-12)
+- [ ] **Phase 4: M3 dbt Warehouse** — Staging + marts on DuckDB (built: 8/8 plans, gate evidence in `docs/BUILD_LOG.md` 2026-07-24 + `04-08-SUMMARY.md`; **formal verification pending** — no `04-VERIFICATION.md`)
 - [ ] **Phase 5: M4 Consumer Profile** — Deterministic StyriaMetal load
 - [ ] **Phase 6: M5 Analytics** — Market structure analytics A1–A4
 - [ ] **Phase 7: M6 Strategy Simulator** — Retrospective, forward risk, SSOT
@@ -30,7 +30,7 @@ Deliver a reproducible batch pipeline from real Austrian market data through dbt
   2. Repository layout matches SPEC-07 §2 with `src/epra/` package and dbt skeleton present
   3. Every Makefile pipeline target exists; unimplemented stages exit non-zero with a milestone message
 
-**Plans**: TBD
+**Plans**: 1/1 (retroactive, `01-01-SUMMARY.md`)
 
 ### Phase 2: M1 ENTSO-E Ingestion
 
@@ -193,11 +193,13 @@ Phases execute in numeric order: 1 → 2 → … → 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. M0 Bootstrap | 0/TBD | Complete | 2026-07-19 |
-| 2. M1 ENTSO-E | 7/7 | In Progress|  |
-| 3. M2 Auxiliary | 6/6 | Complete    | 2026-07-23 |
-| 4. M3 dbt | 8/8 | Plans complete (pending verify-work) | 2026-09-01 |
+| 1. M0 Bootstrap | 1/1 (retroactive) | Complete (verified retroactively 2026-07-21) | 2026-07-19 |
+| 2. M1 ENTSO-E | 7/7 | Complete (verified 2026-07-22; data horizon 2024-02, re-backfill outstanding) | 2026-07-22 |
+| 3. M2 Auxiliary | 6/6 | Complete (verified 2026-07-23; GeoSphere horizon 2023-12) | 2026-07-23 |
+| 4. M3 dbt | 8/8 | Built; verification pending (no 04-VERIFICATION.md) | plans 2026-07-24 (GSD close-out 2026-09-01) |
 | 5. M4 Profile | 0/TBD | Not started | - |
 | 6. M5 Analytics | 0/TBD | Not started | - |
 | 7. M6 Strategies | 0/TBD | Not started | - |
 | 8. M7 Reporting | 0/TBD | Not started | - |
+
+*Reconciled 2026-09-30 against phase evidence (`.planning/AUDIT-2026-09-30.md` §3). M3 stays unticked until `/gsd-verify-work` produces `04-VERIFICATION.md`; known M3 caveats for that verification are listed in the audit §2 (real-data dbt build had 1 WARN, DM-066 freshness never executed, monthly marts padded with NULL months to 2028-01).*

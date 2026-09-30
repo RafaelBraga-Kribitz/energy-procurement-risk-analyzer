@@ -11,9 +11,9 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-import holidays
 import pandas as pd
 import pytest
+from holidays.countries.austria import Austria
 
 from epra.common.config import Settings, load_settings
 from epra.common.timeutil import local_hours_in_day
@@ -44,8 +44,10 @@ def calendar_frame() -> pd.DataFrame:
 def test_build_calendar_spine_covers_2019_through_end(calendar_frame: pd.DataFrame) -> None:
     assert list(calendar_frame.columns) == _EXPECTED_COLUMNS
     assert str(calendar_frame["ts_utc"].dt.tz) == "UTC"
-    assert calendar_frame["ts_utc"].iloc[0] == pd.Timestamp("2019-01-01T00:00:00Z")
-    assert calendar_frame["ts_utc"].iloc[-1] == pd.Timestamp("2027-12-31T23:00:00Z")
+    # Local-day bounds (ADR-017): 2019-01-01 00:00 Vienna = 2018-12-31 23:00 UTC,
+    # 2027-12-31 23:00 Vienna = 22:00 UTC.
+    assert calendar_frame["ts_utc"].iloc[0] == pd.Timestamp("2018-12-31T23:00:00Z")
+    assert calendar_frame["ts_utc"].iloc[-1] == pd.Timestamp("2027-12-31T22:00:00Z")
     # Hourly, contiguous, no gaps or duplicates.
     diffs = calendar_frame["ts_utc"].diff().iloc[1:]
     assert (diffs == timedelta(hours=1)).all()
@@ -67,7 +69,7 @@ def test_build_calendar_ing_111_holiday_count_and_fixed_holidays(
 ) -> None:
     frame_2024 = calendar_frame[calendar_frame["year_local"] == 2024]
     holiday_dates = set(frame_2024.loc[frame_2024["is_holiday_at"], "date_local"])
-    expected = holidays.Austria(subdiv="6", years=2024)
+    expected = Austria(subdiv="6", years=2024)
     assert len(holiday_dates) == len(expected)
     assert date(2024, 1, 1) in holiday_dates
     assert date(2024, 5, 1) in holiday_dates
@@ -101,7 +103,7 @@ def test_build_calendar_ing_111_peak_hours(calendar_frame: pd.DataFrame) -> None
 def test_styria_subdivision_code_is_6() -> None:
     # SG-10: assert the working Styria subdivision code exists on the
     # `holidays` package's Austria implementation.
-    assert "6" in holidays.Austria.subdivisions
+    assert "6" in Austria.subdivisions
 
 
 def test_calendar_main_writes_single_parquet_file(
@@ -119,7 +121,7 @@ def test_calendar_main_writes_single_parquet_file(
     assert path.is_file()
     frame = pd.read_parquet(path)
     assert list(frame.columns) == _EXPECTED_COLUMNS
-    assert frame["ts_utc"].iloc[-1] == pd.Timestamp("2027-12-31T23:00:00Z")
+    assert frame["ts_utc"].iloc[-1] == pd.Timestamp("2027-12-31T22:00:00Z")
     # Single file, not `data/raw/calendar/<YYYY>/...` monthly partitions.
     assert sorted(p.name for p in calendar_dir.iterdir()) == ["calendar.parquet"]
 
@@ -127,3 +129,12 @@ def test_calendar_main_writes_single_parquet_file(
 def test_calendar_main_rejects_malformed_end_date() -> None:
     with pytest.raises(SystemExit):
         cal.main(["--end", "not-a-date"])
+
+
+def test_build_calendar_local_years_are_complete(calendar_frame: pd.DataFrame) -> None:
+    """Regression (audit 2026-09-30, EN-073): the UTC-day spine gave local
+    2019 only 8759 hours and emitted a 1-hour local 2028 (DM-012, ADR-017)."""
+    per_year = calendar_frame.groupby("year_local").size()
+    assert per_year[2019] == 8760
+    assert per_year[2024] == 8784  # leap year
+    assert set(per_year.index) == set(range(2019, 2028))

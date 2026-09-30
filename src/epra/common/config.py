@@ -24,6 +24,17 @@ from pydantic import BaseModel, ConfigDict, field_validator
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
+def resolve_repo_path(path: Path) -> Path:
+    """Anchor a ``settings.paths.*`` entry at REPO_ROOT unless already absolute.
+
+    Every configured path is repo-relative (EN-040); resolving it here, in one
+    place, keeps outputs out of whatever the caller's cwd happens to be.
+
+    Implements: EN-040 (single path-resolution rule for all configured paths).
+    """
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
 class _Frozen(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -141,13 +152,19 @@ def _read_yaml(path: Path) -> dict[str, Any]:
 
 @cache
 def load_settings(path: Path | None = None) -> Settings:
-    """Load and validate ``config/settings.yaml`` (EN-040). Cached per path."""
+    """Load and validate ``config/settings.yaml`` (EN-040). Cached per path.
+
+    Implements: EN-040.
+    """
     return Settings.model_validate(_read_yaml(path or REPO_ROOT / "config" / "settings.yaml"))
 
 
 @cache
 def load_consumer_profile(path: Path | None = None) -> ConsumerProfileCfg:
-    """Load and validate ``config/consumer_profile.yaml`` (LP-002)."""
+    """Load and validate ``config/consumer_profile.yaml`` (LP-002).
+
+    Implements: LP-002.
+    """
     return ConsumerProfileCfg.model_validate(
         _read_yaml(path or REPO_ROOT / "config" / "consumer_profile.yaml")
     )
@@ -155,8 +172,15 @@ def load_consumer_profile(path: Path | None = None) -> ConsumerProfileCfg:
 
 @cache
 def load_strategy_config(path: Path | None = None) -> StrategyCfg:
-    """Load and validate ``config/strategies.yaml`` (ST-003)."""
+    """Load and validate ``config/strategies.yaml`` (ST-003).
+
+    Implements: ST-003.
+    """
     return StrategyCfg.model_validate(_read_yaml(path or REPO_ROOT / "config" / "strategies.yaml"))
+
+
+#: The placeholder value `.env.example` ships with; treated exactly like "unset".
+_ENV_EXAMPLE_TOKEN_PLACEHOLDER = "your-token-here"
 
 
 def entsoe_token() -> str:
@@ -164,10 +188,12 @@ def entsoe_token() -> str:
 
     Reads ``.env`` if present (never overrides an existing env var). The token
     must never be logged, printed, or committed (A-7).
+
+    Implements: ING-021, EN-041.
     """
     load_dotenv(REPO_ROOT / ".env")
     token = os.environ.get("ENTSOE_API_TOKEN", "").strip()
-    if not token or token == "your-token-here":
+    if not token or token == _ENV_EXAMPLE_TOKEN_PLACEHOLDER:
         raise RuntimeError(
             "ENTSOE_API_TOKEN is not set. Copy .env.example to .env and fill in the "
             "token obtained per SPEC-01 §2 (ING-020), or export the variable."

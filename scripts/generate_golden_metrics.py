@@ -10,6 +10,13 @@ Implements (when built): EN-072 regeneration path.
 
 from __future__ import annotations
 
-import sys
+from collections.abc import Sequence
 
-sys.exit("not implemented yet — M4/M6 (EN-072); see module docstring")
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point — fails loudly until its milestone lands (AGENTS.md M0 rule)."""
+    raise NotImplementedError("not implemented yet — M4/M6 (EN-072); see module docstring")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

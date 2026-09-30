@@ -36,3 +36,11 @@ current task's changes).
   and **`tests/unit/test_config.py::test_entsoe_token_fails_fast_when_unset` still
   fails** — both reconfirmed unaffected by this plan's changes (`git status`/`git
   diff` show zero delta on either file before or after 02-06's commits).
+
+## Resolution status (reconciled 2026-09-30, audit follow-up)
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| `test_config.py::test_entsoe_token_fails_fast_when_unset` repopulated from `.env` | **Resolved** | The test now stubs `epra.common.config.load_dotenv` before deleting the env var (`tests/unit/test_config.py:114`); STATE.md records the fix on 2026-07-22 |
+| `ruff format --check tests/unit/test_aggregate_hourly.py` drift | **Resolved** | `uv run ruff format --check` on the file reports "already formatted" (2026-09-30); the audit's `make lint` run was clean (`.planning/AUDIT-2026-09-30.md` header) |
+

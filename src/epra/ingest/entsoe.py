@@ -50,7 +50,7 @@ from typing import Literal, cast
 import pandas as pd
 
 from epra.common import logging as common_logging
-from epra.common.config import Settings, load_settings
+from epra.common.config import Settings, load_settings, resolve_repo_path
 from epra.common.timeutil import (
     VIENNA,
     iter_month_starts,
@@ -58,20 +58,19 @@ from epra.common.timeutil import (
     next_month,
     to_local,
     to_utc,
+    today_local,
 )
 from epra.ingest._fetch import (
     DocumentType,
     EntsoeQuery,
     TransportFn,
-    _cache_request_url,
     fetch_entsoe,
+    query_request_hash,
 )
-from epra.ingest._io import _dataset_root, request_hash, write_month
+from epra.ingest._io import dataset_root, write_month
 from epra.ingest.exceptions import ContractError, IngestError, NoDataError
 
 logger = logging.getLogger(__name__)
-
-_MSG = "M1 not implemented yet — build per SPEC-01 §§2-8 (see module docstring)"
 
 #: EIC domain code -> zone code (SPEC-01 §3 / Appendix A). Unknown EIC codes
 #: pass through unchanged so a new domain is visible for debugging rather
@@ -351,49 +350,60 @@ def parse_gl_xml(xml: str, kind: Literal["load", "generation"]) -> pd.DataFrame:
 
     rows: list[dict[str, object]] = []
     for ts_elem in _children(root, "TimeSeries"):
-        zone = _zone_from_domain(ts_elem)
-        curve_type = _text(_child(ts_elem, "curveType"))
-        period_rows, _fills = _period_rows(ts_elem, curve_type)
+        rows.extend(_gl_series_rows(ts_elem, kind))
 
-        if kind == "load":
-            rows.extend(
-                {"ts_utc": ts_utc, "load_mw": value, "resolution": resolution, "zone": zone}
-                for ts_utc, resolution, value in period_rows
-            )
-            continue
-
-        psr_elem = _child(ts_elem, "MktPSRType")
-        psr_type = (_text(_child(psr_elem, "psrType")) if psr_elem is not None else None) or (
-            "UNKNOWN"
-        )
-        psr_name = PSR_NAMES.get(psr_type)
-        if psr_name is None:
-            psr_name = f"UNKNOWN({psr_type})"
-            logger.warning("entsoe generation: unrecognized PSR type code %s", psr_type)
-        business_type = _text(_child(ts_elem, "businessType"))
-        gen_kind: Literal["aggregated", "consumption"] = (
-            "consumption" if business_type == "A04" else "aggregated"
-        )
-        rows.extend(
-            {
-                "ts_utc": ts_utc,
-                "psr_type": psr_type,
-                "psr_name": psr_name,
-                "kind": gen_kind,
-                "value_mw": value,
-                "resolution": resolution,
-                "zone": zone,
-            }
-            for ts_utc, resolution, value in period_rows
-        )
-
-    columns = (
-        ["ts_utc", "load_mw", "resolution", "zone"]
-        if kind == "load"
-        else ["ts_utc", "psr_type", "psr_name", "kind", "value_mw", "resolution", "zone"]
-    )
-    frame = pd.DataFrame(rows, columns=columns)
+    columns = _LOAD_COLUMNS if kind == "load" else _GEN_COLUMNS
+    frame = pd.DataFrame(rows, columns=list(columns))
     return frame.sort_values("ts_utc").reset_index(drop=True)
+
+
+_LOAD_COLUMNS = ("ts_utc", "load_mw", "resolution", "zone")
+_GEN_COLUMNS = ("ts_utc", "psr_type", "psr_name", "kind", "value_mw", "resolution", "zone")
+
+
+def _psr_identity(ts_elem: ET.Element) -> tuple[str, str]:
+    """``(psr_type, psr_name)`` of a generation TimeSeries (Appendix B, ING-032).
+
+    Unknown codes are kept as ``UNKNOWN(<code>)`` and logged, never dropped.
+    """
+    psr_elem = _child(ts_elem, "MktPSRType")
+    psr_type = (_text(_child(psr_elem, "psrType")) if psr_elem is not None else None) or ("UNKNOWN")
+    psr_name = PSR_NAMES.get(psr_type)
+    if psr_name is None:
+        psr_name = f"UNKNOWN({psr_type})"
+        logger.warning("entsoe generation: unrecognized PSR type code %s", psr_type)
+    return psr_type, psr_name
+
+
+def _gl_series_rows(
+    ts_elem: ET.Element, kind: Literal["load", "generation"]
+) -> list[dict[str, object]]:
+    """Rows of one ``GL_MarketDocument`` TimeSeries in the §7 load/gen layout."""
+    zone = _zone_from_domain(ts_elem)
+    curve_type = _text(_child(ts_elem, "curveType"))
+    period_rows, _fills = _period_rows(ts_elem, curve_type)
+    if kind == "load":
+        return [
+            {"ts_utc": ts_utc, "load_mw": value, "resolution": resolution, "zone": zone}
+            for ts_utc, resolution, value in period_rows
+        ]
+    psr_type, psr_name = _psr_identity(ts_elem)
+    business_type = _text(_child(ts_elem, "businessType"))
+    gen_kind: Literal["aggregated", "consumption"] = (
+        "consumption" if business_type == "A04" else "aggregated"
+    )
+    return [
+        {
+            "ts_utc": ts_utc,
+            "psr_type": psr_type,
+            "psr_name": psr_name,
+            "kind": gen_kind,
+            "value_mw": value,
+            "resolution": resolution,
+            "zone": zone,
+        }
+        for ts_utc, resolution, value in period_rows
+    ]
 
 
 def infer_resolution(ts: pd.Series) -> str:
@@ -461,6 +471,8 @@ def iter_chunks(start: date, end: date) -> Iterator[tuple[date, date]]:
         of the first month in the chunk and ``chunk_end`` is the first day
         of the month after the chunk's last month (exclusive upper bound).
         Every yielded pair satisfies ``(chunk_end - chunk_start).days <= 90``.
+
+    Implements: ING-030.
     """
     months = list(iter_month_starts(start, end))
     chunk: list[date] = []
@@ -503,16 +515,16 @@ def _parse_document(document_type: DocumentType, xml: str) -> pd.DataFrame:
     return parse_gl_xml(xml, kind)
 
 
-def _write_by_month(
-    frame: pd.DataFrame, dataset_key: str, req_hash: str, settings: Settings
-) -> None:
+def _write_by_month(frame: pd.DataFrame, dataset_key: str, settings: Settings) -> None:
     """Split `frame` into calendar-month slices and `write_month` each (ING-003).
 
     Grouping is by the UTC calendar month of `ts_utc` -- the same boundary
     `write_month`'s own validation enforces (§7 path `<dataset>_<YYYY-MM>`).
-    A failure writing any one month raises immediately; `write_month`'s
-    atomic temp-file-then-rename means no partial file is ever left for that
-    month, and no later month in this frame gets written either (ING-003).
+    `frame` carries a per-row `request_hash` column (ING-004): each row keeps
+    the hash of the request that actually returned it, so a month assembled
+    from several requests records every one of them. A failure writing any
+    one month raises immediately; `write_month`'s atomic temp-file-then-rename
+    means no partial file is ever left for that month (ING-003).
     """
     if frame.empty:
         return
@@ -520,7 +532,100 @@ def _write_by_month(
     months = frame["ts_utc"].dt.month
     for year, month in sorted({(int(y), int(m)) for y, m in zip(years, months, strict=True)}):
         mask = (years == year) & (months == month)
-        write_month(frame.loc[mask], dataset_key, date(year, month, 1), req_hash, settings)
+        write_month(frame.loc[mask], dataset_key, date(year, month, 1), None, settings)
+
+
+def _local_midnight_utc(d: date) -> datetime:
+    """UTC instant of 00:00 Europe/Vienna on `d` -- ENTSO-E request bounds (ING-031)."""
+    return to_utc(datetime(d.year, d.month, d.day, tzinfo=VIENNA))
+
+
+def _fetch_chunk(
+    settings: Settings,
+    dataset_key: str,
+    window: tuple[date, date],
+    transport: TransportFn | None,
+    use_cache: bool,
+) -> tuple[list[pd.DataFrame], int]:
+    """Fetch one <=90-day chunk, paging past ENTSO-E's 100-document cap.
+
+    ENTSO-E caps a single response at 100 market documents, so ING-030's
+    <=90-day window is necessary but NOT sufficient: day-ahead prices return
+    ~2 TimeSeries per delivery day and generation one per production type, so
+    a wide window comes back silently truncated. After each response, resume
+    from the day AFTER the last covered local day until the window is filled
+    or the response stops advancing (ING-001, ING-030). A no-data
+    Acknowledgement ends the chunk (SPEC-01 Appendix A: expected at edges).
+
+    Returns:
+        One parsed frame per response, each tagged with the ``request_hash``
+        of the request that produced it (ING-004), and the A03 fill count.
+    """
+    spec = _DATASET_SPECS[dataset_key]
+    chunk_start, chunk_end = window
+    frames: list[pd.DataFrame] = []
+    fills = 0
+    cursor = chunk_start
+    while cursor < chunk_end:
+        query = EntsoeQuery(
+            document_type=spec.document_type,
+            domain=settings.zones[spec.zone_key].eic,
+            period_start=_local_midnight_utc(cursor),
+            period_end=_local_midnight_utc(chunk_end),
+        )
+        try:
+            frame = _parse_document(
+                spec.document_type,
+                fetch_entsoe(query, settings, use_cache=use_cache, transport=transport),
+            )
+        except NoDataError as exc:
+            logger.info("dataset=%s window=%s..%s no data: %s", dataset_key, cursor, chunk_end, exc)
+            break
+        if frame.empty:
+            break
+        fills += int(frame.attrs.get("a03_fills", 0))
+        frames.append(frame.assign(request_hash=query_request_hash(query)))
+        next_cursor = to_local(frame["ts_utc"].max()).date() + timedelta(days=1)
+        # Stop at full coverage (the common single-request case) or when the
+        # response failed to advance (guards an infinite loop).
+        if next_cursor >= chunk_end or next_cursor <= cursor:
+            break
+        logger.info(
+            "dataset=%s window=%s..%s truncated before %s -- paging remainder",
+            dataset_key,
+            chunk_start,
+            chunk_end,
+            next_cursor,
+        )
+        cursor = next_cursor
+    return frames, fills
+
+
+def _union_responses(frames: list[pd.DataFrame]) -> pd.DataFrame:
+    """Concatenate per-response frames without re-counting overlapping windows.
+
+    Adjacent requests can return the same delivery-day document twice (a
+    request starting at a local-midnight boundary may also return the prior
+    day's document). A row that an EARLIER response already delivered with
+    identical values is the same source fact fetched twice, so it is written
+    once -- ING-003 ("must not duplicate rows"). Rows are never deduplicated
+    WITHIN one response, and rows that differ in any value are all kept:
+    raw means raw (ING-004); resolving conflicting values is dbt staging's job
+    (DM-020). See ADR-015.
+    """
+    data_cols = [c for c in frames[0].columns if c != "request_hash"]
+    kept = [frames[0]]
+    seen = frames[0][data_cols]
+    for frame in frames[1:]:
+        merged = frame.merge(seen.drop_duplicates(), on=data_cols, how="left", indicator=True)
+        kept.append(merged.loc[merged["_merge"] == "left_only", list(frame.columns)])
+        seen = pd.concat([seen, frame[data_cols]], ignore_index=True)
+    combined = pd.concat(kept, ignore_index=True)
+    refetched = sum(len(f) for f in frames) - len(combined)
+    if refetched:
+        # Logged, never silent (DM-020 reserves silent dedup for dbt staging).
+        logger.info("overlapping requests re-returned %d identical row(s); kept once", refetched)
+    return combined
 
 
 def ingest_dataset(
@@ -532,19 +637,17 @@ def ingest_dataset(
     *,
     use_cache: bool = True,
 ) -> None:
-    """Fetch, parse, and persist one §7 dataset over `[start, end]` (ING-001, ING-030).
+    """Fetch, parse, and persist one §7 dataset over `[start, end]`.
 
-    Iterates `iter_chunks` (<=90-day request windows per ING-030), fetches
-    each chunk through `_fetch.fetch_entsoe` (the `transport` seam lets tests
-    inject fixture XML instead of hitting the network -- ADR-003), parses
-    with the parser matching `dataset_key`'s document type, and writes one
-    parquet per calendar month via `_io.write_month`.
+    Implements: ING-001, ING-003, ING-004 (per-request `request_hash`),
+    ING-030 (<=90-day chunks via `iter_chunks`, paged by `_fetch_chunk`).
 
-    A chunk with no data (`NoDataError` -- an `Acknowledgement_MarketDocument`
-    response) is logged and skipped, not raised (SPEC-01 Appendix A: "no data
-    for a future/edge window" is expected, not a failure). Any other parse or
-    write failure propagates immediately -- ingestion never continues past a
-    contract violation (A-2).
+    Every chunk's responses are accumulated BEFORE writing: adjacent
+    Vienna-aligned chunks share the UTC-boundary hour (a "January" Vienna
+    chunk starts at Dec 31 23:00 UTC), so writing per chunk would let a later
+    chunk's one-hour sliver overwrite a prior chunk's full month (ING-003).
+    Any parse or write failure propagates immediately -- ingestion never
+    continues past a contract violation (A-2).
 
     Args:
         dataset_key: one of `entsoe_prices_at`, `entsoe_prices_delu`,
@@ -552,93 +655,17 @@ def ingest_dataset(
         transport: forwarded to `fetch_entsoe`; `None` uses the real network.
         use_cache: forwarded to `fetch_entsoe` (`--no-cache` semantics).
     """
-    spec = _DATASET_SPECS[dataset_key]
-    zone_cfg = settings.zones[spec.zone_key]
-
-    dataset_frames: list[pd.DataFrame] = []
+    frames: list[pd.DataFrame] = []
     total_fills = 0
-    req_hash = ""
-    for chunk_start, chunk_end in iter_chunks(start, end):
-        chunk_period_start = to_utc(
-            datetime(chunk_start.year, chunk_start.month, chunk_start.day, tzinfo=VIENNA)
-        )
-        chunk_period_end = to_utc(
-            datetime(chunk_end.year, chunk_end.month, chunk_end.day, tzinfo=VIENNA)
-        )
-        if not req_hash:
-            # One provenance hash (ING-004) for the whole ingest, derived from
-            # the first (valid, <=90-day) chunk window -- NOT the full multi-year
-            # [start, end], which EntsoeQuery would reject. request_hash() strips
-            # the securityToken, so the placeholder yields the same hash
-            # fetch_entsoe computes from the real token -- no second token read.
-            req_hash = request_hash(
-                _cache_request_url(
-                    EntsoeQuery(
-                        document_type=spec.document_type,
-                        domain=zone_cfg.eic,
-                        period_start=chunk_period_start,
-                        period_end=chunk_period_end,
-                    ),
-                    "x",
-                )
-            )
-        # ENTSO-E caps a single response at 100 market documents, so ING-030's
-        # <=90-day window is necessary but NOT sufficient: day-ahead prices
-        # return ~2 TimeSeries per delivery day and generation one per
-        # production type, so a wide window comes back silently truncated to
-        # its first ~100 documents (dropping the rest of the chunk). Page
-        # through the chunk: after each response, resume from the day AFTER the
-        # last covered local day until the window is filled or the response
-        # stops advancing (ING-001, ING-030).
-        cursor = chunk_start
-        while cursor < chunk_end:
-            query = EntsoeQuery(
-                document_type=spec.document_type,
-                domain=zone_cfg.eic,
-                period_start=to_utc(datetime(cursor.year, cursor.month, cursor.day, tzinfo=VIENNA)),
-                period_end=chunk_period_end,
-            )
-            try:
-                xml = fetch_entsoe(query, settings, use_cache=use_cache, transport=transport)
-                frame = _parse_document(spec.document_type, xml)
-            except NoDataError as exc:
-                logger.info(
-                    "dataset=%s window=%s..%s no data: %s", dataset_key, cursor, chunk_end, exc
-                )
-                break
-            if frame.empty:
-                break
-            dataset_frames.append(frame)
-            total_fills += int(frame.attrs.get("a03_fills", 0))
-            last_covered = to_local(frame["ts_utc"].max()).date()
-            next_cursor = last_covered + timedelta(days=1)
-            # Stop when the response reached the window end (full coverage -- the
-            # common single-request case) or failed to advance (guards against an
-            # infinite loop on a fixed/non-progressing response).
-            if next_cursor >= chunk_end or next_cursor <= cursor:
-                break
-            logger.info(
-                "dataset=%s window=%s..%s truncated at %s -- paging remainder",
-                dataset_key,
-                chunk_start,
-                chunk_end,
-                last_covered,
-            )
-            cursor = next_cursor
-
-    if not dataset_frames:
+    for window in iter_chunks(start, end):
+        chunk_frames, fills = _fetch_chunk(settings, dataset_key, window, transport, use_cache)
+        frames.extend(chunk_frames)
+        total_fills += fills
+    if not frames:
         return
-    # Write each UTC month exactly once from the concatenated, de-duplicated
-    # frame. Accumulating across ALL chunks before writing is what makes the
-    # month files correct: adjacent Vienna-aligned chunks overlap by the
-    # UTC-boundary hour (a "January" Vienna chunk starts at Dec 31 23:00 UTC),
-    # so writing per-chunk let a later chunk's one-hour sliver overwrite a
-    # prior chunk's full month (ING-003). Merging first unions the boundary
-    # hour into its complete month.
-    combined = pd.concat(dataset_frames, ignore_index=True).drop_duplicates(ignore_index=True)
     if total_fills:
         logger.info("dataset=%s window=%s..%s a03_fills=%d", dataset_key, start, end, total_fills)
-    _write_by_month(combined, dataset_key, req_hash, settings)
+    _write_by_month(_union_responses(frames), dataset_key, settings)
 
 
 def backfill(
@@ -654,6 +681,8 @@ def backfill(
     Calls `ingest_dataset` once per dataset key in `_DATASET_KEYS`'s fixed
     order. `transport`/`use_cache` are forwarded unchanged so callers (the
     CLI, tests) control every fetch through the single injectable seam.
+
+    Implements: ING-040.
     """
     for dataset_key in _DATASET_KEYS:
         ingest_dataset(settings, dataset_key, start, end, transport, use_cache=use_cache)
@@ -670,8 +699,10 @@ def ingest_incremental(
     Re-ingests all four datasets over `[today - incremental_lookback_days,
     today]`, rewriting the affected month files (`write_month`'s atomic
     overwrite makes this idempotent, ING-003).
+
+    Implements: ING-041 (lookback anchored on today's Europe/Vienna date, T-1).
     """
-    end = date.today()
+    end = today_local()
     start = end - timedelta(days=settings.ingest.incremental_lookback_days)
     for dataset_key in _DATASET_KEYS:
         ingest_dataset(settings, dataset_key, start, end, transport, use_cache=use_cache)
@@ -705,7 +736,7 @@ def _complete_price_months(dataset: str, settings: Settings) -> list[date]:
     guarantees (not just day-presence) must also run `validate.run_gates()`,
     which enforces the stricter ING-080 bound separately.
     """
-    root = _dataset_root(dataset, settings)
+    root = dataset_root(dataset, settings)
     if not root.exists():
         return []
     complete: list[date] = []
@@ -739,6 +770,8 @@ def latest_complete_month(settings: Settings) -> date:
     Raises:
         NoDataError: no complete month exists yet for AT and/or DE-LU prices
             (e.g. `backfill` has not run) -- computed, not assumed (ING-042).
+
+    Implements: ING-042 (ADR-005).
     """
     at_months = _complete_price_months("entsoe_prices_at", settings)
     delu_months = _complete_price_months("entsoe_prices_delu", settings)
@@ -760,41 +793,26 @@ def _parse_cli_date(text: str) -> date:
         raise argparse.ArgumentTypeError(f"invalid date {text!r}; expected YYYY-MM-DD") from exc
 
 
-def _conservative_backfill_end() -> date:
-    """First day of the previous calendar month.
+def last_complete_calendar_month() -> date:
+    """First day of the previous calendar month in Europe/Vienna.
 
-    A safe default backfill end when no data has been ingested yet to
-    compute `latest_complete_month` from -- ENTSO-E always has the prior
-    month settled by the time a fresh backfill runs.
+    Implements: ING-040 (backfill runs to the end of the last complete
+    month). This is the REQUEST horizon: ENTSO-E has the prior month settled
+    by the time a backfill runs. It is deliberately NOT
+    `latest_complete_month()`, which is computed from data already on disk
+    (ING-042) -- using that as the backfill end made every re-run stop where
+    the previous run stopped, so the ingested horizon could never advance.
     """
-    today = date.today()
-    day_in_prior_month = month_start(today) - timedelta(days=1)
-    return month_start(day_in_prior_month)
+    return month_start(month_start(today_local()) - timedelta(days=1))
 
 
-def _resolve_backfill_end(settings: Settings, override: date | None) -> date:
-    if override is not None:
-        return override
-    try:
-        return latest_complete_month(settings)
-    except NoDataError:
-        return _conservative_backfill_end()
+def _resolve_backfill_end(override: date | None) -> date:
+    """`--end` if given, else the last complete calendar month (ING-040)."""
+    return override if override is not None else last_complete_calendar_month()
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """CLI: full backfill or 45-day incremental refresh (ING-002).
-
-    ``python -m epra.ingest.entsoe --backfill [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--no-cache]``
-    ``python -m epra.ingest.entsoe --incremental [--no-cache]``
-
-    Returns 0 on success, 1 on a user/validation error -- a strictly-parsed,
-    non-inverted date window (T-02-10) and mode-specific argument checks.
-    Malformed dates or missing/conflicting mode flags are argparse usage
-    errors (`SystemExit(2)`), not part of this 0/1 contract.
-
-    Logs to stdout and ``reports/ingestion/ingest_<date>.log`` (T-02-11:
-    logging.setup is called before any token can ever reach a log line).
-    """
+def _build_parser() -> argparse.ArgumentParser:
+    """Argument parser for the ENTSO-E CLI (ING-002)."""
     parser = argparse.ArgumentParser(
         prog="python -m epra.ingest.entsoe",
         description=(
@@ -805,54 +823,70 @@ def main(argv: Sequence[str] | None = None) -> int:
     mode.add_argument(
         "--backfill",
         action="store_true",
-        help="2019-01-01 -> latest complete month, all four datasets (ING-040).",
+        help="2019-01-01 -> last complete calendar month, all four datasets (ING-040).",
     )
     mode.add_argument(
         "--incremental",
         action="store_true",
         help="45-day lookback re-ingestion of all four datasets (ING-041).",
     )
-    parser.add_argument(
-        "--start",
-        type=_parse_cli_date,
-        default=None,
-        help="Override backfill start date (YYYY-MM-DD). Not valid with --incremental.",
-    )
-    parser.add_argument(
-        "--end",
-        type=_parse_cli_date,
-        default=None,
-        help="Override backfill end date (YYYY-MM-DD). Not valid with --incremental.",
-    )
+    for flag in ("--start", "--end"):
+        parser.add_argument(
+            flag,
+            type=_parse_cli_date,
+            default=None,
+            help=f"Override backfill {flag[2:]} date (YYYY-MM-DD). Not valid with --incremental.",
+        )
     parser.add_argument(
         "--no-cache",
         action="store_true",
         help="Bypass the response cache; always hit the network (ING-009).",
     )
-    args = parser.parse_args(argv)
+    return parser
 
+
+def _run(args: argparse.Namespace, settings: Settings) -> None:
+    """Dispatch a parsed CLI invocation; raises ValueError on a bad window."""
+    if args.incremental:
+        if args.start is not None or args.end is not None:
+            raise ValueError(
+                "--start/--end are not valid with --incremental "
+                "(ING-041 is a fixed 45-day lookback)"
+            )
+        ingest_incremental(settings, use_cache=not args.no_cache)
+        return
+    start = args.start if args.start is not None else settings.window.start_date
+    end = _resolve_backfill_end(args.end)
+    if end <= start:
+        raise ValueError(f"invalid window: end ({end}) must be after start ({start})")
+    backfill(settings, start, end, use_cache=not args.no_cache)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """CLI: full backfill or 45-day incremental refresh.
+
+    Implements: ING-002, ING-040, ING-041.
+
+    ``python -m epra.ingest.entsoe --backfill [--start YYYY-MM-DD] [--end YYYY-MM-DD] [--no-cache]``
+    ``python -m epra.ingest.entsoe --incremental [--no-cache]``
+
+    Returns 0 on success, 1 on a user/validation error -- a strictly-parsed,
+    non-inverted date window (T-02-10) and mode-specific argument checks.
+    Malformed dates or missing/conflicting mode flags are argparse usage
+    errors (`SystemExit(2)`), not part of this 0/1 contract.
+
+    Logs to stdout and ``<repo>/reports/ingestion/ingest_<date>.log`` (T-02-11:
+    logging.setup is called before any token can ever reach a log line).
+    """
+    args = _build_parser().parse_args(argv)
     settings = load_settings()
-    logfile = settings.paths.reports / "ingestion" / f"ingest_{date.today():%Y-%m-%d}.log"
-    common_logging.setup(logfile=logfile)
-
+    reports = resolve_repo_path(settings.paths.reports)
+    common_logging.setup(logfile=reports / "ingestion" / f"ingest_{today_local():%Y-%m-%d}.log")
     try:
-        if args.incremental:
-            if args.start is not None or args.end is not None:
-                raise ValueError(
-                    "--start/--end are not valid with --incremental "
-                    "(ING-041 is a fixed 45-day lookback)"
-                )
-            ingest_incremental(settings, use_cache=not args.no_cache)
-        else:
-            start = args.start if args.start is not None else settings.window.start_date
-            end = _resolve_backfill_end(settings, args.end)
-            if end <= start:
-                raise ValueError(f"invalid window: end ({end}) must be after start ({start})")
-            backfill(settings, start, end, use_cache=not args.no_cache)
+        _run(args, settings)
     except (ValueError, IngestError) as exc:
         logger.error("ingest failed: %s", exc)
         return 1
-
     return 0
 
 

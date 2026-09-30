@@ -15,7 +15,9 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from epra.common import logging as common_logging
 from epra.common.config import Settings, load_settings
+from epra.common.timeutil import today_local
 from epra.ingest._io import write_month
 from epra.ingest.calendar import build_calendar
 from epra.ingest.exceptions import GateFailure
@@ -279,6 +281,44 @@ def test_gate_ing_094_fails_when_coverage_below_99_percent() -> None:
     assert not result.evidence.loc[result.evidence["check"] == "coverage", "ok"].all()
 
 
+def test_gate_ing_094_window_catches_series_that_stops_early() -> None:
+    """A series ending 2023-12-31 is 100% of its own span but ~1/3 of a 2023-2025 window."""
+    frame = _geosphere_year(2023, {7: 20.0, 1: 0.0})
+    assert gate_ing_094(frame).passed is True  # self-span denominator: truncation invisible
+
+    result = gate_ing_094(frame, window=(date(2023, 1, 1), date(2025, 12, 31)))
+    assert result.passed is False
+    assert result.evidence is not None
+    coverage = result.evidence.loc[result.evidence["check"] == "coverage"].iloc[0]
+    assert not coverage["ok"]
+    assert coverage["actual"] == "0.3330 (365/1096 days)"
+
+
+def test_gate_ing_094_window_ignores_days_outside_it() -> None:
+    """Days beyond the window end (e.g. a partial current month) never inflate coverage."""
+    frame = pd.concat(
+        [_geosphere_year(2023, {7: 20.0, 1: 0.0}), _geosphere_year(2024, {7: 20.0, 1: 0.0})],
+        ignore_index=True,
+    )
+    result = gate_ing_094(frame, window=(date(2023, 1, 1), date(2023, 12, 31)))
+    assert result.passed is True
+    assert result.evidence is not None
+    coverage = result.evidence.loc[result.evidence["check"] == "coverage"].iloc[0]
+    assert coverage["actual"] == "1.0000 (365/365 days)"
+
+
+def test_gate_ing_094_null_value_days_do_not_count_as_covered() -> None:
+    """A day present with a NULL temperature is a gap (A-2), not coverage."""
+    frame = _geosphere_year(2023, {7: 20.0, 1: 0.0})
+    frame.loc[frame.index[100:160], "tl_mittel_c"] = float("nan")
+
+    result = gate_ing_094(frame)
+    assert result.passed is False
+    assert result.evidence is not None
+    coverage = result.evidence.loc[result.evidence["check"] == "coverage"].iloc[0]
+    assert coverage["actual"] == "0.8356 (305/365 days)"
+
+
 def test_gate_ing_094_fails_when_temperature_out_of_range() -> None:
     frame = _geosphere_year(2023, {7: 20.0, 1: 0.0})
     frame.loc[0, "tl_mittel_c"] = 50.0  # above the 42 degC ceiling
@@ -355,7 +395,7 @@ def test_gate_ing_103_fails_when_2022_peak_below_3x_2019_mean() -> None:
     # Clamp every 2022 value to the Dec-2021 level (190) -- ratio to the 2019
     # mean (100) drops to 1.9x (< 3x), while the Dec21->Jan22 (0%) and
     # Dec22->Jan23 (~58%) transitions both stay within the +/-60% MoM band.
-    frame.loc[frame.index.year == 2022, "oespi_base"] = 190.0
+    frame.loc[pd.PeriodIndex(frame.index).year == 2022, "oespi_base"] = 190.0
 
     result = gate_ing_103(frame)
     assert result.passed is False
@@ -479,6 +519,57 @@ def _write_geosphere_frame(settings: Settings, frame: pd.DataFrame) -> None:
         )
 
 
+def _with_window_start(settings: Settings, start: date) -> Settings:
+    """`settings` with ``window.start_date`` moved (ING-093 GeoSphere window start)."""
+    return settings.model_copy(
+        update={"window": settings.window.model_copy(update={"start_date": start})}
+    )
+
+
+def _write_good_entsoe_years(settings: Settings, years: tuple[int, ...]) -> None:
+    """Plausible AT/DE-LU prices + AT load for `years`, one negative AT price per year."""
+    for year in years:
+        _write_year(settings, "entsoe_prices_at", "price_eur_mwh", year, value=100.0)
+        _write_year(settings, "entsoe_prices_delu", "price_eur_mwh", year, value=40.0)
+        _write_year(settings, "entsoe_load_at", "load_mw", year, value=7000.0)
+        jan_path = (
+            settings.paths.data_raw / "entsoe_prices_at" / str(year)
+        ) / f"entsoe_prices_at_{year}-01.parquet"
+        frame = pd.read_parquet(jan_path)
+        frame.loc[0, "price_eur_mwh"] = -5.0
+        write_month(
+            frame.drop(columns=["ingested_at_utc", "source", "request_hash"]),
+            "entsoe_prices_at",
+            date(year, 1, 1),
+            "testhash",
+            settings,
+        )
+
+
+def test_run_gates_fails_ing_094_when_geosphere_stops_before_price_horizon(
+    tmp_settings: Settings,
+) -> None:
+    """Regression for the 2023-12 GeoSphere truncation (audit 2026-09-30 §5).
+
+    Prices run 2023-2025 but GeoSphere stops at 2023-12-31. Measured against
+    its own span the GeoSphere series is 100% covered (the old behaviour that
+    let a truncated real pull pass); measured against the ING-093 window it
+    covers only a third of the days and ING-094 must fail.
+    """
+    settings = _with_window_start(tmp_settings, date(2023, 1, 1))
+    _write_good_entsoe_years(settings, (2023, 2024, 2025))
+    _write_geosphere_frame(settings, _geosphere_year(2023, {7: 20.0, 1: 0.0}))
+
+    with pytest.raises(GateFailure) as excinfo:
+        run_gates(settings)
+    assert str(excinfo.value).startswith("validation gate ING-094 failed")
+
+    report_path = settings.paths.reports / "ingestion" / f"validation_{today_local():%Y-%m-%d}.md"
+    content = report_path.read_text(encoding="utf-8")
+    assert "2023-01-01..2025-12-31" in content
+    assert "(365/1096 days)" in content
+
+
 def test_run_gates_passes_and_writes_report_on_good_synthetic_data(
     tmp_settings: Settings,
 ) -> None:
@@ -506,12 +597,17 @@ def test_run_gates_passes_and_writes_report_on_good_synthetic_data(
     # calendar (ING-111) need no seeding here -- `tmp_settings.paths.data_manual`
     # has no `oespi_monthly.csv` (informational skip, D-06), and
     # `build_calendar` derives its spine from the ENTSO-E data written above.
-    _write_geosphere_frame(tmp_settings, _geosphere_year(2023, {7: 20.0, 1: 0.0}))
+    # ING-093/094: GeoSphere must cover the whole analysis window (window.start_date
+    # -> latest complete price month), so the window here starts where the
+    # synthetic price data does and GeoSphere is seeded for all three years.
+    settings = _with_window_start(tmp_settings, date(2023, 1, 1))
+    for year in (2023, 2024, 2025):
+        _write_geosphere_frame(settings, _geosphere_year(year, {7: 20.0, 1: 0.0}))
 
-    run_gates(tmp_settings)  # must not raise
+    run_gates(settings)  # must not raise
 
     report_path = (
-        tmp_settings.paths.reports / "ingestion" / f"validation_{date.today():%Y-%m-%d}.md"
+        tmp_settings.paths.reports / "ingestion" / f"validation_{today_local():%Y-%m-%d}.md"
     )
     assert report_path.exists()
     content = report_path.read_text(encoding="utf-8")
@@ -555,7 +651,7 @@ def test_run_gates_raises_on_m2_gate_failure_and_lists_all_ids_once(
     assert "ING-094" in str(excinfo.value)
 
     report_path = (
-        tmp_settings.paths.reports / "ingestion" / f"validation_{date.today():%Y-%m-%d}.md"
+        tmp_settings.paths.reports / "ingestion" / f"validation_{today_local():%Y-%m-%d}.md"
     )
     content = report_path.read_text(encoding="utf-8")
     assert "GATE FAILURE" in content
@@ -581,7 +677,7 @@ def test_run_gates_raises_and_still_writes_report_on_incomplete_data(
         run_gates(tmp_settings)
 
     report_path = (
-        tmp_settings.paths.reports / "ingestion" / f"validation_{date.today():%Y-%m-%d}.md"
+        tmp_settings.paths.reports / "ingestion" / f"validation_{today_local():%Y-%m-%d}.md"
     )
     assert report_path.exists()
     content = report_path.read_text(encoding="utf-8")
@@ -593,3 +689,30 @@ def test_run_gates_creates_reports_ingestion_dir_if_missing(tmp_settings: Settin
     with pytest.raises(GateFailure):
         run_gates(tmp_settings)  # no data at all -> every gate fails, but dir must be created
     assert (tmp_settings.paths.reports / "ingestion").exists()
+
+
+def test_validate_main_anchors_relative_reports_path_at_repo_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The validate logfile never lands relative to the caller's cwd (audit 2026-09-30 §2)."""
+    import epra.ingest.validate as validate_module
+    from epra.common.config import REPO_ROOT
+
+    settings = load_settings()
+    relative = settings.model_copy(
+        update={"paths": settings.paths.model_copy(update={"reports": Path("reports")})}
+    )
+    monkeypatch.setattr(validate_module, "load_settings", lambda: relative)
+    monkeypatch.setattr(validate_module, "run_gates", lambda s: None)
+    captured: dict[str, Path | None] = {}
+    monkeypatch.setattr(
+        common_logging,
+        "setup",
+        lambda logfile=None, **_: captured.update(logfile=logfile),
+    )
+    monkeypatch.chdir(tmp_path)
+
+    assert validate_module.main([]) == 0
+    assert captured["logfile"] == (
+        REPO_ROOT / "reports" / "ingestion" / f"validate_{today_local():%Y-%m-%d}.log"
+    )

@@ -1,23 +1,16 @@
--- Implements: SPEC-02 §6 DM-062 row-count boundary
+-- Implements: SPEC-02 §6 DM-062 row-count boundary, DM-012
 --
 -- fct_price_hourly must have 8760 hours per local year (8784 in a leap
--- year), tolerant to +/-24 either side (one full day). Group by year_local
--- (dim_calendar-derived, DM-011 -- no timezone-conversion call here) and
--- flag any COMPLETE local year outside that boundary.
+-- year), tolerant to +/-24 either side (one full day). Grouped by year_local
+-- (dim_calendar-derived, DM-011 -- no timezone-conversion call here).
 --
--- "Complete" excludes only the two calendar-horizon edges -- dim_calendar's
--- forward-risk horizon (SPEC-05) intentionally extends the spine past the
--- real ingested price window (and the real ingestion start may itself not
--- land exactly on a local Jan-1 00:00 boundary), so on the real local
--- build the very first/last year_local group can be a partial slice of
--- the calendar rather than a genuine missing-hours anomaly (same
--- complete-year-within-the-window convention as ADR-006's ingestion
--- gates). A year only counts as "complete" here if the mart itself
--- contains a row for both its local Jan-1 and its local Dec-31 -- this is
--- computed purely from the mart's own min/max date_local, not from any
--- external ingestion-window constant, so the CI fixture window (D-03,
--- fully bounded 2022-2024) is unaffected and every year in that window
--- still runs this check unmodified.
+-- COMPLETE years (the mart holds both the local Jan-1 and the local Dec-31)
+-- get the DM-062 +/-24 check. EDGE years (the calendar horizon's first/last
+-- partial local year -- e.g. the forward-risk spine end, ING-110) cannot be
+-- held to a full-year count, but they are NOT skipped: an edge year must
+-- still have 1..expected_hours rows (more than a full year, or an empty
+-- group, is always a defect). Same complete-year-within-the-window
+-- convention as ADR-006's ingestion gates.
 
 with counts as (
     select
@@ -28,19 +21,13 @@ with counts as (
             then 8784
             else 8760
         end as expected_hours,
-        min(date_local) as min_date_local,
-        max(date_local) as max_date_local
+        min(date_local) = make_date(year_local, 1, 1)
+            and max(date_local) = make_date(year_local, 12, 31) as is_complete_year
     from {{ ref('fct_price_hourly') }}
     group by year_local
-),
-
-complete_years as (
-    select *
-    from counts
-    where min_date_local = make_date(year_local, 1, 1)
-      and max_date_local = make_date(year_local, 12, 31)
 )
 
 select *
-from complete_years
-where abs(n_hours - expected_hours) > 24
+from counts
+where (is_complete_year and abs(n_hours - expected_hours) > 24)
+    or (not is_complete_year and (n_hours < 1 or n_hours > expected_hours))

@@ -9,9 +9,9 @@ Binding contract: SPEC-01 §10. Key points:
 - Schema (ING-100): ``month,oespi_base,oespi_peak,source_url,retrieved_at``
   with ``month`` = YYYY-MM. Values are transcribed real data — never invented
   (A-2, P-1).
-- Methodology break warning (ING-102): use ONE consistent series (D-01,
-  ADR-008); ``load_oespi`` asserts ``source_url`` is constant across the whole
-  series and raises rather than silently splicing two methods/pages.
+- Methodology break warning (ING-102): use ONE consistent series
+  (ADR-008); ``load_oespi`` asserts ``source_url`` is constant across the
+  whole series and raises rather than silently splicing two methods/pages.
 - Gates (ING-103, in ``epra.ingest.validate.gate_ing_103``): continuous
   months, positive values, 2022 peak >= 3x the 2019 mean, month-over-month
   change within +/-60%.
@@ -27,13 +27,13 @@ from __future__ import annotations
 import argparse
 import logging
 from collections.abc import Sequence
-from datetime import date
 from pathlib import Path
 
 import pandas as pd
 
 from epra.common import logging as common_logging
-from epra.common.config import Settings, load_settings
+from epra.common.config import Settings, load_settings, resolve_repo_path
+from epra.common.timeutil import today_local
 from epra.ingest.exceptions import ContractError
 from epra.ingest.validate import gate_ing_103
 
@@ -65,17 +65,90 @@ def _coerce_numeric(values: pd.Series, months: pd.Series, column: str) -> pd.Ser
     return numeric.astype("float64")
 
 
+def _read_raw_csv(path: Path) -> pd.DataFrame:
+    """Read the ÖSPI CSV verbatim and enforce the ING-100 schema + non-empty invariant.
+
+    ``dtype=str`` + ``keep_default_na=False``: every cell stays the literal
+    string from the file (blank -> "", never pandas' own NA sniffing) so numeric
+    coercion is the ONLY place a bad value can be detected/raised.
+
+    Implements: ING-100.
+    """
+    raw = pd.read_csv(path, dtype=str, keep_default_na=False)
+    if tuple(raw.columns) != _EXPECTED_COLUMNS:
+        raise ContractError(
+            "oespi_monthly",
+            expected=f"columns {list(_EXPECTED_COLUMNS)} (ING-100)",
+            actual=f"{list(raw.columns)}",
+        )
+    if raw.empty:
+        raise ContractError("oespi_monthly", expected="at least one data row", actual="0 rows")
+    return raw
+
+
+def _assert_single_source(raw: pd.DataFrame) -> None:
+    """ING-102 / ADR-008 single-series invariant: one constant ``source_url`` -- never splice.
+
+    Implements: ING-102.
+    """
+    urls = raw["source_url"]
+    if urls.nunique() != 1:
+        splice_months = sorted(raw.loc[urls != urls.iloc[0], "month"])
+        raise ContractError(
+            "oespi_monthly",
+            expected="a single constant source_url across the whole series (ING-102, ADR-008)",
+            actual=f"{urls.nunique()} distinct source_url value(s); differing month(s)="
+            f"{splice_months}",
+        )
+
+
+def _parse_months(raw: pd.DataFrame) -> pd.PeriodIndex:
+    """Parse the ``month`` column (YYYY-MM) into a monthly `PeriodIndex` (ING-100).
+
+    Implements: ING-100.
+    """
+    try:
+        return pd.PeriodIndex(raw["month"], freq="M")
+    except ValueError as exc:
+        raise ContractError(
+            "oespi_monthly",
+            expected="month formatted YYYY-MM",
+            actual=f"{raw['month'].tolist()}",
+        ) from exc
+
+
+def _parse_peak(raw: pd.DataFrame) -> tuple[pd.Series, bool]:
+    """Return ``(oespi_peak float series, peak_available)`` under the ING-104 all-or-nothing rule.
+
+    All blank -> base-only fallback (all-NaN, ``False``); all present ->
+    numeric (``True``); a mix is malformed and raises (P-3).
+
+    Implements: ING-104.
+    """
+    peak_blank = raw["oespi_peak"].str.strip() == ""
+    if peak_blank.all():
+        return pd.Series([float("nan")] * len(raw), dtype="float64"), False
+    if peak_blank.any():
+        blank_months = sorted(raw.loc[peak_blank, "month"])
+        raise ContractError(
+            "oespi_monthly",
+            expected="oespi_peak present for every month, or blank for every month (ING-104)",
+            actual=f"blank for {len(blank_months)} month(s) but present elsewhere: {blank_months}",
+        )
+    return _coerce_numeric(raw["oespi_peak"], raw["month"], "oespi_peak"), True
+
+
 def load_oespi(settings: Settings, *, csv_path: Path | None = None) -> pd.DataFrame:
     """Load + validate the ÖSPI monthly CSV (ING-100/102/104).
 
+    Implements: ING-100, ING-102, ING-104.
+
     Args:
         settings: injected config; never re-read YAML here (EN-040).
-        csv_path: override for the CSV path — the default is
-            ``settings.paths.data_manual / "oespi_monthly.csv"`` (the
-            reconciled double-entry file, ING-101). Tests inject the
-            committed synthetic fixture instead (D-05/D-06 — the real
-            reconciled file is the 03-06 human checkpoint, never required
-            for this loader or its gates to ship).
+        csv_path: override for the CSV path — the default is the
+            REPO_ROOT-anchored ``settings.paths.data_manual /
+            "oespi_monthly.csv"`` (the reconciled double-entry file, ING-101).
+            Tests inject the committed synthetic fixture instead.
 
     Returns:
         A frame indexed by a monthly `PeriodIndex` named ``month``, with
@@ -88,62 +161,21 @@ def load_oespi(settings: Settings, *, csv_path: Path | None = None) -> pd.DataFr
     Raises:
         ContractError: the CSV's columns don't exactly match the ING-100
             schema; the CSV has no data rows; ``source_url`` is not constant
-            across the series (D-01, ING-102 — never splice methodologies);
+            across the series (ING-102 — never splice methodologies);
             ``month`` is not parseable as YYYY-MM; ``oespi_base`` (or
             ``oespi_peak``, when present) has a non-numeric/blank value; or
             ``oespi_peak`` is blank for some but not all months.
     """
-    path = csv_path if csv_path is not None else settings.paths.data_manual / "oespi_monthly.csv"
-    # dtype=str + keep_default_na=False: every cell stays the literal string
-    # from the file (blank -> "", never pandas' own NA sniffing) so numeric
-    # coercion below is the ONLY place a bad value can be detected/raised.
-    raw = pd.read_csv(path, dtype=str, keep_default_na=False)
-
-    if tuple(raw.columns) != _EXPECTED_COLUMNS:
-        raise ContractError(
-            "oespi_monthly",
-            expected=f"columns {list(_EXPECTED_COLUMNS)} (ING-100)",
-            actual=f"{list(raw.columns)}",
-        )
-    if raw.empty:
-        raise ContractError("oespi_monthly", expected="at least one data row", actual="0 rows")
-
-    # Single-series invariant (D-01, ING-102) -- never splice methodologies.
-    urls = raw["source_url"]
-    if urls.nunique() != 1:
-        splice_months = sorted(raw.loc[urls != urls.iloc[0], "month"])
-        raise ContractError(
-            "oespi_monthly",
-            expected="a single constant source_url across the whole series (D-01, ING-102)",
-            actual=f"{urls.nunique()} distinct source_url value(s); differing month(s)="
-            f"{splice_months}",
-        )
-
-    try:
-        month_index = pd.PeriodIndex(raw["month"], freq="M")
-    except ValueError as exc:
-        raise ContractError(
-            "oespi_monthly",
-            expected="month formatted YYYY-MM",
-            actual=f"{raw['month'].tolist()}",
-        ) from exc
-
+    path = (
+        csv_path
+        if csv_path is not None
+        else resolve_repo_path(settings.paths.data_manual) / "oespi_monthly.csv"
+    )
+    raw = _read_raw_csv(path)
+    _assert_single_source(raw)
+    month_index = _parse_months(raw)
     base = _coerce_numeric(raw["oespi_base"], raw["month"], "oespi_base")
-
-    peak_blank = raw["oespi_peak"].str.strip() == ""
-    if peak_blank.all():
-        peak_available = False
-        peak = pd.Series([float("nan")] * len(raw), dtype="float64")
-    elif peak_blank.any():
-        blank_months = sorted(raw.loc[peak_blank, "month"])
-        raise ContractError(
-            "oespi_monthly",
-            expected="oespi_peak present for every month, or blank for every month (ING-104)",
-            actual=f"blank for {len(blank_months)} month(s) but present elsewhere: {blank_months}",
-        )
-    else:
-        peak_available = True
-        peak = _coerce_numeric(raw["oespi_peak"], raw["month"], "oespi_peak")
+    peak, peak_available = _parse_peak(raw)
 
     frame = pd.DataFrame(
         {
@@ -167,10 +199,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     """CLI: ``python -m epra.ingest.oespi`` — load + validate the committed CSV (ING-103).
 
     Loads ``settings.paths.data_manual / "oespi_monthly.csv"`` (the reconciled
-    double-entry file, ING-101), then runs `gate_ing_103` and prints the
-    result. Returns 0 if the CSV loads and the gate passes, 1 on a load error
+    double-entry file, ING-101), then runs `gate_ing_103` and logs the
+    rendered result (stdout + the REPO_ROOT-anchored logfile, EN-060). Returns
+    0 if the CSV loads and the gate passes, 1 on a load error
     (`ContractError`/`FileNotFoundError` — e.g. the real reconciled CSV isn't
-    committed yet, the 03-06 human checkpoint) or a failed gate.
+    committed yet) or a failed gate.
+
+    Implements: ING-002 (CLI entrypoint), ING-103 (gate wiring), EN-060 (logging).
     """
     parser = argparse.ArgumentParser(
         prog="python -m epra.ingest.oespi",
@@ -179,7 +214,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.parse_args(argv)
 
     settings = load_settings()
-    logfile = settings.paths.reports / "ingestion" / f"oespi_{date.today():%Y-%m-%d}.log"
+    logfile = (
+        resolve_repo_path(settings.paths.reports)
+        / "ingestion"
+        / f"oespi_{today_local():%Y-%m-%d}.log"
+    )
     common_logging.setup(logfile=logfile)
 
     try:
@@ -189,8 +228,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     result = gate_ing_103(frame)
-    logger.info("gate=%s passed=%s summary=%s", result.gate_id, result.passed, result.summary)
-    print(result.render_markdown())
+    log = logger.info if result.passed else logger.error
+    log("gate=%s passed=%s summary=%s", result.gate_id, result.passed, result.summary)
+    log("ING-103 result:\n%s", result.render_markdown())
 
     return 0 if result.passed else 1
 

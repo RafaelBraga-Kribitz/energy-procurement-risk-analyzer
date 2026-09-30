@@ -8,12 +8,13 @@
     once).
 
     Usage (dbt/models/staging/staging.yml — stg_gen_at_hourly's [ts_utc,
-    psr_type] composite grain key):
+    psr_type] composite grain key; dbt >= 1.10 syntax, ADR-012):
         models:
           - name: stg_gen_at_hourly
-            tests:
+            data_tests:
               - unique_combination_of_columns:
-                  combination_of_columns: [ts_utc, psr_type]
+                  arguments:
+                    combination_of_columns: [ts_utc, psr_type]
 #}
 {% test unique_combination_of_columns(model, combination_of_columns) %}
 

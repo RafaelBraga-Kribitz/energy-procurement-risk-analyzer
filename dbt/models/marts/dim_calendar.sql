@@ -1,4 +1,4 @@
--- Implements: DM-011, SPEC-02 §4 (dim_calendar, grain: hour)
+-- Implements: DM-010, DM-011, SPEC-02 §4 (dim_calendar, grain: hour)
 --
 -- Single source of local calendar truth every mart joins on. Local
 -- attributes (date_local, year_local, month_local, hour_local, dow_local,
@@ -6,6 +6,10 @@
 -- ING-110 calendar parquet — they are pre-computed by
 -- epra.ingest.calendar/epra.common.timeutil and never re-derived with a
 -- timezone-conversion function here (DM-011 forbids it at this layer).
+-- Values are only type-pinned (plain casts, no conversion) so the mart
+-- contract (dbt/contracts/marts_contract.yml) does not depend on the
+-- parquet writer's integer width; ts_utc is TIMESTAMPTZ read in the
+-- UTC-pinned session (DM-010, ADR-014).
 --
 -- season: Austrian energy-market convention — 'winter' covers Nov-Mar
 -- (heating season), 'summer' covers Apr-Oct (SPEC-02 §4).
@@ -19,15 +23,15 @@
 
 with calendar as (
     select
-        ts_utc,
-        date_local,
-        year_local,
-        month_local,
-        hour_local,
-        dow_local,
-        is_weekend,
-        is_holiday_at,
-        is_peak_hour
+        cast(ts_utc as timestamptz) as ts_utc,
+        cast(date_local as date) as date_local,
+        cast(year_local as integer) as year_local,
+        cast(month_local as integer) as month_local,
+        cast(hour_local as integer) as hour_local,
+        cast(dow_local as integer) as dow_local,
+        cast(is_weekend as boolean) as is_weekend,
+        cast(is_holiday_at as boolean) as is_holiday_at,
+        cast(is_peak_hour as boolean) as is_peak_hour
     from {{ source('raw_calendar', 'calendar') }}
 ),
 
@@ -52,7 +56,7 @@ select
         when calendar.month_local in (11, 12, 1, 2, 3) then 'winter'
         else 'summer'
     end as season,
-    greatest(0, 18 - weather.tavg_c) as hdd_18,
-    greatest(0, weather.tavg_c - 22) as cdd_22
+    greatest(0.0, 18.0 - weather.tavg_c) as hdd_18,
+    greatest(0.0, weather.tavg_c - 22.0) as cdd_22
 from calendar
 left join weather on calendar.date_local = weather.date_local
