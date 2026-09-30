@@ -1,4 +1,6 @@
-# SPEC-07 §1 (toolchain), §3 (pinned dependencies — upgrades require ADR, GV-203).
+# SPEC-07 §1 (toolchain), §3 (dependency floors — upgrades require ADR, GV-203).
+# Floors/ceilings live here; the exact pinned versions live in uv.lock (EN-030), which
+# `make setup` and CI install with `uv sync --frozen` (ADR-012).
 [project]
 name = "epra"
 version = "0.1.0"
@@ -11,8 +13,8 @@ dependencies = [
     "pandas>=2.2,<3",
     "numpy>=1.26,<3",
     "duckdb>=1.0",
-    "dbt-core>=1.8,<2",
-    "dbt-duckdb>=1.8,<2",
+    "dbt-core>=1.10,<2",    # ADR-012: arguments: test syntax
+    "dbt-duckdb>=1.10,<2",
     "entsoe-py>=0.6",
     "pyarrow>=18,<26",
     "requests>=2.32",
@@ -62,7 +64,7 @@ allowed-confusables = ["×", "−", "α", "β"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src/epra"]
+files = ["src/epra", "scripts"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
@@ -73,7 +75,10 @@ ignore_missing_imports = true
 # --------------------------------------------------------------- tests (EN-070, EN-071)
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q --cov=epra --cov-fail-under=80 --cov-report=term-missing"
+# Offline by default (EN-070): bare `pytest` never hits the network; `pytest -m live`
+# overrides the marker. Coverage (EN-071) is added by `make test` and the CI test job,
+# so targeted runs don't need `--no-cov`.
+addopts = "-q -m 'not live'"
 markers = [
     "live: hits real external APIs; excluded in CI (EN-070)",
 ]

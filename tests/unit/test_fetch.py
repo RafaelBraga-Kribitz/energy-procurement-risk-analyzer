@@ -432,3 +432,34 @@ def test_fetch_entsoe_fails_without_token(
         fetch_entsoe(_query(), tmp_settings, transport=stub_transport)
 
     assert calls == []  # fails before any network call (ING-021)
+
+
+def test_error_detail_redacts_token_echoed_in_response_body(tmp_settings: Settings) -> None:
+    """A-7: a gateway error page that echoes the request URL must not carry
+    the token into the exception text (ING-006 keeps the body otherwise)."""
+
+    def stub_transport(query: EntsoeQuery, api_key: str) -> str:
+        body = f"<html>Forbidden: GET /api?securityToken={FAKE_TOKEN}&documentType=A44</html>"
+        raise _http_error(403, text=body)
+
+    with pytest.raises(IngestAuthError) as excinfo:
+        fetch_entsoe(_old_window(), tmp_settings, transport=stub_transport)
+
+    message = str(excinfo.value)
+    assert FAKE_TOKEN not in message
+    assert "securityToken=<redacted>" in message
+    assert "Forbidden" in message
+
+
+def test_redact_token_strips_param_and_literal_value() -> None:
+    text = f"x?SECURITYTOKEN=abc123&y=1 and raw {FAKE_TOKEN}"
+    out = _fetch.redact_token(text, FAKE_TOKEN)
+    assert "abc123" not in out
+    assert FAKE_TOKEN not in out
+    assert "y=1" in out
+
+
+def test_query_request_hash_matches_token_bearing_url_hash() -> None:
+    """ING-004/ING-009: the token-free key equals the hash of the real URL."""
+    q = _old_window()
+    assert _fetch.query_request_hash(q) == request_hash(_fetch._cache_request_url(q, FAKE_TOKEN))

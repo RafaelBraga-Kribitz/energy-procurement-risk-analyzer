@@ -4,21 +4,27 @@
 
 UV ?= uv
 
-.PHONY: setup backfill ingest validate-ingest geosphere calendar oespi transform warehouse \
-        profile analyze simulate ssot export report test lint all refresh
+.PHONY: setup backfill ingest validate-ingest geosphere calendar oespi oespi-reconcile \
+        transform warehouse freshness profile analyze simulate ssot export report \
+        test test-live lint token-guard all refresh
 
-setup:
-	$(UV) venv --allow-existing
-	$(UV) pip install -e ".[dev]"
+setup:               ## EN-030 — install exactly the committed uv.lock (ADR-012)
+	$(UV) sync --frozen --extra dev
 	$(UV) run pre-commit install
 
-lint:
+lint: token-guard
 	$(UV) run ruff check src tests scripts
 	$(UV) run ruff format --check src tests scripts
 	$(UV) run mypy
 
-test:
-	$(UV) run pytest
+token-guard:         ## A-7 / EN-003 — no ENTSO-E token literal in any tracked file
+	git ls-files -z | xargs -0 $(UV) run python scripts/check_no_token_in_code.py
+
+test:                ## EN-070 — offline suite, same selection as CI
+	$(UV) run pytest -m "not live" --cov=epra --cov-fail-under=80 --cov-report=term-missing
+
+test-live:           ## EN-070 — live API tests only (needs network; ENTSO-E ones need the token)
+	$(UV) run pytest -m live
 
 backfill:            ## M1 — SPEC-01 §4: full 2019→latest ingestion (all sources)
 	$(UV) run python -m epra.ingest.entsoe --backfill
@@ -38,12 +44,18 @@ calendar:            ## M2 — SPEC-01 §11: hourly UTC calendar spine (ING-110)
 oespi:               ## M2 — SPEC-01 §10: ÖSPI loader + series gates (ING-103)
 	$(UV) run python -m epra.ingest.oespi
 
+oespi-reconcile:     ## M2 — ING-101: double-entry reconcile of data/manual/oespi_monthly_entry{1,2}.csv
+	$(UV) run python scripts/oespi_reconcile.py --dir data/manual
+
 transform:           ## M3 — SPEC-02: dbt build (models + tests)
 	cd dbt && $(UV) run dbt build
 
-warehouse:           ## M3 — SPEC-02 D-02: dbt build + human-readable build report
+warehouse:           ## M3 — SPEC-02: dbt build + human-readable build report (reports/warehouse/)
 	$(MAKE) transform
 	$(UV) run python -m epra.warehouse.report
+
+freshness:           ## M3 — DM-066 freshness gate on stg_prices_at_hourly (needs real, current data)
+	cd dbt && $(UV) run dbt test --select freshness_stg_prices_at_hourly --vars '{check_freshness: true}'
 
 # ---------------------------------------------------------------- not yet implemented ----
 profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_baseload)
@@ -66,4 +78,4 @@ report:              ## M7 — executive charts
 
 all: transform profile analyze simulate ssot export report
 
-refresh: ingest validate-ingest all
+refresh: ingest validate-ingest freshness all

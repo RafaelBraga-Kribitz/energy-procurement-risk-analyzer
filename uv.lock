@@ -460,8 +460,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "arch", specifier = ">=7" },
-    { name = "dbt-core", specifier = ">=1.8,<2" },
-    { name = "dbt-duckdb", specifier = ">=1.8,<2" },
+    { name = "dbt-core", specifier = ">=1.10,<2" },
+    { name = "dbt-duckdb", specifier = ">=1.10,<2" },
     { name = "duckdb", specifier = ">=1.0" },
     { name = "entsoe-py", specifier = ">=0.6" },
     { name = "hmmlearn", specifier = ">=0.3" },

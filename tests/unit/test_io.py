@@ -364,3 +364,22 @@ def test_write_month_default_key_column_still_rejects_naive_ts_utc(
     frame["ts_utc"] = frame["ts_utc"].dt.tz_localize(None)
     with pytest.raises(ValueError, match="tz-aware"):
         _io.write_month(frame, "entsoe_prices_at", month, "h" * 64, tmp_settings)
+
+
+def test_write_month_keeps_per_row_request_hash(tmp_settings: Settings) -> None:
+    """ING-004: `request_hash=None` keeps each row's own origin hash."""
+    month = date(2021, 3, 1)
+    frame = _prices_frame(month).assign(request_hash=["a" * 64, "b" * 64, "b" * 64])
+
+    path = _io.write_month(frame, "entsoe_prices_at", month, None, tmp_settings)
+
+    out = pd.read_parquet(path)
+    assert list(out.columns)[-3:] == ["ingested_at_utc", "source", "request_hash"]
+    assert out["request_hash"].tolist() == ["a" * 64, "b" * 64, "b" * 64]
+    assert list(out.columns).count("request_hash") == 1
+
+
+def test_write_month_without_any_request_hash_raises(tmp_settings: Settings) -> None:
+    month = date(2021, 3, 1)
+    with pytest.raises(ContractError):
+        _io.write_month(_prices_frame(month), "entsoe_prices_at", month, None, tmp_settings)

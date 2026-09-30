@@ -23,14 +23,20 @@ PEAK_END_HOUR = 20  # exclusive
 
 
 def to_utc(ts: datetime) -> datetime:
-    """Convert a tz-aware datetime to UTC. Naive input is a bug — raise (T-4)."""
+    """Convert a tz-aware datetime to UTC. Naive input is a bug — raise (T-4).
+
+    Implements: ING-005, ING-031 (UTC at the ingestion boundary).
+    """
     if ts.tzinfo is None:
         raise ValueError("naive datetime passed to to_utc(); timestamps must be tz-aware")
     return ts.astimezone(UTC)
 
 
 def to_local(ts: datetime) -> datetime:
-    """Convert a tz-aware datetime to Europe/Vienna local time."""
+    """Convert a tz-aware datetime to Europe/Vienna local time.
+
+    Implements: DM-012 (local-year semantics), ING-031 (Vienna request bounds).
+    """
     if ts.tzinfo is None:
         raise ValueError("naive datetime passed to to_local(); timestamps must be tz-aware")
     return ts.astimezone(VIENNA)
@@ -50,7 +56,10 @@ def is_peak_hour(ts_local: datetime, *, is_holiday: bool = False) -> bool:
 
 
 def local_hours_in_day(d: date) -> int:
-    """Number of local clock hours in local day ``d`` (23/24/25 across DST — ING-080)."""
+    """Number of local clock hours in local day ``d`` (23/24/25 across DST).
+
+    Implements: ING-080 (DST-aware expected hour counts).
+    """
     start = datetime(d.year, d.month, d.day, tzinfo=VIENNA)
     next_day = d + timedelta(days=1)
     end = datetime(next_day.year, next_day.month, next_day.day, tzinfo=VIENNA)
@@ -59,13 +68,28 @@ def local_hours_in_day(d: date) -> int:
     return round((end.astimezone(UTC) - start.astimezone(UTC)).total_seconds() / 3600)
 
 
+def today_local() -> date:
+    """Today's calendar date in Europe/Vienna — never the machine-local date (T-1).
+
+    Implements: ING-041 (lookback anchored on the Vienna day), ING-042 (month
+    boundaries evaluated in local time).
+    """
+    return datetime.now(VIENNA).date()
+
+
 def month_start(d: date) -> date:
-    """First day of ``d``'s month."""
+    """First day of ``d``'s month.
+
+    Implements: ING-003 (monthly file grain), ING-042 (month arithmetic).
+    """
     return d.replace(day=1)
 
 
 def next_month(d: date) -> date:
-    """First day of the month after ``d``'s month."""
+    """First day of the month after ``d``'s month.
+
+    Implements: ING-003, ING-030 (exclusive month bounds for chunking).
+    """
     if d.month == 12:
         return date(d.year + 1, 1, 1)
     return date(d.year, d.month + 1, 1)
@@ -73,8 +97,10 @@ def next_month(d: date) -> date:
 
 def iter_month_starts(start: date, end: date) -> Iterator[date]:
     """Yield the first day of every month from ``start``'s month up to and
-    including ``end``'s month. Used for per-month parquet files (ING-003) and
-    request chunking (ING-030)."""
+    including ``end``'s month.
+
+    Implements: ING-003 (per-month parquet files), ING-030 (request chunking).
+    """
     current = month_start(start)
     last = month_start(end)
     while current <= last:

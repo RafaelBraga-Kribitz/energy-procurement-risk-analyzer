@@ -19,6 +19,8 @@ def setup(level: int = logging.INFO, logfile: Path | None = None) -> None:
     Idempotent — repeated calls replace handlers instead of stacking them, so
     pipeline steps can each call setup() safely (EN-050 idempotency spirit).
     Ingestion passes ``reports/ingestion/ingest_<date>.log`` as ``logfile``.
+
+    Implements: EN-060, ING-008.
     """
     root = logging.getLogger()
     for handler in list(root.handlers):

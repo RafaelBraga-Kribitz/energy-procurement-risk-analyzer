@@ -261,7 +261,7 @@ def _synth_prices_xml(start_utc: pd.Timestamp, n_days: int) -> str:
     """Minimal valid A44 publication doc: one PT60M Period of `n_days` days."""
     n_points = n_days * 24
     s = start_utc.strftime("%Y-%m-%dT%H:%MZ")
-    e = (start_utc + pd.Timedelta(days=n_days)).strftime("%Y-%m-%dT%H:%MZ")
+    e = (start_utc + timedelta(days=int(n_days))).strftime("%Y-%m-%dT%H:%MZ")
     points = "".join(
         f"<Point><position>{p}</position><price.amount>{40.0 + (p % 24)}</price.amount></Point>"
         for p in range(1, n_points + 1)
@@ -296,8 +296,7 @@ def test_ingest_dataset_pages_past_100_document_cap(
 
     def capped_transport(query: EntsoeQuery, api_key: str) -> str:
         start = pd.Timestamp(query.period_start)
-        end = pd.Timestamp(query.period_end)
-        remaining = int((end - start) / pd.Timedelta(days=1))
+        remaining = (query.period_end - query.period_start).days
         n = min(cap_days, remaining)
         if n <= 0:
             return ack
@@ -324,6 +323,53 @@ def test_ingest_dataset_pages_past_100_document_cap(
     # 2024-02 is fully interior to the window; expect ~a full month of hours,
     # not a boundary sliver (the old bug left ~1-2 hours here).
     assert df["ts_utc"].dt.floor("h").nunique() >= 600
+
+
+def test_ingest_dataset_request_hash_is_per_request_not_first_chunk(
+    tmp_settings: Settings, entsoe_fixtures_dir: Path
+) -> None:
+    """ING-004: every row carries the hash of the request that returned it.
+
+    Regression: one hash (from the first chunk's window) used to be stamped on
+    every month of a multi-year ingest. EN-073 regression, ADR-015."""
+    ack = _read(entsoe_fixtures_dir, "acknowledgement.xml")
+    queries: list[EntsoeQuery] = []
+
+    def month_transport(query: EntsoeQuery, api_key: str) -> str:
+        queries.append(query)
+        start = pd.Timestamp(query.period_start)
+        n_days = min(10, (query.period_end - query.period_start).days)
+        return _synth_prices_xml(start, n_days) if n_days > 0 else ack
+
+    # 2024-01..2024-06 spans two <=90-day chunks.
+    entsoe.ingest_dataset(
+        tmp_settings, "entsoe_prices_at", date(2024, 1, 1), date(2024, 6, 1), month_transport
+    )
+
+    jan = pd.read_parquet(raw_month_path("entsoe_prices_at", date(2024, 1, 1), tmp_settings))
+    may = pd.read_parquet(raw_month_path("entsoe_prices_at", date(2024, 5, 1), tmp_settings))
+    all_hashes = {_fetch.query_request_hash(q) for q in queries}
+    assert set(jan["request_hash"]) <= all_hashes
+    assert set(may["request_hash"]) <= all_hashes
+    assert set(jan["request_hash"]).isdisjoint(set(may["request_hash"]))
+    assert jan["request_hash"].nunique() > 1  # January was paged over several requests
+
+
+def test_union_responses_drops_only_refetched_rows() -> None:
+    """ING-003/ING-004: rows an earlier response already delivered are written
+    once; duplicates inside ONE response and differing values are kept raw."""
+    ts = pd.to_datetime(["2024-01-01T00:00Z", "2024-01-01T01:00Z"], utc=True)
+    first = pd.DataFrame(
+        {"ts_utc": [ts[0], ts[0]], "price_eur_mwh": [1.0, 1.0], "request_hash": "a"}
+    )
+    second = pd.DataFrame(
+        {"ts_utc": [ts[0], ts[0], ts[1]], "price_eur_mwh": [1.0, 2.0, 3.0], "request_hash": "b"}
+    )
+
+    out = entsoe._union_responses([first, second])
+
+    assert out["price_eur_mwh"].tolist() == [1.0, 1.0, 2.0, 3.0]
+    assert out["request_hash"].tolist() == ["a", "a", "b", "b"]
 
 
 def test_ingest_dataset_contract_error_leaves_no_partial_file(
@@ -425,12 +471,13 @@ def test_ingest_incremental_uses_45_day_lookback_from_today(
         captured.append((dataset_key, start, end))
 
     monkeypatch.setattr(entsoe, "ingest_dataset", spy_ingest_dataset)
+    monkeypatch.setattr(entsoe, "today_local", lambda: date(2026, 9, 30))
 
     entsoe.ingest_incremental(tmp_settings)
 
     assert len(captured) == 4
     for _, start, end in captured:
-        assert end == date.today()
+        assert end == date(2026, 9, 30)  # Vienna date, not machine-local (T-1)
         assert (end - start).days == tmp_settings.ingest.incremental_lookback_days == 45
 
 
@@ -586,11 +633,21 @@ def test_main_backfill_no_cache_flag_forwarded(
     assert captured["use_cache"] is False
 
 
-def test_main_backfill_defaults_start_and_uses_latest_complete_month(
+def test_main_backfill_end_is_not_capped_by_already_ingested_data(
     tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Regression (audit 2026-09-30): the default backfill end used to be
+    `latest_complete_month()` of the data ALREADY on disk, so a re-run could
+    never ingest past where the previous run stopped (data stuck at 2024-02).
+    ING-040: the default end is the last complete CALENDAR month. EN-073."""
+    for dataset in ("entsoe_prices_at", "entsoe_prices_delu"):
+        zone = "AT" if dataset.endswith("_at") else "DE_LU"
+        write_month(
+            _full_month_price_frame(2024, 1, zone), dataset, date(2024, 1, 1), "h", tmp_settings
+        )
+    assert entsoe.latest_complete_month(tmp_settings) == date(2024, 1, 1)
     monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
-    monkeypatch.setattr(entsoe, "latest_complete_month", lambda settings: date(2024, 3, 1))
+    monkeypatch.setattr(entsoe, "today_local", lambda: date(2026, 9, 30))
     captured: dict[str, object] = {}
 
     def fake_backfill(
@@ -610,14 +667,12 @@ def test_main_backfill_defaults_start_and_uses_latest_complete_month(
 
     assert code == 0
     assert captured["start"] == tmp_settings.window.start_date
-    assert captured["end"] == date(2024, 3, 1)
+    assert captured["end"] == date(2026, 8, 1)  # August included: iter_month_starts is inclusive
 
 
-def test_main_backfill_falls_back_to_conservative_end_when_no_data(
+def test_main_backfill_default_end_with_no_data_is_prior_month(
     tmp_settings: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # No monkeypatch of latest_complete_month -- it runs for real against the
-    # empty tmp_settings raw dir, raises NoDataError, and main() falls back.
     monkeypatch.setattr(entsoe, "load_settings", lambda: tmp_settings)
     captured: dict[str, object] = {}
 
