@@ -439,3 +439,32 @@ bootstrap --force && make profile && dbt build -> PASS=65 ERROR=0
 **Open questions:** none. `consumer_peak_share` on the 2022-2024 calendar is
 0.485 — slightly above the "near 0.42-0.48" prose estimate in LP-020; the spec
 makes the computed value authoritative.
+
+## 2026-10-14 — M5 market analytics A1-A4 (SPEC-04)
+
+**What shipped:** `epra.analytics` — A1 descriptive (annual table, heatmap,
+duration curves, negative hours), A2 AT–DE-LU spread, A4 load vs HDD_18 (OLS,
+month FE, HC1), A3 regimes (30-day realized vol; 3-state GaussianHMM, best of
+ten seeded restarts; GARCH(1,1); AN-304 gate that raises and makes
+`make analyze` exit 1). All queries are explicit SQL over `marts.*`.
+Interpretation paragraphs are composed from the computed numbers, so they stay
+true when real data replaces the fixture. SSOT rows: `annual_mean_price_<y>`,
+`neg_hours_<y>`, `spread_mean_<y>` (complete years only), `garch_persistence`,
+`data_last_month`, all VERIFIED. Daily regime labels feed ST-401 step 4.
+Shared chart scaffolding (`epra.report.figure`) applies SPEC-06 §7 to every
+PNG and strips PNG metadata. ADR-018: structured synthetic fixture over
+2019→2026-09 plus the `_SYNTHETIC_FIXTURE.txt` provenance marker → FIXTURE
+banner/watermark on every artifact. CI's dbt job now runs `make analyze`.
+
+**Gate evidence (FIXTURE data, ADR-018 — not results):**
+```
+make analyze -> 12 artifacts written; AN-304 top-2 100.0%, calm-2019 100.0% (PASS)
+AN-705: two consecutive runs -> md5 of every reports/analytics file + SSOT rows identical
+pytest tests/unit/test_analytics.py -> 17 passed (AN-701 artifacts, AN-704 ≥400 chars
+  prose after last table, AN-703 VERIFIED-only rows, AN-705 rerun byte-equal, gate exit codes)
+make lint -> ruff clean, mypy Success (70 files); dbt build PASS=65 on the 2019-2026 fixture
+```
+
+**Open questions:** the real-data run must re-pass AN-304 (the fixture pass
+proves the code path only). Charts were inspected visually; the heatmap's
+shared colorbar now has its own axis.

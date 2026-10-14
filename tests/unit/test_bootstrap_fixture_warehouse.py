@@ -299,10 +299,12 @@ def test_determinism_same_seed_identical_data_across_two_runs(tmp_path: Path) ->
 # ----------------------------------------------------------- window/coverage
 
 
-def test_default_window_covers_2022_2024_with_dst_days_and_crisis_month(tmp_path: Path) -> None:
-    """The default (no --window-* override) window is contiguous
-    2022-01-01..2024-12-31, includes both 2024 DST transition days with the
-    correct 23/25 local-hour counts, and includes the 2022-08 crisis month
+def test_default_window_covers_2019_to_2026_09_with_dst_days_and_crisis_month(
+    tmp_path: Path,
+) -> None:
+    """The default window is contiguous 2019-01-01..2026-09-30 (ADR-018); the
+    calendar spine extends 18 months further (SG-15). Both 2024 DST transition
+    days carry 23/25 local hours and the 2022-08 crisis month is present
     (ADR-016, DM-064, DM-065)."""
     result = _run("--data-root", str(tmp_path / "data"))
     assert result.returncode == 0, result.stdout + result.stderr
@@ -310,9 +312,8 @@ def test_default_window_covers_2022_2024_with_dst_days_and_crisis_month(tmp_path
     cal = pd.read_parquet(tmp_path / "data" / "raw" / "calendar" / "calendar.parquet")
     date_local = pd.to_datetime(cal["date_local"])
 
-    assert date_local.min().date().isoformat() == "2022-01-01"
-    assert date_local.max().date().isoformat() == "2024-12-31"
-    assert date_local.dt.date.nunique() == 1096  # 365 + 365 + 366 (2024 leap year)
+    assert date_local.min().date().isoformat() == "2019-01-01"
+    assert date_local.max().date().isoformat() == "2028-03-31"
 
     assert (date_local.dt.date == pd.Timestamp("2024-03-31").date()).sum() == 23
     assert (date_local.dt.date == pd.Timestamp("2024-10-27").date()).sum() == 25
@@ -340,9 +341,10 @@ def test_default_window_covers_2022_2024_with_dst_days_and_crisis_month(tmp_path
     proc = _read_processed(tmp_path / "data", "strategy_costs_monthly.parquet")
     assert set(proc["strategy_id"].unique()) == _ALL_STRATEGY_IDS
     months = proc[["year_local", "month_local"]].drop_duplicates()
-    assert len(months) == 36  # Jan 2022 .. Dec 2024, no gaps (DM-050)
+    assert len(months) == 93  # Jan 2019 .. Sep 2026, no gaps (DM-050)
     for strategy_id in _ALL_STRATEGY_IDS:
-        assert (proc["strategy_id"] == strategy_id).sum() == 36
+        assert (proc["strategy_id"] == strategy_id).sum() == 93
+    assert set(prices["resolution"].unique()) == {"PT60M", "PT15M"}  # R-2 mix
 
 
 def test_processed_only_discovers_real_local_window_from_calendar(tmp_path: Path) -> None:
@@ -371,8 +373,11 @@ def test_processed_only_discovers_real_local_window_from_calendar(tmp_path: Path
     assert result.returncode == 0, result.stdout + result.stderr
 
     proc = _read_processed(target_root, "strategy_costs_monthly.parquet")
-    assert set(proc["year_local"].unique()) == {2023}
-    assert set(proc["month_local"].unique()) == {1, 2, 3}
+    months = sorted(zip(proc["year_local"], proc["month_local"], strict=True))
+    # No prices in the target: costs follow the calendar spine, which runs
+    # 18 months past the data window (SG-15) -> 2023-01 .. 2024-09.
+    assert months[0] == (2023, 1)
+    assert months[-1] == (2024, 9)
 
 
 def test_processed_only_aligns_costs_to_price_window_and_load_to_calendar(
@@ -401,7 +406,10 @@ def test_processed_only_aligns_costs_to_price_window_and_load_to_calendar(
     costs = _read_processed(target_root, "strategy_costs_monthly.parquet")
     assert sorted(costs["month_local"].unique()) == [1, 2, 3]
     consumer = _read_processed(target_root, "consumer_load_hourly.parquet")
-    assert consumer["ts_utc"].dt.tz_convert("Europe/Vienna").dt.month.max() == 6
+    # Load spans the whole calendar: 2023-06 data end + 18 months (SG-15).
+    assert consumer["ts_utc"].dt.tz_convert("Europe/Vienna").max().date().isoformat() == (
+        "2024-12-31"
+    )
 
 
 def test_strategy_ids_come_from_dim_strategy_seed() -> None:

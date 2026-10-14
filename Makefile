@@ -61,8 +61,8 @@ freshness:           ## M3 — DM-066 freshness gate on stg_prices_at_hourly (ne
 profile:             ## M4 — SPEC-03: styriametal_v1 + flat_baseload → data/processed/
 	$(UV) run python -m epra.consumer.profile
 
-analyze:             ## M5 — SPEC-04 modules → reports/analytics/
-	@echo "ERROR: 'make analyze' not implemented yet (M5 — SPEC-04)." >&2; exit 1
+analyze:             ## M5 — SPEC-04 A1→A2→A4→A3 from marts → reports/analytics/
+	$(UV) run python -m epra.analytics
 
 simulate:            ## M6 — SPEC-05 retrospective + forward risk
 	@echo "ERROR: 'make simulate' not implemented yet (M6 — SPEC-05)." >&2; exit 1

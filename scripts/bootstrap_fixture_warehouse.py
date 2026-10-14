@@ -16,7 +16,8 @@ distinct callers:
   incl. the forward-risk window, LP-003; strategy costs: the months that
   actually carry AT prices) -- this NEVER touches ``data/raw``.
 
-``data/manual/oespi_monthly.csv`` is NEVER read or written by this script.
+``data/manual/oespi_monthly.csv`` is NEVER written by this script; it is only
+READ to give the synthetic spot a realistic level path (ADR-018).
 It is committed, human-reconciled data (ING-101/102) that every checkout --
 CI included -- already contains, so dbt's ``stg_oespi_monthly`` always reads
 the real series; synthesizing ÖSPI values would be invented data (A-2).
@@ -67,16 +68,31 @@ import pandas as pd
 from holidays.countries.austria import Austria
 
 from epra.common.config import REPO_ROOT, Settings, load_settings
-from epra.common.timeutil import VIENNA, is_peak_hour, iter_month_starts
+from epra.common.provenance import FIXTURE_MARKER
+from epra.common.timeutil import VIENNA, is_peak_hour, iter_month_starts, month_start, next_month
 from epra.ingest._io import request_hash, write_month
 
 #: Determinism seed -- a single seeded generator drives every synthetic draw.
 _SEED = 424242
 
-#: ADR-016: the default CI fixture window -- contiguous, includes the 2022-08
-#: crisis month (DM-064) and both 2024 DST transition days (DM-065).
-_DEFAULT_WINDOW_START = date(2022, 1, 1)
-_DEFAULT_WINDOW_END = date(2024, 12, 31)
+#: ADR-016/ADR-018: the default CI fixture window -- the full analysis window
+#: 2019 -> the last complete month at the time of writing (fixed, so CI stays
+#: deterministic). Includes the 2022-08 crisis month (DM-064), both 2024 DST
+#: transition days (DM-065), the 2019 reference year (ST-201) and 2021-2025.
+_DEFAULT_WINDOW_START = date(2019, 1, 1)
+_DEFAULT_WINDOW_END = date(2026, 9, 30)
+#: SG-15: calendar spine horizon past the data end (forward-risk window).
+_FORWARD_CALENDAR_MONTHS = 18
+
+#: ADR-018 synthetic-market parameters (fixture only, never results).
+_OESPI_CSV = REPO_ROOT / "data" / "manual" / "oespi_monthly.csv"
+_OESPI_LEAD_MONTHS = 4
+_OESPI_TO_EUR = 0.42
+_CRISIS_LEVEL_EUR_MWH = 120.0
+_SOLAR_EUR_PER_YEAR = 11.0
+_AT_DE_SPREAD_EUR_MWH = 4.0
+#: SDAC 15-minute MTU go-live; fixture prices switch to PT15M here (R-2).
+_PT15M_SINCE = "2025-09-30T22:00:00"
 
 #: DM-063 FK target -- the strategy grid is read from the committed seed so
 #: the stand-in can never drift from ``dim_strategy`` (SPEC-02 §4).
@@ -165,29 +181,112 @@ def _vienna_hour_index(start: date, end: date) -> pd.DatetimeIndex:
 # ---------------------------------------------------------- dataset builders
 
 
-def _build_prices(rng: np.random.Generator, ts_utc: pd.DatetimeIndex, zone: str) -> pd.DataFrame:
-    """Synthetic hourly day-ahead price for ``zone`` (AT or DE_LU).
+def read_oespi_levels(path: Path = _OESPI_CSV) -> pd.Series:
+    """READ-ONLY view of the committed ÖSPI base series, indexed by month start.
 
-    The 2022-08 crisis month gets an additive upward shock so it is visibly
-    present in the series, still clipped inside DM-061's [-500, 5000] range.
+    Used only to give the synthetic spot a realistic level path (ADR-018); the
+    file itself is never written (A-2, ING-101).
     """
-    n = len(ts_utc)
-    price = rng.normal(loc=90.0, scale=35.0, size=n)
+    frame = pd.read_csv(path, usecols=["month", "oespi_base"])
+    index = pd.PeriodIndex(frame["month"], freq="M")
+    return pd.Series(frame["oespi_base"].to_numpy(dtype=float), index=index)
+
+
+def _monthly_level_eur_mwh(local: pd.DatetimeIndex) -> np.ndarray:
+    """Synthetic monthly spot level: ÖSPI ``_OESPI_LEAD_MONTHS`` ahead × scale.
+
+    The index is futures-based and lags spot, so leading it puts the synthetic
+    crisis roughly where the real one was. Months past the series end reuse
+    the last value.
+    """
+    oespi = read_oespi_levels()
+    periods = local.tz_localize(None).to_period("M").shift(_OESPI_LEAD_MONTHS)
+    clipped = periods.where(periods <= oespi.index.max(), oespi.index.max())
+    clipped = clipped.where(clipped >= oespi.index.min(), oespi.index.min())
+    return np.asarray(oespi.reindex(clipped).to_numpy(), dtype=float) * _OESPI_TO_EUR
+
+
+def _daily_factor(rng: np.random.Generator, days: pd.Index, level: pd.Series) -> pd.Series:
+    """AR(1) multiplicative daily shock; volatility jumps in high-price months."""
+    sigma = np.where(level.to_numpy() > _CRISIS_LEVEL_EUR_MWH, 0.16, 0.05)
+    shocks = rng.normal(0.0, 1.0, size=len(days)) * sigma
+    state = np.zeros(len(days))
+    for i in range(1, len(days)):
+        state[i] = 0.8 * state[i - 1] + shocks[i]
+    return pd.Series(np.exp(state), index=days)
+
+
+def _hour_shape(hour: np.ndarray, weekend: np.ndarray) -> np.ndarray:
+    """Double-hump weekday shape, flatter and lower on weekends."""
+    morning = np.exp(-((hour - 8.5) ** 2) / 6.0)
+    evening = np.exp(-((hour - 19.0) ** 2) / 5.0)
+    weekday = 0.8 + 0.3 * morning + 0.4 * evening
+    return np.where(weekend, 0.82 + 0.15 * evening, weekday)
+
+
+def _solar_dip(local: pd.DatetimeIndex) -> np.ndarray:
+    """Midday solar depression growing every year, strongest Apr-Sep."""
+    hour = np.asarray(local.hour, dtype=float)
+    bell = np.clip(np.sin(np.pi * (hour - 6.0) / 14.0), 0.0, None) ** 2
+    summer = 0.5 + 0.5 * np.cos(2 * np.pi * (np.asarray(local.month) - 6.5) / 12.0)
+    years = np.asarray(local.year, dtype=float) - 2018.0
+    dip: np.ndarray = _SOLAR_EUR_PER_YEAR * years * bell * summer
+    return dip
+
+
+def _build_prices(rng: np.random.Generator, ts_utc: pd.DatetimeIndex, zone: str) -> pd.DataFrame:
+    """Synthetic hourly day-ahead price for ``zone`` (AT or DE_LU) — ADR-018.
+
+    level(month) × daily AR(1) shock × hour shape − solar dip + hourly noise.
+    DE_LU is AT minus a small positive spread. Clipped inside DM-061's range.
+    """
     local = ts_utc.tz_convert(VIENNA)
-    crisis_mask = (local.year == 2022) & (local.month == 8)
-    if crisis_mask.any():
-        price = np.where(crisis_mask, price + rng.normal(loc=280.0, scale=40.0, size=n), price)
+    level = pd.Series(_monthly_level_eur_mwh(local), index=local)
+    days = pd.Index(local.date)
+    daily_level = level.groupby(days).mean()
+    factor = _daily_factor(rng, daily_level.index, daily_level).reindex(days).to_numpy()
+    weekend = np.asarray(local.dayofweek >= 5)
+    base = level.to_numpy() * factor * _hour_shape(np.asarray(local.hour), weekend)
+    price = base - _solar_dip(local) + rng.normal(0.0, 0.06, len(local)) * level.to_numpy()
+    if zone != "AT":
+        price = price - np.abs(rng.normal(_AT_DE_SPREAD_EUR_MWH, 4.0, len(local)))
     low, high = _PRICE_RANGE_EUR_MWH
-    price = np.clip(price, low + 50.0, high - 500.0).astype("float64")
+    price = np.clip(price, low + 50.0, high - 500.0).round(2).astype("float64")
     return pd.DataFrame(
         {"ts_utc": ts_utc, "price_eur_mwh": price, "resolution": "PT60M", "zone": zone}
     )
 
 
-def _build_load(rng: np.random.Generator, ts_utc: pd.DatetimeIndex) -> pd.DataFrame:
-    n = len(ts_utc)
+def _to_quarter_hours(frame: pd.DataFrame, since: pd.Timestamp) -> pd.DataFrame:
+    """Rows from ``since`` on become four PT15M rows carrying the hourly value (R-2)."""
+    late = frame.loc[frame["ts_utc"] >= since]
+    quarters = [
+        late.assign(ts_utc=late["ts_utc"] + timedelta(minutes=15 * q), resolution="PT15M")
+        for q in range(4)
+    ]
+    out = pd.concat([frame.loc[frame["ts_utc"] < since], *quarters], ignore_index=True)
+    return out.sort_values("ts_utc").reset_index(drop=True)
+
+
+def _temperature(rng: np.random.Generator, dates: pd.DatetimeIndex) -> np.ndarray:
+    """Seasonal Graz-like daily mean temperature with weather noise."""
+    doy = np.asarray(dates.dayofyear, dtype=float)
+    seasonal = 10.0 - 10.5 * np.cos(2 * np.pi * (doy - 15.0) / 365.25)
+    return np.asarray(seasonal + rng.normal(0.0, 2.5, len(dates)), dtype=float)
+
+
+def _build_load(
+    rng: np.random.Generator, ts_utc: pd.DatetimeIndex, tavg_by_date: pd.Series
+) -> pd.DataFrame:
+    """AT system load: daily/weekly shape plus a heating-degree effect (A4)."""
+    local = ts_utc.tz_convert(VIENNA)
+    weekend = np.asarray(local.dayofweek >= 5)
+    shape = _hour_shape(np.asarray(local.hour), weekend)
+    tavg = tavg_by_date.reindex(pd.Index(local.date)).to_numpy(dtype=float)
+    hdd = np.clip(18.0 - tavg, 0.0, None)
+    load_mw = 5200.0 + 2400.0 * shape + 70.0 * hdd + rng.normal(0.0, 180.0, len(local))
     low, high = _LOAD_RANGE_MW
-    load_mw = rng.uniform(low + 200.0, high - 500.0, size=n).astype("float64")
+    load_mw = np.clip(load_mw, low + 200.0, high - 500.0).astype("float64")
     return pd.DataFrame({"ts_utc": ts_utc, "load_mw": load_mw, "resolution": "PT60M", "zone": "AT"})
 
 
@@ -215,9 +314,8 @@ def _build_gen(rng: np.random.Generator, ts_utc: pd.DatetimeIndex) -> pd.DataFra
 def _build_geosphere(
     rng: np.random.Generator, dates: pd.DatetimeIndex, station_id: str
 ) -> pd.DataFrame:
-    n = len(dates)
     low, high = _TAVG_RANGE_C
-    tavg = rng.uniform(low + 5.0, high - 4.0, size=n).astype("float64")
+    tavg = np.clip(_temperature(rng, dates), low + 5.0, high - 4.0).astype("float64")
     return pd.DataFrame(
         {
             "date": dates,
@@ -354,21 +452,38 @@ def _write_processed_standins(
 
 
 def _write_raw_window(rng: np.random.Generator, raw_root: Path, start: date, end: date) -> None:
-    """Synthesize every raw dataset dbt reads (SPEC-01 §7 layout) over the window."""
+    """Synthesize every raw dataset dbt reads (SPEC-01 §7 layout) over the window.
+
+    The calendar spine runs ``_FORWARD_CALENDAR_MONTHS`` past ``end`` like the
+    real one (SG-15), so the forward-risk window has calendar + profile rows.
+    """
     settings = _settings_with_data_raw(raw_root)
     ts_utc = _vienna_hour_index(start, end)
-
-    _write_ts_utc_dataset(_build_prices(rng, ts_utc, "AT"), "entsoe_prices_at", settings)
-    _write_ts_utc_dataset(_build_prices(rng, ts_utc, "DE_LU"), "entsoe_prices_delu", settings)
-    _write_ts_utc_dataset(_build_load(rng, ts_utc), "entsoe_load_at", settings)
-    _write_ts_utc_dataset(_build_gen(rng, ts_utc), "entsoe_gen_at", settings)
+    raw_root.mkdir(parents=True, exist_ok=True)
+    (raw_root / FIXTURE_MARKER).write_text(
+        f"Synthetic CI fixture data {start}..{end} (ADR-018). NOT real ENTSO-E data.\n",
+        encoding="utf-8",
+    )
 
     weather = _build_geosphere(
         rng, pd.date_range(start, end, freq="D"), geosphere_station_id(settings)
     )
+    tavg_by_date = pd.Series(weather["tl_mittel_c"].to_numpy(), index=weather["date"].dt.date)
+    since = pd.Timestamp(_PT15M_SINCE, tz="UTC")
+    for zone, dataset in (("AT", "entsoe_prices_at"), ("DE_LU", "entsoe_prices_delu")):
+        prices = _to_quarter_hours(_build_prices(rng, ts_utc, zone), since)
+        _write_ts_utc_dataset(prices, dataset, settings)
+    _write_ts_utc_dataset(_build_load(rng, ts_utc, tavg_by_date), "entsoe_load_at", settings)
+    _write_ts_utc_dataset(_build_gen(rng, ts_utc), "entsoe_gen_at", settings)
     _write_date_keyed_dataset(weather, "geosphere_graz_daily", settings, key_column="date")
 
-    _atomic_write_parquet(_build_calendar(start, end), raw_root / "calendar" / "calendar.parquet")
+    month_cursor = month_start(end)  # same arithmetic as calendar._default_end
+    for _ in range(_FORWARD_CALENDAR_MONTHS):
+        month_cursor = next_month(month_cursor)
+    calendar_end = next_month(month_cursor) - timedelta(days=1)
+    _atomic_write_parquet(
+        _build_calendar(start, calendar_end), raw_root / "calendar" / "calendar.parquet"
+    )
 
 
 # --------------------------------------------------------- window discovery

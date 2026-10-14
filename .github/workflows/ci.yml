@@ -58,5 +58,7 @@ jobs:
       - run: uv run pytest tests/unit/test_marts_contract.py
       # The build report must run in CI too, not only on a local machine.
       - run: uv run python -m epra.warehouse.report
+      # M5: SPEC-04 analytics on the fixture marts, incl. the AN-304 gate.
+      - run: make analyze
 
   # ssot-check:  # M6 — scripts/check_ssot_consistency.py (EN-080 job 4, GV-303)
