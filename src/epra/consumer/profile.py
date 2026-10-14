@@ -261,13 +261,13 @@ def run(settings: Settings) -> dict[str, pd.DataFrame]:
             "profile %s: %d hourly rows -> %s", cfg.profile_name, len(profile_df), hourly_path
         )
         profiles[cfg.profile_name] = profile_df
-    share = peak_share(profiles[main_cfg.profile_name], calendar_df)
-    write_ssot_rows(
-        [SsotRow("consumer_peak_share", round(share, 6), "share", "CALIBRATED", "profile.py")],
-        "consumer_profile",
-        settings,
-    )
-    logger.info("consumer_peak_share = %.6f (CALIBRATED)", share)
+    rows = []
+    for name, profile_df in profiles.items():
+        key = "consumer_peak_share" + ("" if name == main_cfg.profile_name else f"_{name}")
+        share = peak_share(profile_df, calendar_df)
+        rows.append(SsotRow(key, round(share, 6), "share", "CALIBRATED", "consumer/profile.py"))
+        logger.info("%s = %.6f (CALIBRATED)", key, share)
+    write_ssot_rows(rows, "consumer_profile", settings)
     return profiles
 
 

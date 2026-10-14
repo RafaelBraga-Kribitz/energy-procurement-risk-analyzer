@@ -8,9 +8,6 @@ Figure standards (RP-701): matplotlib Agg backend, 12×6 in, dpi 150, no seaborn
 for executive charts. Every chart carries the source note (bottom-left) and,
 when CALIBRATED/SIMULATED data is shown, the epistemic tag bottom-right (RP-702).
 
-Not yet imported by production code: M7's executive charts (SPEC-06 §7) are
-the intended callers; tests pin the palette and figure standards now.
-
 Implements: RP-701 (constants), RP-704; supports RP-702.
 """
 
@@ -60,3 +57,25 @@ STRATEGY_COLORS: dict[str, str] = {
     "S4_50": hybrid_color(0.50),
     "S4_70": hybrid_color(0.70),
 }
+
+#: strategy_id → reader-facing label, identical across charts and tables.
+STRATEGY_LABELS: dict[str, str] = {
+    "S1": "Full spot",
+    "S2": "ÖSPI-indexed",
+    "S3": "Fixed annual",
+    "S4_30": "Hybrid 30% fixed",
+    "S4_50": "Hybrid 50% fixed",
+    "S4_70": "Hybrid 70% fixed",
+}
+
+#: Caption sentences required on strategy outputs (ST-502, LP-050).
+ST502_CAPTION = (
+    "Contract prices proxied via ÖSPI (futures-based index); premiums are calibrated "
+    "assumptions — see LIMITATIONS."
+)
+LP050_CAPTION = (
+    "Reference load profile is constructed (CALIBRATED), not measured; construction "
+    "rules in SPEC-03."
+)
+CALIBRATED_TAG = "CALIBRATED · constructed load profile (SPEC-03) · contract prices via ÖSPI proxy"
+SIMULATED_TAG = "SIMULATED · seeded block bootstrap of 2019→latest months · CALIBRATED inputs"

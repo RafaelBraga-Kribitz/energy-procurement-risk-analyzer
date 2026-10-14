@@ -9,3 +9,8 @@ forward:
   seed: 42
   horizon_months: 12
 peak_available: true
+# ST-303 sensitivity grid (each = one full rerun with exactly one change).
+# Kept here, not in code (ST-003). No further sensitivities (scope guard).
+sensitivity:
+  fixed_premium_eur_mwh: [0.0, 10.0]          # (a) vs the 5.0 default above
+  lock_window_months: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]   # (c) full prior year

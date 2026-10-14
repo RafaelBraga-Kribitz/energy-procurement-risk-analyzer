@@ -1,0 +1,272 @@
+[
+ {
+  "year": 2021,
+  "strategy_id": "S1",
+  "volume_mwh": 48000.0,
+  "cost_eur": 4285653.584339,
+  "unit_cost_eur_mwh": 89.28445,
+  "delta_vs_min_eur": 2074216.025225,
+  "rank": 6
+ },
+ {
+  "year": 2021,
+  "strategy_id": "S2",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2471014.641949,
+  "unit_cost_eur_mwh": 51.479472,
+  "delta_vs_min_eur": 259577.082835,
+  "rank": 2
+ },
+ {
+  "year": 2021,
+  "strategy_id": "S3",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2211437.559114,
+  "unit_cost_eur_mwh": 46.071616,
+  "delta_vs_min_eur": 0.0,
+  "rank": 1
+ },
+ {
+  "year": 2021,
+  "strategy_id": "S4_30",
+  "volume_mwh": 48000.0,
+  "cost_eur": 3663388.776771,
+  "unit_cost_eur_mwh": 76.3206,
+  "delta_vs_min_eur": 1451951.217657,
+  "rank": 5
+ },
+ {
+  "year": 2021,
+  "strategy_id": "S4_50",
+  "volume_mwh": 48000.0,
+  "cost_eur": 3248545.571726,
+  "unit_cost_eur_mwh": 67.678033,
+  "delta_vs_min_eur": 1037108.012612,
+  "rank": 4
+ },
+ {
+  "year": 2021,
+  "strategy_id": "S4_70",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2833702.366681,
+  "unit_cost_eur_mwh": 59.035466,
+  "delta_vs_min_eur": 622264.807567,
+  "rank": 3
+ },
+ {
+  "year": 2022,
+  "strategy_id": "S1",
+  "volume_mwh": 48000.0,
+  "cost_eur": 17797753.743575,
+  "unit_cost_eur_mwh": 370.786536,
+  "delta_vs_min_eur": 14690720.864845,
+  "rank": 6
+ },
+ {
+  "year": 2022,
+  "strategy_id": "S2",
+  "volume_mwh": 48000.0,
+  "cost_eur": 8886095.331557,
+  "unit_cost_eur_mwh": 185.126986,
+  "delta_vs_min_eur": 5779062.452827,
+  "rank": 3
+ },
+ {
+  "year": 2022,
+  "strategy_id": "S3",
+  "volume_mwh": 48000.0,
+  "cost_eur": 3107032.87873,
+  "unit_cost_eur_mwh": 64.729852,
+  "delta_vs_min_eur": 0.0,
+  "rank": 1
+ },
+ {
+  "year": 2022,
+  "strategy_id": "S4_30",
+  "volume_mwh": 48000.0,
+  "cost_eur": 13390537.484122,
+  "unit_cost_eur_mwh": 278.969531,
+  "delta_vs_min_eur": 10283504.605391,
+  "rank": 5
+ },
+ {
+  "year": 2022,
+  "strategy_id": "S4_50",
+  "volume_mwh": 48000.0,
+  "cost_eur": 10452393.311153,
+  "unit_cost_eur_mwh": 217.758194,
+  "delta_vs_min_eur": 7345360.432422,
+  "rank": 4
+ },
+ {
+  "year": 2022,
+  "strategy_id": "S4_70",
+  "volume_mwh": 48000.0,
+  "cost_eur": 7514249.138184,
+  "unit_cost_eur_mwh": 156.546857,
+  "delta_vs_min_eur": 4407216.259453,
+  "rank": 2
+ },
+ {
+  "year": 2023,
+  "strategy_id": "S1",
+  "volume_mwh": 48000.0,
+  "cost_eur": 7051720.847976,
+  "unit_cost_eur_mwh": 146.910851,
+  "delta_vs_min_eur": 0.0,
+  "rank": 1
+ },
+ {
+  "year": 2023,
+  "strategy_id": "S2",
+  "volume_mwh": 48000.0,
+  "cost_eur": 11207849.586887,
+  "unit_cost_eur_mwh": 233.496866,
+  "delta_vs_min_eur": 4156128.738912,
+  "rank": 5
+ },
+ {
+  "year": 2023,
+  "strategy_id": "S3",
+  "volume_mwh": 48000.0,
+  "cost_eur": 11948794.427207,
+  "unit_cost_eur_mwh": 248.933217,
+  "delta_vs_min_eur": 4897073.579231,
+  "rank": 6
+ },
+ {
+  "year": 2023,
+  "strategy_id": "S4_30",
+  "volume_mwh": 48000.0,
+  "cost_eur": 8520842.921745,
+  "unit_cost_eur_mwh": 177.517561,
+  "delta_vs_min_eur": 1469122.073769,
+  "rank": 2
+ },
+ {
+  "year": 2023,
+  "strategy_id": "S4_50",
+  "volume_mwh": 48000.0,
+  "cost_eur": 9500257.637591,
+  "unit_cost_eur_mwh": 197.922034,
+  "delta_vs_min_eur": 2448536.789616,
+  "rank": 3
+ },
+ {
+  "year": 2023,
+  "strategy_id": "S4_70",
+  "volume_mwh": 48000.0,
+  "cost_eur": 10479672.353438,
+  "unit_cost_eur_mwh": 218.326507,
+  "delta_vs_min_eur": 3427951.505462,
+  "rank": 4
+ },
+ {
+  "year": 2024,
+  "strategy_id": "S1",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2192517.359548,
+  "unit_cost_eur_mwh": 45.677445,
+  "delta_vs_min_eur": 0.0,
+  "rank": 1
+ },
+ {
+  "year": 2024,
+  "strategy_id": "S2",
+  "volume_mwh": 48000.0,
+  "cost_eur": 3212572.490348,
+  "unit_cost_eur_mwh": 66.928594,
+  "delta_vs_min_eur": 1020055.1308,
+  "rank": 2
+ },
+ {
+  "year": 2024,
+  "strategy_id": "S3",
+  "volume_mwh": 48000.0,
+  "cost_eur": 9143225.007077,
+  "unit_cost_eur_mwh": 190.483854,
+  "delta_vs_min_eur": 6950707.647529,
+  "rank": 6
+ },
+ {
+  "year": 2024,
+  "strategy_id": "S4_30",
+  "volume_mwh": 48000.0,
+  "cost_eur": 4277729.653807,
+  "unit_cost_eur_mwh": 89.119368,
+  "delta_vs_min_eur": 2085212.294259,
+  "rank": 3
+ },
+ {
+  "year": 2024,
+  "strategy_id": "S4_50",
+  "volume_mwh": 48000.0,
+  "cost_eur": 5667871.183313,
+  "unit_cost_eur_mwh": 118.08065,
+  "delta_vs_min_eur": 3475353.823765,
+  "rank": 4
+ },
+ {
+  "year": 2024,
+  "strategy_id": "S4_70",
+  "volume_mwh": 48000.0,
+  "cost_eur": 7058012.712819,
+  "unit_cost_eur_mwh": 147.041932,
+  "delta_vs_min_eur": 4865495.353271,
+  "rank": 5
+ },
+ {
+  "year": 2025,
+  "strategy_id": "S1",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2142457.696565,
+  "unit_cost_eur_mwh": 44.634535,
+  "delta_vs_min_eur": 162809.750856,
+  "rank": 2
+ },
+ {
+  "year": 2025,
+  "strategy_id": "S2",
+  "volume_mwh": 48000.0,
+  "cost_eur": 1979647.945709,
+  "unit_cost_eur_mwh": 41.242666,
+  "delta_vs_min_eur": 0.0,
+  "rank": 1
+ },
+ {
+  "year": 2025,
+  "strategy_id": "S3",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2530103.934559,
+  "unit_cost_eur_mwh": 52.710499,
+  "delta_vs_min_eur": 550455.98885,
+  "rank": 6
+ },
+ {
+  "year": 2025,
+  "strategy_id": "S4_30",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2258751.567963,
+  "unit_cost_eur_mwh": 47.057324,
+  "delta_vs_min_eur": 279103.622254,
+  "rank": 3
+ },
+ {
+  "year": 2025,
+  "strategy_id": "S4_50",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2336280.815562,
+  "unit_cost_eur_mwh": 48.672517,
+  "delta_vs_min_eur": 356632.869853,
+  "rank": 4
+ },
+ {
+  "year": 2025,
+  "strategy_id": "S4_70",
+  "volume_mwh": 48000.0,
+  "cost_eur": 2413810.063161,
+  "unit_cost_eur_mwh": 50.28771,
+  "delta_vs_min_eur": 434162.117452,
+  "rank": 5
+ }
+]

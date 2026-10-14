@@ -13,13 +13,8 @@ from typing import Any
 
 import pytest
 
-from epra.common.config import (
-    REPO_ROOT,
-    load_settings,
-    load_strategy_config,
-)
+from epra.common.config import REPO_ROOT, load_settings
 from epra.report import charts
-from epra.strategies import calibration, forward_risk, retrospective
 
 
 def _script(name: str) -> ModuleType:
@@ -33,25 +28,9 @@ def _script(name: str) -> ModuleType:
 
 STUBS: list[tuple[str, str, Callable[[], Any]]] = [
     (
-        "M6",
-        "calibration.compute_anchors",
-        lambda: calibration.compute_anchors(load_settings(), load_strategy_config()),
-    ),
-    ("M6", "retrospective.run", lambda: retrospective.run(load_settings())),
-    ("M6", "retrospective.main", lambda: retrospective.main([])),
-    ("M6", "forward_risk.run", lambda: forward_risk.run(load_settings())),
-    ("M6", "forward_risk.main", lambda: forward_risk.main([])),
-    (
         "M7",
         "charts.render_executive_charts",
         lambda: charts.render_executive_charts(load_settings()),
-    ),
-    ("M6", "scripts/generate_ssot.py", lambda: _script("generate_ssot").main([])),
-    ("M6", "scripts/check_ssot_consistency.py", lambda: _script("check_ssot_consistency").main([])),
-    (
-        "M6",
-        "scripts/generate_golden_metrics.py",
-        lambda: _script("generate_golden_metrics").main(["--target", "strategies"]),
     ),
     ("M7", "scripts/export_marts.py", lambda: _script("export_marts").main([])),
 ]

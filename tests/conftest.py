@@ -13,8 +13,12 @@ No production ingest logic lives here — infrastructure only (Wave 0, 02-01).
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
+import duckdb
+import numpy as np
+import pandas as pd
 import pytest
 
 from epra.common.config import REPO_ROOT, Settings, load_settings
@@ -90,3 +94,123 @@ def tmp_settings(tmp_path: Path) -> Settings:
 def entsoe_fixtures_dir() -> Path:
     """Path to the committed ENTSO-E fixture directory (ING-070, T1.03a)."""
     return _ENTSOE_FIXTURES_DIR
+
+
+# ------------------------------------------------- synthetic warehouse (M5/M6)
+
+#: Priced window of the synthetic warehouse; the calendar runs one year further
+#: so the forward-risk window has calendar + profile rows (LP-003, SG-15).
+SYNTH_DATA_END = date(2025, 12, 31)
+SYNTH_CALENDAR_END = date(2026, 12, 31)
+
+
+def _synthetic_hourly(seed: int = 7) -> pd.DataFrame:
+    """Seeded hourly marts rows with three volatility tiers: calm 2019-2020,
+    crisis 2021-09..2023-06, elevated otherwise; NULL prices after the data end."""
+    from epra.ingest.calendar import calendar_frame
+
+    rng = np.random.default_rng(seed)
+    cal = calendar_frame(date(2019, 1, 1), SYNTH_CALENDAR_END)
+    days = pd.to_datetime(pd.Series(cal["date_local"].unique()))
+    crisis = (days >= pd.Timestamp("2021-09-01")) & (days <= pd.Timestamp("2023-06-30"))
+    calm = days < pd.Timestamp("2021-01-01")
+    noise = np.where(crisis, 45.0, np.where(calm, 2.0, 10.0))
+    level = np.where(crisis, 220.0, np.where(calm, 45.0, 90.0))
+    daily = pd.Series(level + rng.normal(0, 1.0, len(days)) * noise, index=days.dt.date)
+    month, hour = cal["month_local"].to_numpy(), cal["hour_local"].to_numpy()
+    solar = ((month >= 4) & (month <= 9) & (hour >= 11) & (hour <= 14)).astype(float) * 60.0
+    at = daily.reindex(cal["date_local"]).to_numpy() - solar + rng.normal(0, 4.0, len(cal))
+    delu = at - rng.normal(3.0, 2.0, len(cal))
+    tavg = 10 - 10 * np.cos(2 * np.pi * (days.dt.dayofyear.to_numpy() - 15) / 365)
+    hdd = pd.Series(np.clip(18 - tavg, 0, None), index=days.dt.date)
+    load = 7000 + 60 * hdd.reindex(cal["date_local"]).to_numpy() + rng.normal(0, 100, len(cal))
+    future = (pd.to_datetime(cal["date_local"]) > pd.Timestamp(SYNTH_DATA_END)).to_numpy()
+    at = np.where(future, np.nan, at)
+    delu = np.where(future, np.nan, delu)
+    return cal.assign(
+        price_at_eur_mwh=at,
+        price_delu_eur_mwh=delu,
+        spread_at_delu_eur_mwh=at - delu,
+        load_at_mw=np.where(future, np.nan, load),
+        is_negative_price=at < 0,
+        hdd_18=hdd.reindex(cal["date_local"]).to_numpy(),
+    )
+
+
+def _monthly_mart(hourly: pd.DataFrame) -> pd.DataFrame:
+    priced = hourly.dropna(subset=["price_at_eur_mwh"])
+    monthly = (
+        priced.groupby(["year_local", "month_local"])["price_at_eur_mwh"]
+        .mean()
+        .rename("price_base_eur_mwh")
+        .reset_index()
+    )
+    oespi = pd.read_csv(REPO_ROOT / "data" / "manual" / "oespi_monthly.csv")
+    month = pd.to_datetime(oespi["month"])
+    oespi = oespi.assign(year_local=month.dt.year, month_local=month.dt.month)
+    return monthly.merge(
+        oespi[["year_local", "month_local", "oespi_base", "oespi_peak"]],
+        on=["year_local", "month_local"],
+        how="left",
+    )
+
+
+@pytest.fixture(scope="session")
+def synthetic_warehouse(tmp_path_factory: pytest.TempPathFactory) -> Settings:
+    """Throwaway DuckDB with SPEC-02-shaped marts + the real SPEC-03 profile.
+
+    Built directly from pandas (no dbt) so analytics/strategy tests run
+    hermetically; the committed ÖSPI CSV supplies the index columns.
+    """
+    from epra.consumer import profile
+
+    root = tmp_path_factory.mktemp("warehouse")
+    base = load_settings()
+    paths = base.paths.model_copy(
+        update={
+            "warehouse": root / "epra.duckdb",
+            "reports": root / "reports",
+            "data_processed": root / "processed",
+            "data_raw": root / "raw",
+        }
+    )
+    settings = base.model_copy(update={"paths": paths})
+    hourly = _synthetic_hourly()
+    cal_cols = [
+        "ts_utc",
+        "date_local",
+        "year_local",
+        "month_local",
+        "hour_local",
+        "dow_local",
+        "is_weekend",
+        "is_holiday_at",
+        "is_peak_hour",
+    ]
+    (paths.data_raw / "calendar").mkdir(parents=True)
+    hourly[cal_cols].to_parquet(paths.data_raw / "calendar" / "calendar.parquet", index=False)
+    profile.run(settings)
+    daily = (
+        hourly.groupby("date_local")
+        .agg(price_base_eur_mwh=("price_at_eur_mwh", "mean"), hdd_18=("hdd_18", "first"))
+        .reset_index()
+    )
+    con = duckdb.connect(str(paths.warehouse))
+    con.execute("set TimeZone = 'UTC'")
+    con.execute("create schema marts")
+    for name, frame in (
+        ("fct_price_hourly", hourly),
+        ("dim_calendar", hourly[cal_cols]),
+        ("fct_price_daily", daily),
+        ("fct_price_monthly", _monthly_mart(hourly)),
+    ):
+        con.register("frame", frame)
+        con.execute(f"create table marts.{name} as select * from frame")
+        con.unregister("frame")
+    hourly_load = profile.output_paths(settings, "styriametal_v1")[0].as_posix()
+    con.execute(
+        "create table marts.fct_consumer_load_hourly as "
+        f"select ts_utc, load_mwh from read_parquet('{hourly_load}')"
+    )
+    con.close()
+    return settings

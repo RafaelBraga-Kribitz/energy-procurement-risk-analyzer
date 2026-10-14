@@ -9,14 +9,24 @@ what WILL be written so no limitation can be quietly dropped.
 Reference load profile is constructed (CALIBRATED), not measured; construction
 rules in SPEC-03 (built by `make profile`, M4). Real industrial RLM load data would
 change levels but not the ordinal ranking logic of strategies; the
-`flat_baseload` sensitivity (LP-030) bounds the shape effect. The computed
-sensitivity numbers land here at M6.
+`flat_baseload` sensitivity (LP-030) bounds the shape effect: its five-year
+cost per strategy and wrong-strategy total are the `flat_baseload` row of
+`reports/strategies/sensitivity_matrix.md` and the `sens_flat_baseload_*` keys
+of `reports/NUMERIC_SSOT.md` (numbers are quoted only from there, A-6).
 
 ## 2. ÖSPI as forward/contract price proxy
-*(finalized at M6)* — What the index captures, what it misses (individual
-supplier margins, credit terms, volume flexibility clauses). Direction of the
-likely bias unknown — this will be said plainly (R-5). Calibration anchors
-(p_ref_base, p_ref_peak, oespi_base_ref, oespi_peak_ref) quoted here per ST-204.
+The ÖSPI is built by the Austrian Energy Agency from futures-based fictitious
+procurement, so it captures the forward market's price LEVEL and its lag
+behind spot. It misses everything that makes a real supplier offer differ from
+the market: individual supplier margins, credit and payment terms, volume
+tolerance and flexibility clauses, and the date on which a buyer actually
+signs. The direction of the resulting bias is unknown, and this project does
+not claim one (R-5). S2/S3/S4 prices are translated from index points to
+EUR/MWh only through the four CALIBRATED anchors `p_ref_base`, `p_ref_peak`,
+`oespi_base_ref`, `oespi_peak_ref` (ST-201…204), whose values are the keys of
+the same names in `reports/NUMERIC_SSOT.md`. Every strategy output carries the
+caption "Contract prices proxied via ÖSPI (futures-based index); premiums are
+calibrated assumptions — see LIMITATIONS." (ST-502).
 
 **ÖSPI series pick: ADR-008 still formally `proposed`.** ADR-008 pins the AEA
 continuously-published *strompreisindex* page as the sole 2019→latest
@@ -34,9 +44,10 @@ to Base-only mode if any month lacked a Peak value. Independently,
 `config/strategies.yaml` carries a static `peak_available: true` that
 `epra.common.config.StrategyCfg` reads as a plain bool. No code reconciles the
 two yet (the M6 simulator that would consume them is not built). They agree
-for the committed series (every month 2019-01→2026-08 has a Peak value);
-which signal the simulator honors if they ever disagree must be decided when M6
-lands.
+for the committed series (every month 2019-01→2026-08 has a Peak value).
+Resolved at M6 (ADR-019): the config flag selects the formula, and if it says
+`true` while a needed Peak value is missing, the simulator stops with an error
+instead of silently switching to Base-only.
 
 **Observed, unexplained: `oespi_peak < oespi_base` in every row.** All 92
 committed months of `data/manual/oespi_monthly.csv` have a Peak index value
@@ -62,15 +73,26 @@ against the actual co-observed pair rather than an assumed-identical peak
 definition.
 
 ## 3. The fixed-price premium is an assumption
-*(finalized at M6)* — the fixed-price service premium
-(`fixed_premium_eur_mwh` in `config/strategies.yaml`; SPEC-05 §8 / SPEC-08 §6
-default 5 EUR/MWh) is CALIBRATED, not observed; the 0 / 10 EUR/MWh
-sensitivity results (ST-303) will be shown here.
+The fixed-price service premium (`fixed_premium_eur_mwh` in
+`config/strategies.yaml`, default 5 EUR/MWh per SPEC-05 §8) is CALIBRATED, not
+observed: no supplier's actual risk margin was available. The 0 and 10 EUR/MWh
+reruns (ST-303) are the `premium_0` / `premium_10` rows of
+`reports/strategies/sensitivity_matrix.md` (SSOT keys `sens_premium_0_*`,
+`sens_premium_10_*`). Where they change the best strategy, the base-case
+ranking between fixed and spot is within the premium's uncertainty and is
+reported as such.
 
 ## 4. The bootstrap cannot simulate an unprecedented regime
-*(finalized at M6)* — Forward risk resamples history 2019→present; a regime
-with no historical precedent is outside the model. The no-crisis conditional
-variant (ST-401 step 4) partially addresses, does not solve, this.
+Forward risk resamples whole historical months 2019→present (seeded block
+bootstrap, 2,000 paths). A regime with no historical precedent — a sharper
+crisis than 2022, a structural break in market design — is outside the model,
+and P95/CVaR95 understate such a tail. The no-crisis conditional variant
+(ST-401 step 4, pool limited to years whose December regime is not `crisis`)
+shows how much of the tail comes from the 2022 months; it partially addresses,
+does not solve, this. Two further simplifications (ADR-019): a fixed-price lock
+month that is neither observed nor simulated uses the last observed ÖSPI value
+carried forward, and hybrid strategies split each hour's volume uniformly
+between the fixed and spot legs (ST-107).
 
 ## 5. Grid fees, taxes, and levies are excluded
 Procurement-decision scope only (Charter §2): the analysis isolates the energy

@@ -468,3 +468,37 @@ make lint -> ruff clean, mypy Success (70 files); dbt build PASS=65 on the 2019-
 **Open questions:** the real-data run must re-pass AN-304 (the fixture pass
 proves the code path only). Charts were inspected visually; the heatmap's
 shared colorbar now has its own axis.
+
+## 2026-10-14 — M6 strategy simulator, forward risk, SSOT (SPEC-05, SPEC-08)
+
+**What shipped:** `epra.strategies` — SQL input layer over the marts
+(`inputs.py`: monthly spot cost + priced volume with the ST-101 drop rule,
+2019 reference stats, ÖSPI, hourly pool), `calibration.py` (ST-201..204),
+pure `engine.py` (S1-S4, lock rule, ST-503 no-lookahead), `retrospective.py`
+(Q1 matrix, ST-302 headline, ST-303 grid: premium 0/10, flat_baseload,
+full-prior-year lock), `forward_risk.py` (ST-406 vectorized seasonal block
+bootstrap, N=2000, seed 42, unconditional + no-crisis pools, Q4 rows),
+`gates.py` (ST-602) and `python -m epra.strategies` (`make simulate`, exit 1
+on ST-602). `scripts/generate_ssot.py` (GV-301/302 + E-2 producer check +
+results digest) and `scripts/check_ssot_consistency.py` (GV-303 literal
+matching with rounding tolerance, whitelist with reasons, freshness). ST-601
+golden on closed-form inputs. Chart titles that state a finding are computed
+from the data. ADR-019 records five open points the spec left. CI: dbt job
+runs the simulator + SSOT; new `ssot-check` job.
+
+**Gate evidence (FIXTURE data, ADR-018 — not results):**
+```
+make profile transform analyze simulate ssot   (twice, from a clean fixture)
+  -> md5 of NUMERIC_SSOT.md + every reports/analytics + reports/strategies file IDENTICAL
+  -> ST-602 sanity relations (a)(b)(c): PASS; AN-304 PASS; dbt PASS=58 + PASS=7
+  -> 178 SSOT rows; GV-302 key set complete; E-2 check clean
+forward_risk: 2 x 2,000 paths in ~3 s (ST-406 budget: < 10 min)
+pytest: ST-601 golden, ST-503 no-lookahead (tampered non-window index -> same price),
+  ST-405 seed determinism, ST-406 vectorized == per-path loop, ADR-019 gap rule
+make lint -> clean (78 files); make test -> 387 passed, coverage 97%
+```
+
+**Open questions:** none blocking. The forward window starts after the last
+priced month; on real data the S3 lock for the second delivery year will
+partly rest on carried-forward index values until the ÖSPI catches up
+(ADR-019 §2, LIMITATIONS §4).

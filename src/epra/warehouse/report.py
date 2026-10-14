@@ -18,8 +18,8 @@ renders, for a human reviewer:
    read_only=True)``: per-year ``fct_price_hourly`` row counts (DM-062),
    monthly-mart month coverage (DM-050), the 2022-08 ``fct_price_monthly`` vs
    mean-of-hourly reconciliation delta (DM-064), and an explicit flag on the
-   two marts still backed by stand-in data (``fct_consumer_load_hourly``,
-   ``fct_procurement_cost_monthly``; ADR-010, M4/M6 pending).
+   two marts loaded from Python module outputs (``fct_consumer_load_hourly``,
+   ``fct_procurement_cost_monthly``; ADR-016).
 
 Pass/fail *enforcement* of DM-050/060..066 belongs to the dbt tests
 themselves; this report surfaces their outcome and the numbers behind them.
@@ -236,8 +236,6 @@ class BuildReport(CheckReport):
 # Sanity-number queries -- read-only against the built `marts` schema.
 # ---------------------------------------------------------------------------
 
-_STAND_IN_MARTS: tuple[str, ...] = ("fct_consumer_load_hourly", "fct_procurement_cost_monthly")
-
 
 def _price_hourly_row_counts(con: duckdb.DuckDBPyConnection) -> ModelBuildResult:
     """DM-062 sanity number: per-year ``fct_price_hourly`` row counts.
@@ -351,16 +349,22 @@ def _reconciliation_2022_08(con: duckdb.DuckDBPyConnection) -> ModelBuildResult:
 
 
 def _stand_in_flag() -> ModelBuildResult:
-    """ADR-010: flag the two marts still backed by synthetic/thin-loader stand-ins."""
+    """Name the module behind each Python-fed mart (ADR-016): SPEC-03 / SPEC-05."""
     evidence = pd.DataFrame(
-        [{"mart": mart, "status": "stand-in (M4/M6 pending)"} for mart in _STAND_IN_MARTS]
+        [
+            {"mart": "fct_consumer_load_hourly", "status": "SPEC-03 profile (`make profile`)"},
+            {
+                "mart": "fct_procurement_cost_monthly",
+                "status": "SPEC-05 simulator (`make simulate`; CI stand-in until then)",
+            },
+        ]
     )
     summary = (
-        "fct_consumer_load_hourly (M4 consumer profile pending) and "
-        "fct_procurement_cost_monthly (M6 strategy simulator pending) are thin loaders "
-        "over synthetic/stand-in data, not real module output yet (ADR-010)"
+        "fct_consumer_load_hourly and fct_procurement_cost_monthly are thin loaders over "
+        "Python module outputs (LP-003, ST-001); the CI fixture bootstrap writes stand-ins "
+        "with the same contract until those modules run (ADR-016)"
     )
-    return ModelBuildResult("future marts", True, summary, evidence)
+    return ModelBuildResult("module-output marts", True, summary, evidence)
 
 
 def build_report(settings: Settings, *, run_results_path: Path | None = None) -> BuildReport:

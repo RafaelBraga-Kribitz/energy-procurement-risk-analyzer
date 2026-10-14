@@ -21,7 +21,6 @@ from epra.analytics._shared import (
     analytics_dir,
     by_year,
     complete_years,
-    md_table,
     query,
     write_markdown,
 )
@@ -29,6 +28,7 @@ from epra.common.config import Settings
 from epra.common.provenance import is_fixture_run
 from epra.common.ssot import SsotRow, write_ssot_rows
 from epra.report.figure import new_figure, save_figure
+from epra.report.format import md_table
 
 HOURLY_SQL = """
 select

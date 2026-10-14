@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 
 from epra.common.config import Settings, resolve_repo_path
-from epra.common.db import connect
+from epra.common.db import read_sql
 from epra.common.provenance import banner_lines
 
 
@@ -26,25 +26,7 @@ def analytics_dir(settings: Settings) -> Path:
 
 def query(settings: Settings, sql: str) -> pd.DataFrame:
     """Run one read-only SQL statement against the warehouse marts."""
-    con = connect(settings, read_only=True)
-    try:
-        return con.execute(sql).df()
-    finally:
-        con.close()
-
-
-def md_table(frame: pd.DataFrame, floatfmt: str = ".1f") -> str:
-    """GitHub-markdown table without the tabulate dependency."""
-
-    def cell(value: object) -> str:
-        if isinstance(value, float):
-            return format(value, floatfmt)
-        return str(value)
-
-    header = "| " + " | ".join(str(c) for c in frame.columns) + " |"
-    rule = "|" + "|".join("---:" if frame[c].dtype.kind in "fiu" else "---" for c in frame.columns)
-    rows = ["| " + " | ".join(cell(v) for v in row) + " |" for row in frame.itertuples(index=False)]
-    return "\n".join([header, rule + "|", *rows])
+    return read_sql(settings, sql)
 
 
 def write_markdown(settings: Settings, name: str, title: str, sections: list[str]) -> Path:

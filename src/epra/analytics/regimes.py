@@ -32,11 +32,12 @@ from arch import arch_model
 from arch.univariate.base import DataScaleWarning  # type: ignore[attr-defined]
 from hmmlearn.hmm import GaussianHMM
 
-from epra.analytics._shared import analytics_dir, md_table, query, write_markdown
+from epra.analytics._shared import analytics_dir, query, write_markdown
 from epra.common.config import Settings, resolve_repo_path
 from epra.common.provenance import is_fixture_run
 from epra.common.ssot import SsotRow, write_ssot_rows
 from epra.report.figure import new_figure, save_figure
+from epra.report.format import md_table
 from epra.report.style import OKABE_ITO
 
 DAILY_SQL = """
@@ -177,7 +178,7 @@ def _realized_vol_chart(frame: pd.DataFrame, settings: Settings) -> None:
     save_figure(
         fig,
         analytics_dir(settings) / "a3_realized_vol.png",
-        title="Volatility exploded with the price level in 2022 and has not fully normalized",
+        title="Volatility of daily price changes moves with the price level",
         subtitle="AT daily base price (left) and 30-day realized volatility of daily changes "
         "(right)",
         fixture=is_fixture_run(settings),
@@ -245,7 +246,7 @@ def _garch_chart(
     save_figure(
         fig,
         analytics_dir(settings) / "a3_garch_vs_realized.png",
-        title="GARCH and realized volatility tell the same story: shocks persist",
+        title="GARCH conditional volatility tracks the 30-day realized volatility",
         subtitle=f"GARCH(1,1) conditional std vs 30-day realized std{note}",
         fixture=is_fixture_run(settings),
     )
