@@ -52,7 +52,7 @@ SSOT, exports, reports, Power BI build kit, monthly refresh workflow. The build
 environment had no ENTSO-E token, so every committed result artifact comes from the
 synthetic fixture (ADR-018) and carries a FIXTURE banner or watermark. The first
 `make all` on real data replaces them; the README answer above is rendered from the SSOT
-at that moment. Open human steps: the real-data run, the Power BI `.pbix` and
+at that moment ([real-data run guide](docs/REAL_DATA_RUN.md): `make real-run`). Open human steps: the real-data run, the Power BI `.pbix` and
 its screenshots, and an optional Azure deployment.
 
 ## Explore this project

@@ -5,7 +5,7 @@
 UV ?= uv
 
 .PHONY: setup backfill ingest validate-ingest geosphere calendar oespi oespi-reconcile \
-        transform warehouse freshness profile analyze simulate ssot ssot-check export report publish \
+        transform warehouse freshness profile analyze simulate ssot ssot-check export report publish clean-fixture real-run \
         test test-live lint token-guard linkcheck all refresh
 
 setup:               ## EN-030 — install exactly the committed uv.lock (ADR-012)
@@ -84,10 +84,25 @@ export:              ## M7 — SPEC-02 §7 / DM-070: exports/*.csv for Power BI
 report:              ## M7 — SPEC-06: data quality, executive charts, EXEC_SUMMARY, README blocks
 	$(UV) run python -m epra.report
 
+clean-fixture:       ## ADR-018 — delete synthetic fixture data (only if the fixture marker is present)
+	$(UV) run python scripts/clean_fixture.py
+
+real-run:            ## Full real-data run: clear fixture, ingest 2019 → last month, gates, make all
+	@test -n "$$ENTSOE_API_TOKEN" || grep -qE '^ENTSOE_API_TOKEN=.{8,}' .env 2>/dev/null || \
+	  { echo "ERROR: set ENTSOE_API_TOKEN (env or .env) first — see docs/REAL_DATA_RUN.md" >&2; exit 1; }
+	$(MAKE) clean-fixture
+	$(MAKE) backfill
+	$(MAKE) geosphere
+	$(MAKE) calendar
+	$(MAKE) validate-ingest
+	$(MAKE) all
+	$(MAKE) freshness
+	$(MAKE) warehouse
+
 TARGET ?= local
 publish:             ## ADR-020 — publish exports (+ raw for azure): make publish TARGET=local|azure
 	$(UV) run python -m epra.cloud --target $(TARGET)
 
 all: profile transform analyze simulate ssot export report ssot-check publish
 
-refresh: ingest validate-ingest freshness all
+refresh: ingest validate-ingest all freshness

@@ -42,8 +42,9 @@ jobs:
       - run: make geosphere
       - run: make calendar
       - run: make validate-ingest
-      - run: make freshness
       - run: make all
+      # DM-066 needs the built staging views, so it runs after the warehouse build.
+      - run: make freshness
       - name: Publish to Azure (only when configured)
         env:
           AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}

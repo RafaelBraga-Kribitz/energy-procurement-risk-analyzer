@@ -539,8 +539,9 @@ make lint -> clean (89 files); make test -> 422 passed, 3 skipped, coverage 97%
 ```
 
 **Human actions (cannot be done from the build container):**
-1. `ENTSOE_API_TOKEN` → `make backfill && make geosphere && make calendar &&
-   make validate-ingest && make all`; commit regenerated reports; re-check AN-304/ST-602.
+1. `ENTSOE_API_TOKEN` → `make real-run` (guarded fixture cleanup, backfill, gates,
+   `make all`, freshness, warehouse); checklist and commit list in
+   `docs/REAL_DATA_RUN.md`; re-check AN-304/ST-602 on real data.
 2. Build `dashboards/epra.pbix` from the kit; screenshots `docs/assets/dashboard_p1..p5.png`.
 3. Optional: Azure subscription → `az bicep build`, deploy, GitHub secrets, record the run.
 4. GitHub repo description/topics/pin; profile location "Graz, Austria".
