@@ -214,3 +214,24 @@ def synthetic_warehouse(tmp_path_factory: pytest.TempPathFactory) -> Settings:
     )
     con.close()
     return settings
+
+
+@pytest.fixture(scope="session")
+def simulated_warehouse(synthetic_warehouse: Settings) -> Settings:
+    """The synthetic warehouse after A1/A2/A3 analytics and the M6 simulator ran.
+
+    The strategies entry point must exit 0, i.e. ST-602 holds on this market.
+    """
+    import epra.strategies.__main__ as entry
+    from epra.analytics import descriptive, regimes, spread
+
+    descriptive.run(synthetic_warehouse)
+    spread.run(synthetic_warehouse)
+    regimes.run(synthetic_warehouse)
+    patch = pytest.MonkeyPatch()
+    patch.setattr(entry, "load_settings", lambda: synthetic_warehouse)
+    try:
+        assert entry.main([]) == 0
+    finally:
+        patch.undo()
+    return synthetic_warehouse

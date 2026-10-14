@@ -1,0 +1,67 @@
+{
+  "name": "EPRA (Okabe-Ito, SPEC-06 §7)",
+  "dataColors": [
+    "#D55E00",
+    "#E69F00",
+    "#0072B2",
+    "#956435",
+    "#6A6859",
+    "#406C7D",
+    "#009E73",
+    "#56B4E9",
+    "#CC79A7",
+    "#F0E442"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#222222",
+  "tableAccent": "#0072B2",
+  "good": "#009E73",
+  "neutral": "#E69F00",
+  "bad": "#D55E00",
+  "maximum": "#D55E00",
+  "center": "#F7F7F7",
+  "minimum": "#0072B2",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 14,
+      "color": "#222222"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#222222"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#444444"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 28,
+      "color": "#222222"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "border": [
+          {
+            "show": false
+          }
+        ],
+        "dropShadow": [
+          {
+            "show": false
+          }
+        ],
+        "background": [
+          {
+            "show": false
+          }
+        ]
+      }
+    }
+  }
+}

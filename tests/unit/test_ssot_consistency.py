@@ -94,3 +94,16 @@ def test_freshness_digest_detects_stale_ssot(tmp_path: Path) -> None:
     ssot = tmp_path / "NUMERIC_SSOT.md"
     ssot.write_text(SSOT + "<!-- results-digest " + "0" * 64 + " -->\n", encoding="utf-8")
     assert not CHECK.digest_is_fresh(ssot)
+
+
+@pytest.mark.parametrize(
+    "text", ["window 2026-10..2027-09, EUR million", "badge%20complete%20%C2", "v1.2 EUR"]
+)
+def test_dates_versions_and_url_encoding_are_not_numbers(text: str) -> None:
+    assert CHECK.find_literals(text, "README.md") == []
+
+
+def test_regex_whitelist_uses_context(ssot: dict[str, list[float]]) -> None:
+    literals = CHECK.find_literals("chooses Hybrid 50% fixed today", "README.md")
+    assert CHECK.mismatches(literals, ssot, {r"re:Hybrid \d+% fixed"}) == []
+    assert len(CHECK.mismatches(literals, ssot, set())) == 1

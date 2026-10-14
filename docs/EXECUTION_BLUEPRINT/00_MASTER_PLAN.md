@@ -152,12 +152,13 @@ implemented and tested — nothing in between).
 | M1 ENTSO-E ingestion | **DONE** 2026-07-22 (data horizon 2024-02; re-backfill to latest complete month outstanding `[TOKEN]`) | `docs/BUILD_LOG.md` 2026-07-21/22, `reports/ingestion/validation_2026-07-23.md`, `.planning/phases/EPRA-02-m1-entso-e-ingestion/02-VERIFICATION.md` |
 | M2 auxiliary data | **DONE** 2026-07-23 (GeoSphere horizon 2023-12) | `docs/BUILD_LOG.md` 2026-07-23, `.planning/phases/EPRA-03-m2-auxiliary-data/03-VERIFICATION.md` |
 | M3 dbt warehouse | **BUILT** 2026-07-24; phase verification pending | `docs/BUILD_LOG.md` 2026-07-24, `reports/warehouse/dbt_build_2026-07-24.md` |
-| M4 consumer profile | not started | — |
-| M5 analytics | not started | — |
-| M6 strategies | not started | — |
-| M7 reporting & refresh | not started | — |
+| M4 consumer profile | **DONE** 2026-10-14 (PR #44) | `docs/BUILD_LOG.md` 2026-10-14 M4, golden `tests/golden/consumer_load_2023.sha256` |
+| M5 analytics | **DONE on fixture** 2026-10-14 (PR #45); AN-304 to re-pass on real data | `docs/BUILD_LOG.md` 2026-10-14 M5, ADR-018 |
+| M6 strategies | **DONE on fixture** 2026-10-14 (PR #46); ST-602 to re-pass on real data | `docs/BUILD_LOG.md` 2026-10-14 M6, ADR-019 |
+| M7 reporting & refresh | **BUILT** 2026-10-14; real-data run, `.pbix` + screenshots, Azure deploy are human steps | `docs/BUILD_LOG.md` 2026-10-14 M7, ADR-020 |
 
-*Snapshot updated 2026-09-30 (audit follow-up, `.planning/AUDIT-2026-09-30.md`).*
+*Snapshot updated 2026-10-14 (M4–M7 build; all result artifacts fixture-based until the
+real-data run, ADR-018).*
 Blocked-only-by-token work today: the re-backfill of ENTSO-E data to the latest
 complete month (and re-running `make validate-ingest`). Originally (2026-07-19):
 T1.09 (live backfill+validation) and the fixture-refresh half of T1.03. Everything else in M1–M7 is specifiable and much

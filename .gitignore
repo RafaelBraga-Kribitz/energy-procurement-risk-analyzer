@@ -63,3 +63,4 @@ dbt/.user.yml
 # GSD session/pause artifacts (generated locally; see .planning/CONTINUITY.md)
 .planning/SESSION_SNAP.md
 .planning/HANDOFF.json
+exports/MANIFEST.json

@@ -157,3 +157,31 @@ models:
         description: Monthly generation, GWh (= sum of hourly mean MW / 1000).
       - name: share_of_total
         description: gen_gwh / total gen_gwh of the month across psr_types (fraction 0-1, unitless).
+
+  - name: fct_data_quality_monthly
+    description: >
+      ADR-020 visible data-quality layer: one row per local month of the priced
+      window with coverage (AT/DE-LU prices, load, weather), DST days, PT15M vs
+      PT60M resolution mix, negative-price hours and ÖSPI presence. Read by
+      reports/data_quality/ and the Power BI data-quality page.
+    data_tests:
+      - unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [year_local, month_local]
+    columns:
+      - name: year_local
+        data_tests: [not_null]
+      - name: month_local
+        data_tests: [not_null]
+      - name: coverage_at_pct
+        description: Priced AT hours / calendar hours × 100.
+        data_tests:
+          - accepted_range:
+              arguments:
+                min_value: 0
+                max_value: 100
+      - name: resolution
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['PT60M', 'PT15M', 'mixed']

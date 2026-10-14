@@ -79,9 +79,9 @@ def _mart_objects() -> set[str]:
 
 
 def test_contract_covers_every_mart_object() -> None:
-    """The contract has exactly one entry per mart model/seed -- all 8, no extras."""
+    """The contract has exactly one entry per mart model/seed -- all 9, no extras (ADR-020)."""
     assert _mart_objects() == set(_CONTRACT)
-    assert len(_CONTRACT) == 8
+    assert len(_CONTRACT) == 9
 
 
 def test_warehouse_marts_schema_has_no_uncontracted_tables() -> None:

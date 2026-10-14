@@ -1,9 +1,8 @@
 # LIMITATIONS
 
 Honesty artifacts are load-bearing here (A-8): this file is an acceptance
-criterion (DL-9), not decoration. Sections follow SPEC-08 §6; each is completed
-in the milestone that produces the relevant numbers. Placeholder sections state
-what WILL be written so no limitation can be quietly dropped.
+criterion (DL-9), not decoration. Sections follow SPEC-08 §6. Numbers are never
+retyped here: each section names the `reports/NUMERIC_SSOT.md` keys that hold them.
 
 ## 1. The consumer load profile is constructed, not measured
 Reference load profile is constructed (CALIBRATED), not measured; construction
@@ -102,6 +101,17 @@ price lever. Total electricity bill impact differs from the numbers shown here.
 *(M1/M2 findings recorded below; 2025 caveats cannot be assessed until the
 re-backfill lands; finalized at M5)* — Any gate that required investigation
 (R-8) is documented here with its resolution.
+
+**All committed results are fixture-based until the real-data run (open,
+2026-10-14).** M4–M7 were built in an environment without the ENTSO-E token
+and without network access to ENTSO-E or GeoSphere. Every committed analytics,
+strategy, SSOT, data-quality and executive-chart artifact therefore comes from
+the seeded synthetic CI fixture (ADR-018) and carries a FIXTURE banner or
+watermark; the README shows no numbers in that state. The gates (AN-304,
+ST-602, GV-303) passing on the fixture prove the code paths, not the market
+findings. Resolution: `make backfill && make geosphere && make calendar &&
+make validate-ingest && make all` with the token; any gate that then needs
+investigation is recorded here (R-8).
 
 **Data horizon gap — no 2025 data ingested yet (open).** The committed
 evidence shows the real ingested data stops well short of "latest complete

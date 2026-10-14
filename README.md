@@ -1,237 +1,218 @@
 # Energy Procurement Risk Analyzer (EPRA)
 
-![Energy Procurement Risk Analyzer — Procurement-strategy risk on the Austrian day-ahead market for a 50 GWh Styrian consumer. Ingest and warehouse built; strategy results not yet.](docs/assets/hero.png)
+![Energy Procurement Risk Analyzer — what the wrong electricity procurement strategy costs a 50 GWh Styrian manufacturer, backtested on Austrian day-ahead prices, with P95 risk for the next 12 months.](docs/assets/hero.png)
 
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status: Foundation](https://img.shields.io/badge/status-Foundation-orange)](#project-status)
+[![Status: pipeline complete, real data pending](https://img.shields.io/badge/status-pipeline%20complete%20%C2%B7%20real%20data%20pending-yellow)](#project-status)
 
-**Status:** Foundation
+A decision tool for an Austrian CFO: on the **Austrian day-ahead market (ENTSO-E)**, how
+much did the choice of electricity procurement strategy cost a **50 GWh Styrian
+industrial consumer** in 2021–2025, and how much cost risk does each strategy carry for
+the next 12 months?
 
-After the 2021–2023 European energy crisis, electricity procurement became a board-level
-risk for Austrian industry. This project quantifies that risk on the Austrian day-ahead
-market (ENTSO-E) for a 50 GWh Styrian industrial consumer — full spot vs. indexed contract
-vs. fixed annual price vs. partial hedge.
+<!-- epra:answer:start -->
+> **Results pending the first real-data run.** The pipeline is complete and tested end to end on a synthetic CI fixture (ADR-018); fixture numbers are never shown here as results. Running `make backfill && make all` with an ENTSO-E token fills this section from `reports/NUMERIC_SSOT.md`.
+<!-- epra:answer:end -->
 
-> **How much did buying electricity the wrong way cost a 50 GWh/year Styrian
-> manufacturer in 2021–2025 — and what is the P95 cost exposure for the next
-> 12 months under each procurement strategy?**
+![What the wrong electricity procurement strategy cost a 50 GWh Styrian manufacturer](reports/executive_charts/01_wrong_strategy_cost.png)
 
-```mermaid
-flowchart TD
-    SRC["ENTSO-E / GeoSphere / ÖSPI / holidays"] --> ING["Ingestion<br/>retry, cache, gates"]
-    ING --> RAW["data/raw parquet"]
-    RAW --> WH["DuckDB + dbt<br/>staging → marts"]
-    WH --> A["Analytics A1–A4"]
-    WH --> P["Consumer profile"]
-    WH --> S["Strategy simulator"]
-    A --> SSOT["NUMERIC_SSOT.md<br/>exports/*.csv"]
-    P --> SSOT
-    S --> SSOT
-    SSOT --> RPT["Power BI + EXEC_SUMMARY"]
+*Until the first real-data run this chart is a watermarked pipeline preview on synthetic
+fixture prices; `make all` on ENTSO-E data replaces it.*
+
+**Skills demonstrated:** SQL (dbt models, [headline queries in `sql/`](sql/)) · Python
+(pandas, NumPy, statsmodels) · ETL with retries, caching and validation gates ·
+data quality reporting ([Datenqualität](reports/data_quality/DATA_QUALITY.md)) · DuckDB + dbt
+warehouse · Power BI ([build kit](dashboards/)) · Azure-ready deployment path
+([Blob + Azure SQL, Bicep](docs/AZURE_DEPLOYMENT.md)) · CI/CD on GitHub Actions.
+
+**Run it:**
+
+```bash
+git clone https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer.git
+cd energy-procurement-risk-analyzer
+cp .env.example .env          # add ENTSOE_API_TOKEN (free, transparency.entsoe.eu)
+make setup && make backfill && make geosphere && make calendar
+make all                      # warehouse → profile → analytics → simulator → SSOT → exports → reports
 ```
+
+No token? `uv run python scripts/bootstrap_fixture_warehouse.py --force && make all`
+runs the same pipeline offline on the synthetic fixture (every output is then stamped
+FIXTURE).
 
 ## Project status
 
-**Status:** Foundation
-
-Charter and eight SPECs are final. M0 (bootstrap), M1 (ENTSO-E ingest),
-M2 (GeoSphere, ÖSPI, calendar), and M3 (DuckDB + dbt warehouse) are implemented.
-M4–M7 — consumer profile, market analytics, strategy simulator, and reporting — are
-not yet implemented. `make profile`, `make analyze`, `make simulate`, and `make ssot`
-still fail loudly with their milestone. The ingested data does not yet reach the
-latest complete month (see [Data](#data)).
-
-**No results yet.** Per project rule (RP-601 / GV-303), every number in this README
-is copied from the auto-generated `reports/NUMERIC_SSOT.md` (generated at M6; not yet in the repository)
-with its epistemic tag. No results exist yet, so none are quoted yet. The answer
-lands here at M6/M7. There is no result chart to embed; the pipeline diagram above
-is the primary evidence until SSOT numbers exist.
-
-Build order and per-milestone gates: [PROJECT_CHARTER.md](PROJECT_CHARTER.md) §7,
-[AGENTS.md](AGENTS.md), [docs/BUILD_LOG.md](docs/BUILD_LOG.md). Implementers start at
-[docs/EXECUTION_BLUEPRINT/00_MASTER_PLAN.md](docs/EXECUTION_BLUEPRINT/00_MASTER_PLAN.md).
-
-Governance is deliberately light ([SPEC-08](docs/SPEC-08_governance_quality.md)): three
-mechanisms — epistemic tags, append-only ADRs, and an SSOT numeric table gated by CI
-(when M6 lands) — plus the load-bearing [`LIMITATIONS.md`](LIMITATIONS.md). No
-audit-finding registry.
+**Pipeline complete; real-data run pending.** Milestones M0–M7 are built, tested and
+green in CI: ingestion, warehouse, load profile, market analytics, strategy simulator,
+SSOT, exports, reports, Power BI build kit, monthly refresh workflow. The build
+environment had no ENTSO-E token, so every committed result artifact comes from the
+synthetic fixture (ADR-018) and carries a FIXTURE banner or watermark. The first
+`make all` on real data replaces them; the README answer above is rendered from the SSOT
+at that moment. Open human steps: the real-data run, the Power BI `.pbix` and
+its screenshots, and an optional Azure deployment.
 
 ## Explore this project
 
 | Audience | Start here |
 |---|---|
-| Recruiter | This page: the question, foundation [Status](#project-status), and pipeline diagram |
-| Hiring manager | [PROJECT_CHARTER.md](PROJECT_CHARTER.md) §1 (question + four strategies) and [LIMITATIONS.md](LIMITATIONS.md) |
-| Technical reviewer | [Architecture](#architecture), [Method](#method), [docs/SPEC-01](docs/SPEC-01_data_ingestion.md) through [SPEC-05](docs/SPEC-05_strategy_simulator.md) |
-| Auditor | [Data](#data), [Validation](#validation), [docs/SPEC-08](docs/SPEC-08_governance_quality.md), [docs/ADR/](docs/ADR/) |
+| Recruiter / hiring manager | The answer above, then [`reports/EXEC_SUMMARY.md`](reports/EXEC_SUMMARY.md) (two pages, CFO view) |
+| BI / data analyst | [`sql/`](sql/) headline queries, [`dashboards/`](dashboards/) Power BI build kit, [data-quality report](reports/data_quality/DATA_QUALITY.md) |
+| Data engineer | [Architecture](#architecture), [`dbt/`](dbt/), [`.github/workflows/`](.github/workflows/), [Azure path](docs/AZURE_DEPLOYMENT.md) |
+| Data scientist | [Analytics A1–A4](reports/analytics/), [simulator specs](docs/SPEC-05_strategy_simulator.md), [forward-risk report](reports/strategies/forward_risk_summary.md) |
+| Reviewer / auditor | [`reports/NUMERIC_SSOT.md`](reports/NUMERIC_SSOT.md), [`LIMITATIONS.md`](LIMITATIONS.md), [ADRs](docs/ADR/), [build log](docs/BUILD_LOG.md) |
 
-## What is real vs. modeled
+## Question
 
-| Tag | Meaning | Applies to |
-|-----|---------|-----------|
-| VERIFIED | Computed from real external data, no modeling assumptions beyond unit conversion/aggregation | Spot prices, negative-hour counts, AT–DE spread |
-| CALIBRATED | Derived via documented assumptions anchored to real data | Consumer load profile, ÖSPI→EUR/MWh translation, strategy costs |
-| SIMULATED | Output of a seeded stochastic procedure | Bootstrap cost distributions (P95, CVaR95) |
+> **How much did buying electricity the wrong way cost a 50 GWh/year Styrian
+> manufacturer in 2021–2025 — and what is the P95 cost exposure for the next
+> 12 months under each procurement strategy?**
 
-## Method
+Four strategies, no more ([SPEC-05](docs/SPEC-05_strategy_simulator.md)):
 
-Question → evidence → assumptions → model → uncertainty → decision.
-
-1. **Question.** Four strategies on one constructed Styrian load (annual volume set in
-   [`config/consumer_profile.yaml`](config/consumer_profile.yaml)): what did each cost
-   in the retrospective years, and what is next-12-month P95 / CVaR95 (SPEC-05).
-2. **Evidence.** Real Austrian day-ahead prices, load, and generation from ENTSO-E;
-   ÖSPI monthly index (hand-transcribed, double-entry); Graz daily temperature; Austrian
-   / Styrian holidays. No synthetic market prices.
-3. **Assumptions.** Load shape is constructed, not measured (CALIBRATED). ÖSPI proxies
-   contract / forward prices (R-5). Grid fees, taxes, and levies are out of scope.
-4. **Model.** Ingest → hourly warehouse → load profile → four strategy cost engines →
-   block-bootstrap forward risk (seeded). No price forecast (Charter O-1).
-5. **Uncertainty.** Bootstrap distributions (SIMULATED) plus documented sensitivities
-   (load shape, fixed-price premium). A regime with no historical precedent is outside
-   the model.
-6. **Decision.** At M6/M7 the SSOT names the euro gap between worst and best strategy
-   and the cost of buying down tail risk. That output does not exist yet.
-
-## Validation
-
-Ingestion and warehouse gates exist so a plausible-looking parquet cannot pass silently.
-Empty input fails (no vacuous pass). Out-of-range values trigger investigation, not
-widened bands (A-2).
-
-| Layer | What it catches |
+| Strategy | How the energy is bought |
 |---|---|
-| SPEC-01 ingest gates | Hour coverage and DST 23/25, price/load plausibility, AT–DE join, negative-price presence, GeoSphere / ÖSPI / calendar gates |
-| SPEC-02 dbt tests | Mart schema contract, DST adjacency, 2022-08 price reconciliation, month-spine gaps |
-| SPEC-03 (M4, not built) | Golden annual-sum test against the volume in `config/consumer_profile.yaml`; `flat_baseload` shape sensitivity |
-| SPEC-05 (M6, not built) | Golden metrics, sanity relations ST-602, seeded bootstrap reproducibility |
-| SPEC-08 SSOT check (M6) | README/exec numbers must appear in `NUMERIC_SSOT.md` |
+| Full spot | Every hour at the Austrian day-ahead price |
+| ÖSPI-indexed | Monthly price indexed to the Austrian electricity price index (ÖSPI) |
+| Fixed annual | One price per year, locked in the second half of the year before |
+| Hybrid (30, 50 or 70 percent fixed) | That share at the fixed price, the rest at spot |
 
-CI today: lint, `pytest -m "not live"`, and a network-free dbt build against a fixture
-warehouse. Strategy recovery against known truth is a M6 gate, not a current claim.
-
-## Results
-
-Not yet produced. The annual strategy-cost matrix and the forward-risk table are
-generated into `reports/NUMERIC_SSOT.md` at M6 and quoted here from it.
-
-## Dashboard
-
-Not yet built. The Power BI dashboard is an M7 deliverable built by hand from the
-exported CSVs; build instructions live in [`dashboards/README.md`](dashboards/README.md).
-
-## Reproduce
-
-Requires Python 3.12, `uv`, and an ENTSO-E API token (env var `ENTSOE_API_TOKEN` only).
-
-```bash
-git clone https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer.git && cd energy-procurement-risk-analyzer
-cp .env.example .env       # add ENTSOE_API_TOKEN (SPEC-01 §2)
-make setup
-make backfill              # ENTSO-E, 2019 → latest complete month
-make all
-```
-
-`make all` is the intended end-to-end path (transform → profile → analyze → simulate →
-ssot → export → report). Today it gets no further than `transform` (M3 `dbt build`) and
-then stops with a loud error at `profile`, because M4 is not implemented. `make backfill`
-covers ENTSO-E only: run `make geosphere` and `make calendar` before `make all` (the
-reconciled ÖSPI CSV is committed), check the gates with `make validate-ingest`, and use
-`make warehouse` for the warehouse build report. Expected artifact once M6 lands:
-`reports/NUMERIC_SSOT.md`.
-
-## Architecture
-
-Same pipeline as the diagram at the top of this page.
-
-```
-ENTSO-E / GeoSphere / ÖSPI(manual) / holidays
-        │  ingestion (SPEC-01: retry, cache, validation gates)
-        ▼
- data/raw parquet ──► DuckDB + dbt (SPEC-02: staging → marts)
-        │
-        ├─► analytics A1–A4 (SPEC-04) ──► reports/analytics/
-        ├─► consumer profile (SPEC-03) ─┐
-        └─► strategy simulator (SPEC-05)┴─► NUMERIC_SSOT.md / exports/*.csv
-                                             │
-                                             └─► Power BI + EXEC_SUMMARY (SPEC-06)
-```
-
-Module import law and milestone graph: [docs/EXECUTION_BLUEPRINT/04_DEPENDENCIES.md](docs/EXECUTION_BLUEPRINT/04_DEPENDENCIES.md).
-
-## Repository structure
-
-| Path | Responsibility |
-|---|---|
-| `PROJECT_CHARTER.md` | Scope, questions, acceptance |
-| `config/` | Non-secret tunables (settings, load, strategies) |
-| `src/epra/ingest/` | ENTSO-E, GeoSphere, ÖSPI, calendar, gates |
-| `src/epra/warehouse/` | Warehouse build report (M3; layout addition per ADR-013) |
-| `src/epra/consumer/` | Load profile (M4 stub) |
-| `src/epra/analytics/` | Market analytics A1–A4 (M5 stubs) |
-| `src/epra/strategies/` | Retrospective + forward risk (M6 stubs) |
-| `dbt/` | Staging and marts on DuckDB |
-| `reports/` | Ingestion/warehouse reports; SSOT lands here at M6 |
-| `docs/` | SPEC-01…08, ADRs, execution blueprint |
-| `tests/` | Contract, unit, and (later) golden tests |
-
-| Technology | Role |
-|---|---|
-| Python 3.12 + uv | Runtime and lockfile (`uv.lock`) |
-| DuckDB + dbt | Analytical warehouse |
-| pandas / pyarrow | Ingest and strategy engines |
-| matplotlib | Executive charts at M7 (no results yet) |
-| GitHub Actions | Lint, tests, fixture `dbt build` |
+The reference consumer, "StyriaMetal GmbH", is a constructed three-shift metal processor
+with 50,000 MWh per year, reduced weekends, an August maintenance week and a Christmas
+shutdown ([`config/consumer_profile.yaml`](config/consumer_profile.yaml)).
 
 ## Data
 
-Sources (all VERIFIED at the ingest boundary):
+| Source | What | Tag |
+|---|---|---|
+| [ENTSO-E Transparency Platform](https://transparency.entsoe.eu) | AT and DE-LU day-ahead prices (hourly and 15-minute), AT load and generation | VERIFIED |
+| [Austrian Energy Agency — ÖSPI](https://www.energyagency.at/fakten/strompreisindex) | Monthly wholesale index, base and peak, double-entry transcription | VERIFIED |
+| [GeoSphere Austria Data Hub](https://data.hub.geosphere.at) | Daily mean temperature, Graz | VERIFIED |
+| `holidays` package | Austrian and Styrian public holidays | VERIFIED |
+| Constructed load profile | StyriaMetal hourly load ([SPEC-03](docs/SPEC-03_consumer_load_profile.md)) | CALIBRATED |
 
-- [ENTSO-E Transparency Platform](https://transparency.entsoe.eu) — AT/DE-LU day-ahead
-  prices, AT load and generation
-- [Austrian Energy Agency — ÖSPI](https://www.energyagency.at/fakten/strompreisindex) —
-  monthly wholesale price index, double-entry transcription
-- [GeoSphere Austria Data Hub](https://data.hub.geosphere.at) — daily mean temperature,
-  Graz
-- `holidays` Python package — Austrian / Styrian holidays
+Window: 2019-01 → latest complete month. No synthetic market price is ever published:
+gaps stay NULL and are reported in the [data-quality report](reports/data_quality/DATA_QUALITY.md).
 
-Reference load profile is constructed (CALIBRATED), not measured; construction rules in
-[SPEC-03](docs/SPEC-03_consumer_load_profile.md). Specified window: 2019-01-01 → latest
-complete month; retrospective years are set in
-[`config/strategies.yaml`](config/strategies.yaml).
+## Method
 
-**Current data horizon (not yet the specified window).** The ingested ENTSO-E prices
-end in 2024-02 and the GeoSphere temperature series ends in 2023-12
-([validation report](reports/ingestion/validation_2026-07-23.md)); the ÖSPI series is
-transcribed through 2026-08. A re-backfill to the latest complete month is outstanding
-and needs the maintainer's ENTSO-E token. Details: [`LIMITATIONS.md`](LIMITATIONS.md) §6.
+1. **Ingest (ETL).** Python clients with retry, cache and validation gates (hour
+   coverage, DST 23/25-hour days, 15-minute → hourly means, negative prices).
+2. **Warehouse.** DuckDB + dbt: staging views, nine tested marts, a schema contract test,
+   and a monthly data-quality mart.
+3. **Load profile.** Deterministic hourly profile, exactly 50,000 MWh per local year
+   (golden checksum test).
+4. **Market analytics.** Seasonality, hour-of-day shape, negative hours, AT–DE spread,
+   volatility regimes (hidden-Markov model + GARCH) with a crisis sanity gate.
+5. **Strategy simulator.** Retrospective cost per strategy and year; next-12-month cost
+   distribution from a seeded block bootstrap of whole historical months (2,000 paths);
+   sensitivities for the fixed-price premium, the load shape and the lock window.
+6. **SSOT.** Every published number is generated into
+   [`reports/NUMERIC_SSOT.md`](reports/NUMERIC_SSOT.md) with an epistemic tag; CI fails
+   if README or executive summary quotes a number that is not there.
+
+| Tag | Meaning | Applies to |
+|---|---|---|
+| VERIFIED | Computed from real data, no modelling | Spot prices, negative hours, AT–DE spread |
+| CALIBRATED | Documented assumptions anchored to real data | Load profile, ÖSPI → EUR/MWh translation, strategy costs |
+| SIMULATED | Seeded stochastic procedure | Next-12-month mean, P95, CVaR95 |
+
+No price forecast is made: strategies are backtested on realized 2021–2025 prices and
+stress-tested by resampling history.
+
+## Results
+
+<!-- epra:results:start -->
+> **Results pending the first real-data run.** The pipeline is complete and tested end to end on a synthetic CI fixture (ADR-018); fixture numbers are never shown here as results. Running `make backfill && make all` with an ENTSO-E token fills this section from `reports/NUMERIC_SSOT.md`.
+<!-- epra:results:end -->
+
+Full tables: [strategy comparison](reports/strategies/strategy_annual_summary.md),
+[forward risk](reports/strategies/forward_risk_summary.md),
+[sensitivities](reports/strategies/sensitivity_matrix.md),
+[market analytics](reports/analytics/a1_annual_summary.md).
+
+## Dashboard
+
+Power BI on the exported CSVs, five pages: decision, market, strategies, risk, data
+quality. The [build kit](dashboards/README.md) contains the star schema, Power Query
+steps, every DAX measure ([`measures.dax`](dashboards/measures.dax)) and the theme. The
+`.pbix` and its screenshots are built by hand after the real-data run; until then the
+static charts in [`reports/executive_charts/`](reports/executive_charts/) are the visual
+deliverable.
 
 ## Limitations
 
-What this work does not establish, in brief. [`LIMITATIONS.md`](LIMITATIONS.md) is the
-authoritative text, and each line below is a pointer to its section:
+[`LIMITATIONS.md`](LIMITATIONS.md) is the full text. In short:
 
-- **No strategy results yet.** Nothing here answers Q1–Q4 in euros.
-- **Load is constructed, not measured** (§1). Real industrial metering data would change
-  cost levels.
-- **ÖSPI is a contract/forward proxy, not a quoted offer** (§2). Supplier margins and
-  contract terms are missing; the direction of bias is unknown.
-- **The fixed-price premium is an assumption** (§3, value in `config/strategies.yaml`),
-  CALIBRATED rather than observed.
-- **The bootstrap cannot invent an unprecedented regime** (§4).
-- **Grid fees, taxes, and levies are excluded** (§5).
-- **Ingested data stops short of the latest complete month** (§6).
-- **No forecast-skill claim** (§7).
+- The load profile is **constructed, not metered** (CALIBRATED); a flat-baseload rerun
+  bounds the shape effect.
+- **ÖSPI proxies supplier contract prices**; real offers add margins and terms, with an
+  unknown bias direction. The fixed-price premium is an assumption with a 0 / 10
+  sensitivity.
+- The bootstrap **cannot produce a crisis worse than 2022**; P95 understates such a tail.
+- **Energy only:** grid fees, taxes and levies are out of scope.
+- **No forecast skill** is claimed anywhere.
 
-Falsification: a measured load profile, or supplier offers that do not track ÖSPI, would
-change the euro ranking.
+## Decision
+
+The [executive summary](reports/EXEC_SUMMARY.md) states what a cost-minimizing and a
+risk-averse CFO would choose for the next 12 months and the price of the risk reduction
+in euros — for the reference consumer, not for any real company.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    SRC["ENTSO-E · GeoSphere · ÖSPI · holidays"] --> ING["Python ETL<br/>retry, cache, validation gates"]
+    ING --> RAW["data/raw parquet"]
+    RAW --> WH["DuckDB + dbt<br/>staging → marts → data-quality mart"]
+    WH --> P["Load profile"]
+    WH --> A["Analytics A1–A4"]
+    P --> S["Strategy simulator<br/>backtest + bootstrap"]
+    WH --> S
+    A --> SSOT["NUMERIC_SSOT.md<br/>(CI-checked)"]
+    S --> SSOT
+    SSOT --> OUT["EXEC_SUMMARY · charts · exports/*.csv"]
+    OUT --> BI["Power BI"]
+    OUT -.optional.-> AZ["Azure Blob + Azure SQL"]
+```
+
+| Path | Responsibility |
+|---|---|
+| `src/epra/ingest/` | ENTSO-E, GeoSphere, ÖSPI, calendar, validation gates |
+| `dbt/` | Staging and marts on DuckDB, schema contract, data tests |
+| `src/epra/consumer/` | Deterministic load profile |
+| `src/epra/analytics/` | Market analytics A1–A4 |
+| `src/epra/strategies/` | SQL inputs, strategy engine, retrospective, forward risk |
+| `src/epra/report/` | Charts, data-quality report, executive summary |
+| `src/epra/cloud/` | Publish targets: local (default) and Azure |
+| `sql/` | Headline answers as plain SQL, tested against the Python engine |
+| `dashboards/` | Power BI build kit |
+| `infra/azure/` | Bicep for the optional Azure path |
+
+Engineering: Python 3.12 with `uv` and a committed lockfile; ruff and strict mypy;
+pytest with ≥ 80 % coverage; GitHub Actions for lint, tests, a network-free fixture run of
+the whole pipeline, and the SSOT check; a monthly scheduled refresh that opens a pull
+request. Governance is deliberately light: epistemic tags, append-only ADRs, the
+CI-gated SSOT and `LIMITATIONS.md`.
+
+## Kurzfassung auf Deutsch
+
+Dieses Projekt beantwortet eine Frage aus dem Energieeinkauf: Was hat die Wahl der
+Beschaffungsstrategie (Spot, ÖSPI-indexiert, Fixpreis, Mischung) einen steirischen
+Industriebetrieb mit 50 GWh Jahresverbrauch in den Jahren 2021–2025 gekostet, und wie
+hoch ist das Kostenrisiko (P95) für die nächsten 12 Monate? Grundlage sind reale
+Day-Ahead-Preise für Österreich (ENTSO-E), der Strompreisindex ÖSPI und Wetterdaten
+aus Graz. Das Lastprofil ist konstruiert, nicht gemessen. Alle Kennzahlen stehen mit
+Herkunftskennzeichnung in `reports/NUMERIC_SSOT.md`; Datenqualität und Reporting sind
+automatisiert, das Dashboard wird in Power BI gebaut.
 
 ## Future work
 
-Parking spot for ideas outside the Charter scope (AGENTS.md A-3), one line each.
-Nothing is parked yet.
+Outside the Charter scope by design (A-3), one line each:
+
+- Measured RLM load data from a real plant instead of the constructed profile.
+- Grid fees, taxes and levies for a full electricity-bill view.
 
 ## License
 
@@ -250,7 +231,7 @@ MIT. See [LICENSE](LICENSE).
     </td>
     <td>
       <strong>Rafael Braga-Kribitz</strong><br />
-      Seiersberg-Pirka, Austria · Portfolio project, 2026<br />
+      Graz area, Austria · Portfolio project, 2026<br />
       <a href="https://www.linkedin.com/in/rafaelbragakribitz/">LinkedIn</a>
       ·
       <a href="mailto:rafaelbragakribitz@gmail.com">rafaelbragakribitz@gmail.com</a>

@@ -9,7 +9,7 @@
 # (information_schema.columns diff), not as a dbt-native
 # `contract: {enforced: true}` block.
 #
-# Top-level keys are exactly the 8 objects in the `marts` schema (6 fct_*
+# Top-level keys are exactly the 9 objects in the `marts` schema (7 fct_*
 # tables, dim_calendar, the dim_strategy seed; no wrapper key) -- consumed
 # directly as `sorted(contract)` by the pytest parametrize. Column order
 # matches ordinal_position; `type` is the exact DuckDB canonical
@@ -117,3 +117,20 @@ fct_procurement_cost_monthly:
     - {name: volume_mwh, type: DOUBLE}
     - {name: cost_eur, type: DOUBLE}
     - {name: unit_cost_eur_mwh, type: DOUBLE}
+
+fct_data_quality_monthly:
+  columns:
+    - {name: year_local, type: INTEGER}
+    - {name: month_local, type: INTEGER}
+    - {name: expected_hours, type: BIGINT}
+    - {name: priced_hours_at, type: BIGINT}
+    - {name: priced_hours_delu, type: BIGINT}
+    - {name: load_hours, type: BIGINT}
+    - {name: weather_days, type: BIGINT}
+    - {name: days_in_month, type: BIGINT}
+    - {name: coverage_at_pct, type: DOUBLE}
+    - {name: n_dst_days, type: BIGINT}
+    - {name: n_hours_from_pt15m, type: BIGINT}
+    - {name: resolution, type: VARCHAR}
+    - {name: n_negative_hours, type: BIGINT}
+    - {name: has_oespi, type: BOOLEAN}

@@ -1,3 +1,5 @@
 # GV-303 whitelist: unit-bearing literals in README.md / reports/EXEC_SUMMARY.md
 # that are NOT results (config echoes, spec thresholds, definitions).
 # Format: <literal exactly as written>  # <why it is not an SSOT number>
+re:Hybrid \d+% fixed  # strategy names (dim_strategy labels S4_30/50/70), not results
+80 %  # test-coverage gate threshold (EN-071), not a result

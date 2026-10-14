@@ -30,6 +30,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# ADR-020: optional Azure publish target (`make publish TARGET=azure`). Never
+# installed by `make setup`/CI — the local DuckDB path needs none of it.
+azure = [
+    "azure-storage-blob>=12.19",
+    "azure-identity>=1.15",
+    "pyodbc>=5.1",
+]
 dev = [
     "pytest>=8",
     "pytest-cov",
@@ -69,7 +76,7 @@ mypy_path = "src"
 
 [[tool.mypy.overrides]]
 # EN-002 allows ignore_missing_imports for these untyped libraries.
-module = ["entsoe.*", "hmmlearn.*", "arch.*", "statsmodels.*"]
+module = ["entsoe.*", "hmmlearn.*", "arch.*", "statsmodels.*", "azure.*", "pyodbc"]
 ignore_missing_imports = true
 
 # --------------------------------------------------------------- tests (EN-070, EN-071)

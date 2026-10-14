@@ -41,3 +41,14 @@ ingest:
   geosphere_sleep_s: 0.2       # ING-007
   cache_min_age_days: 7        # ING-009 — cache used when window ended > 7 days ago
   incremental_lookback_days: 45  # ING-041 — ENTSO-E restates recent data
+
+# ADR-020 — publish target for the Azure-ready path. `local` (default) needs no
+# account and no network; `azure` uploads raw parquet + exports to Blob Storage
+# and loads the exports into Azure SQL. Secrets are NEVER here: the Azure
+# target reads AZURE_STORAGE_CONNECTION_STRING (or AZURE_STORAGE_ACCOUNT_URL +
+# Entra ID via DefaultAzureCredential) and AZURE_SQL_CONNECTION_STRING from env.
+cloud:
+  target: local
+  azure:
+    container: epra
+    sql_schema: epra

@@ -1,0 +1,70 @@
+# DL-8 — monthly data refresh (SPEC-07, ADR-020).
+# Ingests the latest complete month, rebuilds marts, analytics, simulator, SSOT,
+# exports and reports, then opens a PR with the regenerated artifacts (results
+# change => reviewed PR, never a silent push to main; SPEC-08 §4).
+# Optional: when the AZURE_* secrets exist, also publishes to Blob + Azure SQL.
+#
+# Required secret:  ENTSOE_API_TOKEN (A-7: env only, never echoed).
+# Optional secrets: AZURE_STORAGE_CONNECTION_STRING, AZURE_SQL_CONNECTION_STRING.
+name: monthly-refresh
+
+on:
+  schedule:
+    - cron: "17 6 3 * *"   # 06:17 UTC on the 3rd: the previous month is complete and settled
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: monthly-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ENTSOE_API_TOKEN: ${{ secrets.ENTSOE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: Fail fast without the ENTSO-E token
+        run: test -n "$ENTSOE_API_TOKEN" || { echo "::error::ENTSOE_API_TOKEN secret not set"; exit 1; }
+      - run: uv sync --frozen --extra dev
+      # A fresh runner has no data/raw: a full backfill (cached by ENTSO-E
+      # windows inside the run) rebuilds 2019 -> last complete month.
+      - run: make backfill
+      - run: make geosphere
+      - run: make calendar
+      - run: make validate-ingest
+      - run: make freshness
+      - run: make all
+      - name: Publish to Azure (only when configured)
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+          AZURE_SQL_CONNECTION_STRING: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        if: ${{ env.AZURE_STORAGE_CONNECTION_STRING != '' && env.AZURE_SQL_CONNECTION_STRING != '' }}
+        run: |
+          uv sync --frozen --extra dev --extra azure
+          make publish TARGET=azure
+      - name: Open a PR with the refreshed results
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: refresh/monthly
+          delete-branch: true
+          commit-message: "data: monthly refresh — marts, analytics, strategies, SSOT"
+          title: "Monthly data refresh"
+          body: |
+            Automated monthly refresh (DL-8): latest complete month ingested, gates
+            (`validate-ingest`, `freshness`, AN-304, ST-602, GV-303) passed in this run.
+            Review `reports/NUMERIC_SSOT.md` diffs before merging.
+          add-paths: |
+            reports/**
+            README.md
+            docs/assets/hero.png
+            docs/assets/hero.layout.json
