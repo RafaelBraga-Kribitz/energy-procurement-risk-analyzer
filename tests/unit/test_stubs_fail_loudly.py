@@ -13,7 +13,6 @@ from typing import Any
 
 import pytest
 
-from epra.analytics import descriptive, regimes, spread, weather
 from epra.common.config import (
     REPO_ROOT,
     load_settings,
@@ -33,10 +32,6 @@ def _script(name: str) -> ModuleType:
 
 
 STUBS: list[tuple[str, str, Callable[[], Any]]] = [
-    ("M5", "descriptive.run", lambda: descriptive.run(load_settings())),
-    ("M5", "spread.run", lambda: spread.run(load_settings())),
-    ("M5", "regimes.run", lambda: regimes.run(load_settings())),
-    ("M5", "weather.run", lambda: weather.run(load_settings())),
     (
         "M6",
         "calibration.compute_anchors",

@@ -13,6 +13,11 @@ macro-paths: ["macros"]
 
 clean-targets: ["target", "dbt_packages"]
 
+# No telemetry: CI and the build containers are network-restricted, and the
+# pipeline must not phone home (EN-070 spirit).
+flags:
+  send_anonymous_usage_stats: false
+
 models:
   epra:
     staging:
