@@ -1,0 +1,103 @@
+// EPRA Power BI measures (SPEC-06 §4, ADR-020 §4).
+// Paste each block into "New measure" on the table named in its header.
+// Tables are the CSVs in exports/ loaded with the names in dashboards/MODEL.md.
+// Rule (A-6): headline cards show SSOT values via the `ssot` table; every other
+// visual aggregates the exported marts, which the SSOT was computed from.
+
+// ===================================================== table: procurement_cost_monthly
+Total Cost EUR = SUM ( procurement_cost_monthly[cost_eur] )
+
+Total Volume MWh = SUM ( procurement_cost_monthly[volume_mwh] )
+
+Unit Cost EUR per MWh = DIVIDE ( [Total Cost EUR], [Total Volume MWh] )
+
+// Gap between the dearest and cheapest strategy, summed over the years in context
+// (RP-401 bar chart; equals SSOT wrong_strategy_cost_<year> per year).
+Wrong Strategy Cost EUR =
+SUMX (
+    VALUES ( DimMonth[Year] ),
+    VAR CostByStrategy =
+        ADDCOLUMNS (
+            ALL ( dim_strategy[strategy_id] ),
+            "@cost", CALCULATE ( [Total Cost EUR] )
+        )
+    RETURN
+        MAXX ( CostByStrategy, [@cost] ) - MINX ( CostByStrategy, [@cost] )
+)
+
+Cheapest Strategy =
+VAR Ranked =
+    ADDCOLUMNS ( ALL ( dim_strategy[strategy_label] ), "@cost", CALCULATE ( [Total Cost EUR] ) )
+RETURN
+    MAXX ( TOPN ( 1, Ranked, [@cost], ASC ), dim_strategy[strategy_label] )
+
+Cost vs Cheapest EUR =
+VAR Cheapest =
+    MINX (
+        ALL ( dim_strategy[strategy_id] ),
+        CALCULATE ( [Total Cost EUR] )
+    )
+RETURN
+    [Total Cost EUR] - Cheapest
+
+Cumulative Cost EUR =
+CALCULATE (
+    [Total Cost EUR],
+    FILTER ( ALL ( DimMonth ), DimMonth[MonthStart] <= MAX ( DimMonth[MonthStart] ) )
+)
+
+// ===================================================== table: forward_risk_summary
+// Use with a slicer or visual filter on forward_risk_summary[variant].
+Forward Mean EUR = AVERAGE ( forward_risk_summary[mean] )
+Forward P5 EUR = AVERAGE ( forward_risk_summary[p5] )
+Forward P50 EUR = AVERAGE ( forward_risk_summary[p50] )
+Forward P95 EUR = AVERAGE ( forward_risk_summary[p95] )
+Forward CVaR95 EUR = AVERAGE ( forward_risk_summary[cvar95] )
+Tail Spread P95 minus P50 EUR = [Forward P95 EUR] - [Forward P50 EUR]
+
+// ===================================================== table: forward_paths
+Paths = COUNTROWS ( forward_paths )
+Path Cost EUR million = DIVIDE ( SUM ( forward_paths[cost_eur] ), 1000000 )
+
+// ===================================================== table: price_monthly / spread_monthly
+Avg Base Price EUR per MWh = AVERAGE ( price_monthly[price_base_eur_mwh] )
+Avg Peak Price EUR per MWh = AVERAGE ( price_monthly[price_peak_eur_mwh] )
+Avg Offpeak Price EUR per MWh = AVERAGE ( price_monthly[price_offpeak_eur_mwh] )
+Negative Price Hours = SUM ( price_monthly[n_negative_hours] )
+Avg AT minus DE Spread EUR per MWh = AVERAGE ( spread_monthly[spread_mean_eur_mwh] )
+
+// ===================================================== table: data_quality_monthly
+Expected Hours = SUM ( data_quality_monthly[expected_hours] )
+Priced Hours AT = SUM ( data_quality_monthly[priced_hours_at] )
+Price Coverage Pct = DIVIDE ( [Priced Hours AT], [Expected Hours] ) * 100
+Months Below Full Coverage =
+COUNTROWS ( FILTER ( data_quality_monthly, data_quality_monthly[coverage_at_pct] < 100 ) )
+DST Days = SUM ( data_quality_monthly[n_dst_days] )
+Hours From 15min Quarters = SUM ( data_quality_monthly[n_hours_from_pt15m] )
+Months Missing OESPI =
+COUNTROWS ( FILTER ( data_quality_monthly, NOT data_quality_monthly[has_oespi] ) )
+
+// ===================================================== table: ssot  (headline cards, A-6)
+// value is text in the CSV (some rows hold ids or months), so convert per card.
+SSOT Number = VALUE ( SELECTEDVALUE ( ssot[value] ) )
+Card Wrong Strategy Cost 5y EUR =
+VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "wrong_strategy_cost_total" ) )
+Card Best Strategy 5y =
+VAR Id = LOOKUPVALUE ( ssot[value], ssot[key], "best_strategy_5yr" )
+RETURN LOOKUPVALUE ( dim_strategy[strategy_label], dim_strategy[strategy_id], Id )
+Card P95 Full Spot EUR = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "p95_next12m_S1" ) )
+Card P95 Fixed Annual EUR = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "p95_next12m_S3" ) )
+Card Risk Premium EUR = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "q4_risk_premium_eur" ) )
+Card P95 Reduction EUR = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "q4_p95_reduction_eur" ) )
+Card Data Through = LOOKUPVALUE ( ssot[value], ssot[key], "data_last_month" )
+
+// ===================================================== table: provenance
+Is Fixture Run = MAX ( provenance[is_fixture] )
+Data Banner =
+IF (
+    [Is Fixture Run],
+    "FIXTURE RUN — synthetic CI data, NOT results (ADR-018)",
+    "Data through " & [Card Data Through] & " · ENTSO-E, AEA ÖSPI, GeoSphere"
+)
+Epistemic Note Strategies = "CALIBRATED · constructed load profile (SPEC-03) · contract prices via ÖSPI proxy"
+Epistemic Note Risk = "SIMULATED · seeded block bootstrap of historical months · not a forecast"

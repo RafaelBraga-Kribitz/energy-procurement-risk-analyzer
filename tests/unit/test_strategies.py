@@ -345,24 +345,8 @@ def _script(name: str) -> ModuleType:
 
 
 @pytest.fixture(scope="module")
-def simulated(
-    synthetic_warehouse: Settings,
-    tmp_path_factory: pytest.TempPathFactory,
-) -> Settings:
-    import epra.strategies.__main__ as entry
-    from epra.analytics import descriptive, regimes, spread
-
-    settings = synthetic_warehouse
-    descriptive.run(settings)
-    spread.run(settings)
-    regimes.run(settings)
-    mp = pytest.MonkeyPatch()
-    mp.setattr(entry, "load_settings", lambda: settings)
-    try:
-        assert entry.main([]) == 0  # ST-602 passes on the synthetic market
-    finally:
-        mp.undo()
-    return settings
+def simulated(simulated_warehouse: Settings) -> Settings:
+    return simulated_warehouse
 
 
 def test_st001_outputs_written(simulated: Settings) -> None:
@@ -426,3 +410,41 @@ def test_st405_forward_rerun_identical(simulated: Settings) -> None:
     second = pd.read_parquet(simulated.paths.data_processed / "forward_risk_summary.parquet")
     pd.testing.assert_frame_equal(first, second)
     assert math.isfinite(float(first["cvar95"].max()))
+
+
+def test_sql_headline_queries_match_python(simulated: Settings) -> None:
+    """ADR-020 §1: the sql/ headline queries reproduce the Python results exactly."""
+    import duckdb
+
+    processed = simulated.paths.data_processed.as_posix()
+    con = duckdb.connect(str(simulated.paths.warehouse))
+    con.execute(
+        "create or replace table marts.fct_procurement_cost_monthly as select * from "
+        f"read_parquet('{processed}/strategy_costs_monthly.parquet')"
+    )
+    seed = (REPO_ROOT / "dbt" / "seeds" / "dim_strategy.csv").as_posix()
+    con.execute(f"create or replace table marts.dim_strategy as select * from read_csv('{seed}')")
+    con.close()
+    run_sql = _script("run_sql")
+    sql_dir = REPO_ROOT / "sql"
+
+    annual = pd.read_parquet(simulated.paths.data_processed / "strategy_annual_summary.parquet")
+    q1 = run_sql.run_file(sql_dir / "q1_annual_strategy_cost_matrix.sql", simulated)
+    merged = annual.merge(q1, on=["year", "strategy_id"], suffixes=("_py", "_sql"))
+    assert len(merged) == len(annual) == 30
+    for col in ("cost_eur", "unit_cost_eur_mwh", "delta_vs_min_eur", "rank"):
+        np.testing.assert_allclose(merged[f"{col}_py"], merged[f"{col}_sql"], rtol=1e-9)
+
+    wrong = run_sql.run_file(sql_dir / "q1_wrong_strategy_cost.sql", simulated)
+    np.testing.assert_allclose(
+        wrong["wrong_strategy_cost_eur"].to_numpy(),
+        wrong_strategy_cost(annual).to_numpy(),
+        rtol=1e-9,
+    )
+
+    forward = pd.read_parquet(simulated.paths.data_processed / "forward_risk_summary.parquet")
+    q3 = run_sql.run_file(sql_dir / "q3_forward_risk_p95_cvar95.sql", simulated)
+    merged = forward.merge(q3, on=["variant", "strategy_id"], suffixes=("_py", "_sql"))
+    assert len(merged) == len(forward)
+    for col in ("mean", "p5", "p50", "p95", "cvar95"):
+        np.testing.assert_allclose(merged[f"{col}_py"], merged[f"{col}_sql"], rtol=1e-9)

@@ -37,7 +37,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SSOT_PATH = REPO_ROOT / "reports" / "NUMERIC_SSOT.md"
 DOCS = (REPO_ROOT / "README.md", REPO_ROOT / "reports" / "EXEC_SUMMARY.md")
 WHITELIST = REPO_ROOT / "scripts" / "ssot_whitelist.txt"
-NUM = r"(-?\d[\d,]*(?:\.\d+)?)"
+# Not preceded by a word char, dot, percent (URL encoding) or hyphen, so "2027-09",
+# "v1.2" or "%20" never yield a number; thousands separators only as ",ddd".
+NUM = r"(?<![\w.%-])(-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?)"
 PATTERNS: tuple[tuple[str, str, float], ...] = (
     (rf"€\s?{NUM}\s?M\b", "EUR", 1e6),
     (rf"{NUM}\s?EUR/MWh", "EUR/MWh", 1.0),
@@ -53,6 +55,7 @@ class Literal:
     """One unit-bearing number found in a document."""
 
     text: str
+    context: str
     value: float
     unit: str
     tolerance: float
@@ -76,7 +79,8 @@ def find_literals(text: str, where: str) -> list[Literal]:
             raw = match.group(1)
             value = float(raw.replace(",", "")) * scale
             tolerance = 0.5 * 10 ** (-_decimals(raw)) * scale + 1e-9
-            found.append(Literal(match.group(0), value, unit, tolerance, where))
+            context = text[max(0, span[0] - 40) : span[1] + 40]
+            found.append(Literal(match.group(0), context, value, unit, tolerance, where))
     return found
 
 
@@ -99,7 +103,11 @@ def load_ssot(path: Path = SSOT_PATH) -> dict[str, list[float]]:
 
 
 def load_whitelist(path: Path = WHITELIST) -> set[str]:
-    """Whitelisted literals; every entry must carry an inline ``# why`` comment."""
+    """Whitelisted literals; every entry must carry an inline ``# why`` comment.
+
+    An entry starting with ``re:`` is a regex matched against the ~40 characters
+    around the literal (e.g. strategy names such as "Hybrid 30% fixed").
+    """
     if not path.exists():
         return set()
     entries = set()
@@ -116,10 +124,12 @@ def mismatches(
     literals: list[Literal], ssot: dict[str, list[float]], whitelist: set[str]
 ) -> list[Literal]:
     """Literals with no SSOT value of their unit within tolerance."""
+    patterns = [re.compile(w[3:]) for w in whitelist if w.startswith("re:")]
     return [
         lit
         for lit in literals
         if lit.text not in whitelist
+        and not any(p.search(lit.context) for p in patterns)
         and not any(abs(v - lit.value) <= lit.tolerance for v in ssot.get(lit.unit, []))
     ]
 

@@ -22,7 +22,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 from epra.common import logging as common_logging
@@ -35,6 +34,7 @@ from epra.common.config import (
 )
 from epra.common.provenance import banner_lines, is_fixture_run
 from epra.common.ssot import SsotRow, ssot_value, write_ssot_rows
+from epra.report.charts import annual_cost_chart
 from epra.report.figure import new_figure, save_figure
 from epra.report.format import format_eur_millions, md_table
 from epra.report.style import (
@@ -140,28 +140,8 @@ def sensitivity_table(results: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def _annual_chart(annual: pd.DataFrame, settings: Settings) -> None:
-    years = sorted(annual["year"].unique())
-    ids = list(dict.fromkeys(annual["strategy_id"]))
-    width = 0.8 / len(ids)
-    fig, ax = new_figure()
-    for i, sid in enumerate(ids):
-        part = annual[annual["strategy_id"] == sid].set_index("year").reindex(years)
-        x = np.arange(len(years)) + (i - (len(ids) - 1) / 2) * width
-        ax.bar(
-            x, part["cost_eur"] / 1e6, width, color=STRATEGY_COLORS[sid], label=STRATEGY_LABELS[sid]
-        )
-    ax.set_xticks(np.arange(len(years)), [str(y) for y in years])
-    ax.set_xlabel("Delivery year")
-    ax.set_ylabel("Annual energy cost (EUR million)")
-    ax.legend(ncol=3, frameon=False)
-    save_figure(
-        fig,
-        strategies_dir(settings) / "s5_annual_costs.png",
-        title="The same 50 GWh cost very different amounts depending on how it was bought",
-        subtitle=f"Annual energy cost per procurement strategy, reference consumer. "
-        f"{ST502_CAPTION}",
-        tag=CALIBRATED_TAG,
-        fixture=is_fixture_run(settings),
+    annual_cost_chart(
+        annual, strategies_dir(settings) / "s5_annual_costs.png", fixture=is_fixture_run(settings)
     )
 
 

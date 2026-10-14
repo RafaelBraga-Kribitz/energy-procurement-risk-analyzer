@@ -50,6 +50,7 @@ from epra.common.config import (
 from epra.common.frames import scalar
 from epra.common.provenance import banner_lines, is_fixture_run
 from epra.common.ssot import SsotRow, ssot_value, write_ssot_rows
+from epra.report.charts import forward_fan_chart
 from epra.report.figure import new_figure, save_figure
 from epra.report.format import format_eur_millions, md_table
 from epra.report.style import (
@@ -284,42 +285,11 @@ def recommendation(summary: pd.DataFrame) -> dict[str, float | str]:
 
 
 def _fan_chart(paths: pd.DataFrame, summary: pd.DataFrame, window: str, settings: Settings) -> None:
-    ids = list(paths.columns)
-    fig, ax = new_figure()
-    data = [paths[sid].to_numpy() / 1e6 for sid in ids]
-    box = ax.boxplot(
-        data,
-        orientation="horizontal",
-        whis=(5, 95),
-        showfliers=False,
-        patch_artist=True,
-        widths=0.55,
-        medianprops={"color": "black"},
-    )
-    for patch, sid in zip(box["boxes"], ids, strict=True):
-        patch.set_facecolor(STRATEGY_COLORS[sid])
-        patch.set_alpha(0.55)
-    base = summary[summary["variant"] == "unconditional"].set_index("strategy_id")
-    for i, sid in enumerate(ids, start=1):
-        p95 = scalar(base, sid, "p95") / 1e6
-        ax.plot(p95, i, marker="D", color="black", ms=6)
-        ax.annotate(
-            f"P95 {format_eur_millions(p95 * 1e6)}",
-            (p95, i),
-            xytext=(8, -3),
-            textcoords="offset points",
-            fontsize=9,
-        )
-    ax.set_yticks(range(1, len(ids) + 1), [STRATEGY_LABELS[s] for s in ids])
-    ax.set_xlabel(f"Total energy cost {window} (EUR million)")
-    save_figure(
-        fig,
+    forward_fan_chart(
+        paths,
+        summary,
+        window,
         strategies_dir(settings) / "s5_forward_fan.png",
-        title=f"{STRATEGY_LABELS[str(base['p95'].idxmax())]} carries the fattest cost tail, "
-        f"{STRATEGY_LABELS[str(base['p95'].idxmin())]} the thinnest, over the next 12 months",
-        subtitle=f"Bootstrap distribution, {len(paths):,} paths: box = P25-P75, whiskers = "
-        f"P5-P95, diamond = P95. {ST502_CAPTION}",
-        tag=SIMULATED_TAG,
         fixture=is_fixture_run(settings),
     )
 

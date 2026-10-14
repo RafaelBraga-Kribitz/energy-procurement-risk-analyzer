@@ -76,6 +76,25 @@ class IngestCfg(_Frozen):
     incremental_lookback_days: int
 
 
+class AzureCfg(_Frozen):
+    container: str
+    sql_schema: str
+
+
+class CloudCfg(_Frozen):
+    """ADR-020 publish target; secrets come from env vars only (EN-041)."""
+
+    target: str
+    azure: AzureCfg
+
+    @field_validator("target")
+    @classmethod
+    def _known_target(cls, v: str) -> str:
+        if v not in ("local", "azure"):
+            raise ValueError(f"cloud.target must be 'local' or 'azure', got {v!r}")
+        return v
+
+
 class Settings(_Frozen):
     timezone_local: str
     zones: dict[str, ZoneCfg]
@@ -83,6 +102,7 @@ class Settings(_Frozen):
     geosphere: GeosphereCfg
     paths: PathsCfg
     ingest: IngestCfg
+    cloud: CloudCfg
 
 
 class MaintenanceCfg(_Frozen):

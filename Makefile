@@ -5,14 +5,17 @@
 UV ?= uv
 
 .PHONY: setup backfill ingest validate-ingest geosphere calendar oespi oespi-reconcile \
-        transform warehouse freshness profile analyze simulate ssot ssot-check export report \
-        test test-live lint token-guard all refresh
+        transform warehouse freshness profile analyze simulate ssot ssot-check export report publish clean-fixture real-run \
+        test test-live lint token-guard linkcheck all refresh
 
 setup:               ## EN-030 — install exactly the committed uv.lock (ADR-012)
 	$(UV) sync --frozen --extra dev
 	$(UV) run pre-commit install
 
-lint: token-guard
+linkcheck:           ## dead relative links / anchors in tracked Markdown (network-free)
+	$(UV) run python scripts/check_links.py
+
+lint: token-guard linkcheck
 	$(UV) run ruff check src tests scripts
 	$(UV) run ruff format --check src tests scripts
 	$(UV) run mypy
@@ -49,6 +52,7 @@ oespi-reconcile:     ## M2 — ING-101: double-entry reconcile of data/manual/oe
 
 transform:           ## M3 — SPEC-02: dbt build (models + tests); cost mart is built by `simulate`
 	cd dbt && $(UV) run dbt build --exclude fct_procurement_cost_monthly+
+	cp dbt/target/run_results.json dbt/target/run_results_transform.json
 
 warehouse:           ## M3 — SPEC-02: full dbt build + human-readable build report (reports/warehouse/)
 	cd dbt && $(UV) run dbt build
@@ -57,7 +61,7 @@ warehouse:           ## M3 — SPEC-02: full dbt build + human-readable build re
 freshness:           ## M3 — DM-066 freshness gate on stg_prices_at_hourly (needs real, current data)
 	cd dbt && $(UV) run dbt test --select freshness_stg_prices_at_hourly --vars '{check_freshness: true}'
 
-# ---------------------------------------------------------------- not yet implemented ----
+# ------------------------------------------------------------- M4-M7 analysis + reporting ----
 profile:             ## M4 — SPEC-03: styriametal_v1 + flat_baseload → data/processed/
 	$(UV) run python -m epra.consumer.profile
 
@@ -74,12 +78,31 @@ ssot:                ## M6 — SPEC-08 GV-301/302: reports/NUMERIC_SSOT.md from 
 ssot-check:          ## GV-303 — README/EXEC_SUMMARY numbers ⊂ SSOT, SSOT fresh vs results
 	$(UV) run python scripts/check_ssot_consistency.py
 
-export:              ## M7 — scripts/export_marts.py → exports/
-	@echo "ERROR: 'make export' not implemented yet (M7 — SPEC-02 §7)." >&2; exit 1
+export:              ## M7 — SPEC-02 §7 / DM-070: exports/*.csv for Power BI
+	$(UV) run python scripts/export_marts.py
 
-report:              ## M7 — executive charts
-	@echo "ERROR: 'make report' not implemented yet (M7 — SPEC-06 §2)." >&2; exit 1
+report:              ## M7 — SPEC-06: data quality, executive charts, EXEC_SUMMARY, README blocks
+	$(UV) run python -m epra.report
 
-all: profile transform analyze simulate ssot export report
+clean-fixture:       ## ADR-018 — delete synthetic fixture data (only if the fixture marker is present)
+	$(UV) run python scripts/clean_fixture.py
 
-refresh: ingest validate-ingest freshness all
+real-run:            ## Full real-data run: clear fixture, ingest 2019 → last month, gates, make all
+	@test -n "$$ENTSOE_API_TOKEN" || grep -qE '^ENTSOE_API_TOKEN=.{8,}' .env 2>/dev/null || \
+	  { echo "ERROR: set ENTSOE_API_TOKEN (env or .env) first — see docs/REAL_DATA_RUN.md" >&2; exit 1; }
+	$(MAKE) clean-fixture
+	$(MAKE) backfill
+	$(MAKE) geosphere
+	$(MAKE) calendar
+	$(MAKE) validate-ingest
+	$(MAKE) all
+	$(MAKE) freshness
+	$(MAKE) warehouse
+
+TARGET ?= local
+publish:             ## ADR-020 — publish exports (+ raw for azure): make publish TARGET=local|azure
+	$(UV) run python -m epra.cloud --target $(TARGET)
+
+all: profile transform analyze simulate ssot export report ssot-check publish
+
+refresh: ingest validate-ingest all freshness

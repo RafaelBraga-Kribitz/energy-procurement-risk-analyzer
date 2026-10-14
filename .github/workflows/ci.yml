@@ -23,6 +23,7 @@ jobs:
       # A-7 / EN-003: the token guard also runs here, so a skipped pre-commit
       # hook cannot land a token literal on main.
       - run: make token-guard
+      - run: make linkcheck
       - run: uv run ruff check src tests scripts
       - run: uv run ruff format --check src tests scripts
       - run: uv run mypy
@@ -63,6 +64,11 @@ jobs:
       # M6: SPEC-05 simulator incl. the ST-602 gate, then the SSOT (GV-302, E-2).
       - run: make simulate
       - run: make ssot
+      # M7: exports (DM-070 contract), reports, local publish manifest.
+      - run: make export
+      - run: uv run pytest tests/unit/test_exports_contract.py
+      - run: make report
+      - run: make publish
 
   ssot-check:         # M6 — GV-303 on the COMMITTED docs + SSOT (no regeneration)
     runs-on: ubuntu-latest

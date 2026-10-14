@@ -502,3 +502,51 @@ make lint -> clean (78 files); make test -> 387 passed, coverage 97%
 priced month; on real data the S3 lock for the second delivery year will
 partly rest on carried-forward index values until the ÖSPI catches up
 (ADR-019 §2, LIMITATIONS §4).
+
+## 2026-10-14 — M7 reporting, release kit, Azure-ready refit (SPEC-06, ADR-020)
+
+**What shipped:**
+- `make export` (DM-070 contract-tested): the six SPEC-02 §7 CSVs plus spread_monthly,
+  dim_strategy (labels/colours), data_quality_monthly, forward_paths, ssot, provenance.
+- `make report`: `reports/data_quality/DATA_QUALITY.md` from the new SQL mart
+  `fct_data_quality_monthly` (coverage, DST days, PT15M mix, negative hours, ÖSPI,
+  freshness, dbt tally); executive charts RP-201..204; `reports/EXEC_SUMMARY.md` and the
+  README answer/results blocks rendered from `NUMERIC_SSOT.md` only (fixture run ⇒ README
+  shows no numbers). Data-driven sentences only (winners per year, GARCH persistence).
+- `sql/`: Q1/Q3/data-quality headline queries, tested equal to the Python engine.
+- Power BI build kit: `dashboards/README.md` (Power Query, star schema, 5 pages with
+  German subtitles, screenshot checklist), `measures.dax`, `theme.json` (colours tested
+  against the PNG palette).
+- ADR-020 Azure-ready refit: `epra.cloud` publish targets (local default, Azure Blob +
+  Azure SQL behind an interface, fakes in tests), optional `azure` extra in the lock,
+  `infra/azure/main.bicep` (free-offer serverless SQL + LRS storage),
+  `docs/AZURE_DEPLOYMENT.md` with cost note. Not deployed (no subscription).
+- `.github/workflows/refresh.yml` (DL-8): monthly cron → backfill → gates → `make all`
+  → optional Azure publish → PR. CI: export contract, report, publish, link check.
+- README rewrite to the BRAGA README Quality Standard (problem → status → answer/chart
+  blocks → skills line → run → question/data/method/results/limitations/decision →
+  structure/stack/reproduce → German summary); hero regenerated with the standard's own
+  generator (`readme_quality hero`, fallback fonts) after the registry update below;
+  `scripts/check_links.py`; stale-status sweep.
+
+**Gate evidence (FIXTURE data, ADR-018 — not results):**
+```
+clean data dir -> bootstrap --force -> make all   (29 s)  exit 0
+  dbt PASS=64 + PASS=7; AN-304 PASS; ST-602 (a)(b)(c) PASS; 178 SSOT rows
+  ssot-check: 21 numbers in README + EXEC_SUMMARY, 0 unmatched, digest fresh
+  linkcheck: 65 markdown files, 0 broken links
+make lint -> clean (89 files); make test -> 422 passed, 3 skipped, coverage 97%
+```
+
+**Human actions (cannot be done from the build container):**
+1. `ENTSOE_API_TOKEN` → `make real-run` (guarded fixture cleanup, backfill, gates,
+   `make all`, freshness, warehouse); checklist and commit list in
+   `docs/REAL_DATA_RUN.md`; re-check AN-304/ST-602 on real data.
+2. Build `dashboards/epra.pbix` from the kit; screenshots `docs/assets/dashboard_p1..p5.png`.
+3. Optional: Azure subscription → `az bicep build`, deploy, GitHub secrets, record the run.
+4. GitHub repo description/topics/pin; profile location "Graz, Austria".
+5. Review the README numbers after the real run before posting about the project.
+7. Merge the `braga-portfolio-docs` registry PR (EPRA status Foundation → Functional,
+   descriptor); until then this repo's README-quality job reads the old status and fails.
+   Re-render the hero with the licensed Söhne fonts locally (`readme_quality hero`).
+6. Repo secret `ENTSOE_API_TOKEN` for the monthly refresh workflow.

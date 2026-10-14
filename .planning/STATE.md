@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 04
-current_phase_name: m3-dbt-warehouse
-status: verification-pending
-stopped_at: Completed 04-08-PLAN.md
-last_updated: "2026-09-30T00:00:00Z"
-last_activity: 2026-09-30
-last_activity_desc: Planning/docs reconciled with AUDIT-2026-09-30 (no phase work; M3 still awaiting verify-work)
+current_phase: 08
+current_phase_name: m7-reporting-release
+status: built-pending-real-data
+stopped_at: M4-M7 built in one Claude Code session (PRs #44-#47); real-data run outstanding
+last_updated: "2026-10-14T00:00:00Z"
+last_activity: 2026-10-14
+last_activity_desc: M4-M7 implemented and gated on the ADR-018 fixture; human steps listed in docs/BUILD_LOG.md
 progress:
   total_phases: 8
   completed_phases: 3
@@ -23,16 +23,17 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-30)
 
 **Core value:** Quantify euro cost of wrong procurement (2021–2025) + forward P95 exposure per strategy
-**Current focus:** Phase EPRA-04 — m3-dbt-warehouse (all 8 plans have SUMMARYs; formal verification not yet run). Audit 2026-09-30: `.planning/AUDIT-2026-09-30.md`.
+**Current focus:** real-data run (ENTSO-E token) + Power BI `.pbix`. M4–M7 were built on
+2026-10-14 outside GSD phase plans (one PR per milestone, evidence in `docs/BUILD_LOG.md`).
 
 ## Current Position
 
-Phase: EPRA-04 (m3-dbt-warehouse) — PLANS COMPLETE, PENDING VERIFY
-Plan: 8 of 8
-Status: Completed 04-08-PLAN.md; `/gsd-verify-work` not yet run (no `04-VERIFICATION.md`)
-Last activity: 2026-09-30 — audit follow-up reconciled ROADMAP/STATE/PROJECT with phase evidence
+Milestones: M0–M7 built. M4 merged (PR #44), M5 merged (PR #45), M6 PR #46, M7 PR #47.
+Status: every gate green on the ADR-018 synthetic fixture; results are FIXTURE-stamped
+until `make backfill && make all` runs with the maintainer's ENTSO-E token.
+Last activity: 2026-10-14 — M4–M7 build session (Claude Code)
 
-Progress: [██████████] 100% of plans written so far (22/22, phases 1–4); phases 5–8 (M4–M7) not yet planned — 3 of 8 phases verified complete
+Progress: [██████████] code complete; real-data run, `.pbix`, optional Azure deploy pending (human)
 
 ## Performance Metrics
 
