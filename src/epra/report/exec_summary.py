@@ -235,7 +235,7 @@ def exec_summary(ssot: Ssot, fixture: bool) -> str:
 
 
 def readme_blocks(ssot: Ssot, fixture: bool) -> dict[str, str]:
-    """``answer`` (top of README) and ``results`` (Results section) blocks."""
+    """``answer`` and ``chart`` (top of README) and ``results`` (Results section)."""
     if fixture:
         notice = (
             "> **Results pending the first real-data run.** The pipeline is complete and "
@@ -243,7 +243,13 @@ def readme_blocks(ssot: Ssot, fixture: bool) -> dict[str, str]:
             "never shown here as results. Running `make backfill && make all` with an "
             "ENTSO-E token fills this section from `reports/NUMERIC_SSOT.md`."
         )
-        return {"answer": notice, "results": notice}
+        chart = (
+            "*The headline chart (what the wrong strategy cost per year) is embedded here "
+            "after the first real-data run. A watermarked [pipeline preview on synthetic "
+            "fixture data](reports/executive_charts/01_wrong_strategy_cost.png) shows its "
+            "layout; its figures are not results.*"
+        )
+        return {"answer": notice, "chart": chart, "results": notice}
     cfg = load_strategy_config()
     years = list(cfg.retrospective_years)
     strategies = ["S1", "S2", "S3", *(f"S4_{round(h * 100)}" for h in cfg.hybrid_ratios)]
@@ -262,7 +268,11 @@ def readme_blocks(ssot: Ssot, fixture: bool) -> dict[str, str]:
             f"*{ST502_CAPTION} {LP050_CAPTION}*",
         ]
     )
-    return {"answer": answer(ssot), "results": results}
+    chart = (
+        "![What the wrong electricity procurement strategy cost a 50 GWh Styrian "
+        "manufacturer](reports/executive_charts/01_wrong_strategy_cost.png)"
+    )
+    return {"answer": answer(ssot), "chart": chart, "results": results}
 
 
 def replace_block(text: str, name: str, body: str) -> str:

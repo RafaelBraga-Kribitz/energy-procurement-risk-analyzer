@@ -157,8 +157,10 @@ def test_readme_blocks_real_vs_fixture(ssot_path: Path) -> None:
     ssot = exec_summary.Ssot.from_markdown(ssot_path)
     real = exec_summary.readme_blocks(ssot, fixture=False)
     assert "€" in real["answer"] and "| Strategy |" in real["results"]
+    assert real["chart"].startswith("![")
     fixture = exec_summary.readme_blocks(ssot, fixture=True)
-    assert "€" not in fixture["answer"] + fixture["results"]  # no fixture number in README
+    assert "€" not in "".join(fixture.values())  # no fixture number in README
+    assert "![" not in fixture["chart"]  # fixture chart is linked, never embedded
 
 
 def test_replace_block_and_run(
@@ -167,6 +169,7 @@ def test_replace_block_and_run(
     readme = tmp_path / "README.md"
     readme.write_text(
         "top\n<!-- epra:answer:start -->\nold\n<!-- epra:answer:end -->\n"
+        "<!-- epra:chart:start -->\n<!-- epra:chart:end -->\n"
         "<!-- epra:results:start -->\n<!-- epra:results:end -->\n",
         encoding="utf-8",
     )

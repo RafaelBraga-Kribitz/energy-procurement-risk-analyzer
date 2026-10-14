@@ -16,10 +16,9 @@ the next 12 months?
 > **Results pending the first real-data run.** The pipeline is complete and tested end to end on a synthetic CI fixture (ADR-018); fixture numbers are never shown here as results. Running `make backfill && make all` with an ENTSO-E token fills this section from `reports/NUMERIC_SSOT.md`.
 <!-- epra:answer:end -->
 
-![What the wrong electricity procurement strategy cost a 50 GWh Styrian manufacturer](reports/executive_charts/01_wrong_strategy_cost.png)
-
-*Until the first real-data run this chart is a watermarked pipeline preview on synthetic
-fixture prices; `make all` on ENTSO-E data replaces it.*
+<!-- epra:chart:start -->
+*The headline chart (what the wrong strategy cost per year) is embedded here after the first real-data run. A watermarked [pipeline preview on synthetic fixture data](reports/executive_charts/01_wrong_strategy_cost.png) shows its layout; its figures are not results.*
+<!-- epra:chart:end -->
 
 **Skills demonstrated:** SQL (dbt models, [headline queries in `sql/`](sql/)) · Python
 (pandas, NumPy, statsmodels) · ETL with retries, caching and validation gates ·
