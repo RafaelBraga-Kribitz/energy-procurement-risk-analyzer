@@ -66,21 +66,32 @@ def build_calendar(settings: Settings, end: date | None = None) -> pd.DataFrame:
     Implements: ING-110 (ADR-017), DM-012.
     """
     resolved_end = end if end is not None else _default_end(settings)
+    return calendar_frame(settings.window.start_date, resolved_end)
 
+
+def calendar_frame(start: date, end: date) -> pd.DataFrame:
+    """ING-110 calendar rows for local days ``start`` .. ``end`` (inclusive).
+
+    The one implementation of the calendar rules; ``build_calendar`` and the
+    SPEC-03 hypothetical-full-year normalization (LP-034) both call it, so the
+    holiday and peak-hour rules can never diverge.
+
+    Implements: ING-110 (ADR-017), DM-012, supports LP-034.
+    """
     # Local days, not UTC days (ADR-017, DM-012): the spine runs from
-    # 00:00 Europe/Vienna on the window start through the last local hour of
-    # `resolved_end`, so every local year is complete (2019 = 8760 h) and no
-    # 1-hour sliver of the following local year is emitted. Bounds are
-    # computed as UTC instants, so DST days get 23/25 rows by construction.
-    first = to_utc(datetime.combine(settings.window.start_date, time(), tzinfo=VIENNA))
-    stop = to_utc(datetime.combine(resolved_end + timedelta(days=1), time(), tzinfo=VIENNA))
+    # 00:00 Europe/Vienna on `start` through the last local hour of `end`,
+    # so every local year is complete (2019 = 8760 h) and no 1-hour sliver
+    # of the following local year is emitted. Bounds are computed as UTC
+    # instants, so DST days get 23/25 rows by construction.
+    first = to_utc(datetime.combine(start, time(), tzinfo=VIENNA))
+    stop = to_utc(datetime.combine(end + timedelta(days=1), time(), tzinfo=VIENNA))
     ts_utc = pd.date_range(start=first, end=stop, freq="h", inclusive="left")
 
     local = ts_utc.tz_convert(VIENNA)
     date_local = local.date
     dow_local = local.dayofweek
 
-    at_holidays = Austria(subdiv="6", years=range(2019, resolved_end.year + 1))
+    at_holidays = Austria(subdiv="6", years=range(start.year, end.year + 1))
     holiday_dates = set(at_holidays.keys())
     # Avoid Index.isin: pandas-stubs types DatetimeIndex.date → Index as MultiIndex,
     # so isin(set[date]) fails mypy --strict (arg-type). Same predicate via membership.

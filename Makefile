@@ -58,8 +58,8 @@ freshness:           ## M3 — DM-066 freshness gate on stg_prices_at_hourly (ne
 	cd dbt && $(UV) run dbt test --select freshness_stg_prices_at_hourly --vars '{check_freshness: true}'
 
 # ---------------------------------------------------------------- not yet implemented ----
-profile:             ## M4 — consumer load profiles (styriametal_v1 + flat_baseload)
-	@echo "ERROR: 'make profile' not implemented yet (M4 — SPEC-03)." >&2; exit 1
+profile:             ## M4 — SPEC-03: styriametal_v1 + flat_baseload → data/processed/
+	$(UV) run python -m epra.consumer.profile
 
 analyze:             ## M5 — SPEC-04 modules → reports/analytics/
 	@echo "ERROR: 'make analyze' not implemented yet (M5 — SPEC-04)." >&2; exit 1

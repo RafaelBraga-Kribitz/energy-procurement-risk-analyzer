@@ -407,3 +407,35 @@ data/manual/oespi_monthly.csv byte-identical before/after
   with NULL prices by design; the monthly mart no longer does.
 - M4–M7 remain unimplemented; each is its own milestone PR (A-5).
 
+
+## 2026-10-14 — M4 consumer load profile (SPEC-03)
+
+**What shipped:** `src/epra/consumer/profile.py` builds the deterministic
+`styriametal_v1` hourly profile and the `flat_baseload` sensitivity (LP-030,
+derived from the same YAML, all weights 1.0) on the ING-110 calendar spine,
+implementing the five SPEC-03 §2 steps in order. Local-year normalization to
+50,000 MWh; a partial forward year is normalized against the full
+hypothetical year (LP-034) via the new `epra.ingest.calendar.calendar_frame`
+(one implementation of the calendar rules). Outputs:
+`data/processed/consumer_load_{hourly,monthly}[_flat_baseload].parquet`;
+`consumer_peak_share` (CALIBRATED) is written as an SSOT input row through the
+new `epra.common.ssot` helper (GV-102), never retyped. `make profile` is live;
+CI's dbt job now runs it instead of relying on the consumer-load stand-in.
+Golden: `tests/golden/consumer_load_2023.sha256` via
+`scripts/generate_golden_metrics.py --target profile`.
+
+**Gate evidence (this container, fixture calendar 2022-2024 — no real data):**
+```
+pytest tests/unit/test_consumer_profile.py -> 20 passed
+  LP-040 a) 2022/2023/2024 sums 50,000.00 ± 0.01  b) weekday14/sunday03 = 3.27 ∈ [2.8, 3.6]
+         c) Aug < Jul  d) Dec 25 == Dec 26   checksum e33560dc…e548 stable
+  LP-041 no neg/NULL, one row per hour, 23/25 h DST days; LP-042 checksum breaks at 50,001
+  LP-034 6-month window == first 6 months of a full-year run (atol 1e-9)
+make lint -> ruff clean, mypy Success (64 files)
+make test -> 331 passed, 11 skipped; coverage 96.93%
+bootstrap --force && make profile && dbt build -> PASS=65 ERROR=0
+```
+
+**Open questions:** none. `consumer_peak_share` on the 2022-2024 calendar is
+0.485 — slightly above the "near 0.42-0.48" prose estimate in LP-020; the spec
+makes the computed value authoritative.

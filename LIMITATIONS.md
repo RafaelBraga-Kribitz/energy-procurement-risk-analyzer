@@ -6,8 +6,8 @@ in the milestone that produces the relevant numbers. Placeholder sections state
 what WILL be written so no limitation can be quietly dropped.
 
 ## 1. The consumer load profile is constructed, not measured
-*(finalized at M4)* — Reference load profile is constructed (CALIBRATED), not
-measured; construction rules in SPEC-03. Real industrial RLM load data would
+Reference load profile is constructed (CALIBRATED), not measured; construction
+rules in SPEC-03 (built by `make profile`, M4). Real industrial RLM load data would
 change levels but not the ordinal ranking logic of strategies; the
 `flat_baseload` sensitivity (LP-030) bounds the shape effect. The computed
 sensitivity numbers land here at M6.
