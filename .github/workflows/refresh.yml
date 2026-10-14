@@ -66,5 +66,3 @@ jobs:
           add-paths: |
             reports/**
             README.md
-            docs/assets/hero.png
-            docs/assets/hero.layout.json

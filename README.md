@@ -1,16 +1,18 @@
 # Energy Procurement Risk Analyzer (EPRA)
 
-![Energy Procurement Risk Analyzer — what the wrong electricity procurement strategy costs a 50 GWh Styrian manufacturer, backtested on Austrian day-ahead prices, with P95 risk for the next 12 months.](docs/assets/hero.png)
+![Energy Procurement Risk Analyzer — Procurement-strategy risk on the Austrian day-ahead market for a 50 GWh Styrian consumer. Pipeline built and tested; real-data results pending.](docs/assets/hero.png)
 
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Status: pipeline complete, real data pending](https://img.shields.io/badge/status-pipeline%20complete%20%C2%B7%20real%20data%20pending-yellow)](#project-status)
 
-A decision tool for an Austrian CFO: on the **Austrian day-ahead market (ENTSO-E)**, how
-much did the choice of electricity procurement strategy cost a **50 GWh Styrian
-industrial consumer** in 2021–2025, and how much cost risk does each strategy carry for
-the next 12 months?
+**Status:** Functional · pipeline complete and tested; real-data run pending
+
+Since the 2021–2023 energy crisis, how a manufacturer buys electricity is a board-level
+risk in Austria. What did the choice of procurement strategy cost a **50 GWh Styrian
+industrial consumer** on the **Austrian day-ahead market (ENTSO-E)** in 2021–2025, and
+how much cost risk does each strategy carry for the next 12 months?
 
 <!-- epra:answer:start -->
 > **Results pending the first real-data run.** The pipeline is complete and tested end to end on a synthetic CI fixture (ADR-018); fixture numbers are never shown here as results. Running `make backfill && make all` with an ENTSO-E token fills this section from `reports/NUMERIC_SSOT.md`.
@@ -42,7 +44,9 @@ FIXTURE).
 
 ## Project status
 
-**Pipeline complete; real-data run pending.** Milestones M0–M7 are built, tested and
+**Status:** Functional
+
+**Real-data results do not exist yet.** Milestones M0–M7 are built, tested and
 green in CI: ingestion, warehouse, load profile, market analytics, strategy simulator,
 SSOT, exports, reports, Power BI build kit, monthly refresh workflow. The build
 environment had no ENTSO-E token, so every committed result artifact comes from the
@@ -152,6 +156,19 @@ deliverable.
 - **Energy only:** grid fees, taxes and levies are out of scope.
 - **No forecast skill** is claimed anywhere.
 
+Charts stay in `reports/` (executive charts, analytics, strategies) rather than in this
+page until the real-data run: the committed ones are watermarked fixture previews.
+
+A metered load profile, or supplier offers that do not track the ÖSPI, would change this
+conclusion; the sensitivity matrix shows how far the premium and the load shape move it.
+
+## Why this project
+
+Most Austrian mid-size manufacturers still pick a procurement strategy by gut feeling or
+by whatever the supplier offers. Putting a euro figure on the gap between strategies, and
+on what a lower worst case costs, turns that choice into a budget decision a CFO can
+defend.
+
 ## Decision
 
 The [executive summary](reports/EXEC_SUMMARY.md) states what a cost-minimizing and a
@@ -162,19 +179,19 @@ in euros — for the reference consumer, not for any real company.
 
 ```mermaid
 flowchart TD
-    SRC["ENTSO-E · GeoSphere · ÖSPI · holidays"] --> ING["Python ETL<br/>retry, cache, validation gates"]
+    SRC["ENTSO-E / GeoSphere / ÖSPI / holidays"] --> ING["Ingestion<br/>retry, cache, gates"]
     ING --> RAW["data/raw parquet"]
-    RAW --> WH["DuckDB + dbt<br/>staging → marts → data-quality mart"]
-    WH --> P["Load profile"]
+    RAW --> WH["DuckDB + dbt<br/>staging → marts"]
     WH --> A["Analytics A1–A4"]
-    P --> S["Strategy simulator<br/>backtest + bootstrap"]
-    WH --> S
-    A --> SSOT["NUMERIC_SSOT.md<br/>(CI-checked)"]
+    WH --> P["Consumer profile"]
+    WH --> S["Strategy simulator"]
+    A --> SSOT["NUMERIC_SSOT.md<br/>exports/*.csv"]
+    P --> SSOT
     S --> SSOT
-    SSOT --> OUT["EXEC_SUMMARY · charts · exports/*.csv"]
-    OUT --> BI["Power BI"]
-    OUT -.optional.-> AZ["Azure Blob + Azure SQL"]
+    SSOT --> RPT["Power BI + EXEC_SUMMARY"]
 ```
+
+## Repository structure
 
 | Path | Responsibility |
 |---|---|
@@ -188,12 +205,44 @@ flowchart TD
 | `sql/` | Headline answers as plain SQL, tested against the Python engine |
 | `dashboards/` | Power BI build kit |
 | `infra/azure/` | Bicep for the optional Azure path |
+| `reports/` | SSOT, executive summary, analytics, strategies, data quality |
+| `docs/` | Charter specs SPEC-01…08, ADRs, build log |
 
-Engineering: Python 3.12 with `uv` and a committed lockfile; ruff and strict mypy;
-pytest with ≥ 80 % coverage; GitHub Actions for lint, tests, a network-free fixture run of
-the whole pipeline, and the SSOT check; a monthly scheduled refresh that opens a pull
-request. Governance is deliberately light: epistemic tags, append-only ADRs, the
+## Stack
+
+| Technology | Role |
+|---|---|
+| Python 3.12 + uv | Runtime, committed lockfile |
+| DuckDB + dbt | Warehouse, SQL transformations, data tests |
+| pandas, NumPy, statsmodels, hmmlearn, arch | Analytics and simulation |
+| matplotlib | Charts (one shared style module) |
+| Power BI | Interactive dashboard on the exported CSVs |
+| Azure Blob Storage + Azure SQL (optional) | Cloud copy of raw data and results |
+| GitHub Actions | Lint, tests, fixture pipeline run, SSOT check, monthly refresh |
+
+Quality: ruff and strict mypy, pytest with at least 80 % line coverage, golden tests
+for the load profile and the strategy engine, and a monthly scheduled refresh that opens
+a pull request. Governance is deliberately light: epistemic tags, append-only ADRs, the
 CI-gated SSOT and `LIMITATIONS.md`.
+
+## Reproduce
+
+```bash
+git clone https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer.git
+cd energy-procurement-risk-analyzer
+cp .env.example .env          # ENTSOE_API_TOKEN=... (free registration at ENTSO-E)
+make setup                    # exact versions from uv.lock
+make backfill                 # ENTSO-E prices, load, generation 2019 → last complete month
+make geosphere                # Graz daily temperature
+make calendar                 # hourly calendar with Austrian / Styrian holidays
+make validate-ingest          # ingestion gates → reports/ingestion/
+make all                      # dbt → profile → analytics → simulator → SSOT → exports → reports
+make publish TARGET=azure     # optional, see docs/AZURE_DEPLOYMENT.md
+```
+
+Without a token the same pipeline runs offline on the synthetic fixture:
+`uv run python scripts/bootstrap_fixture_warehouse.py --force && make all`. Two runs on
+the same data produce byte-identical results (seeded HMM restarts and bootstrap).
 
 ## Kurzfassung auf Deutsch
 

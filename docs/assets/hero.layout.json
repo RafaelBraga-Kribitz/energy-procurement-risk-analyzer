@@ -1,36 +1,84 @@
 {
-  "output": "docs/assets/hero.png",
+  "output": "/home/user/energy-procurement-risk-analyzer/docs/assets/hero.png",
   "width": 1600,
   "height": 640,
   "mode": "light",
-  "fonts": "Inter / DejaVu Sans Mono (scripts/render_hero.py)",
+  "fonts": "fallback fonts (Söhne not found)",
+  "title_size": 112,
+  "descriptor_size": 30,
+  "attempts": 4,
   "blocks": {
     "kind": {
+      "bbox": [
+        72,
+        72,
+        499,
+        104
+      ],
       "lines": [
         "BRAGA · ANALYTICAL PROJECT"
-      ]
+      ],
+      "font": "DejaVuSansMono.ttf"
     },
     "status": {
+      "bbox": [
+        1364,
+        72,
+        1528,
+        104
+      ],
       "lines": [
-        "PIPELINE COMPLETE · REAL DATA PENDING"
-      ]
-    },
-    "title": {
-      "lines": [
-        "Energy Procurement Risk",
-        "Analyzer"
-      ]
-    },
-    "descriptor": {
-      "lines": [
-        "What the wrong electricity procurement strategy costs a 50 GWh Styrian",
-        "manufacturer — backtested on Austrian day-ahead prices, P95 risk ahead."
-      ]
+        "FUNCTIONAL"
+      ],
+      "font": "DejaVuSansMono.ttf"
     },
     "facts": {
+      "bbox": [
+        72,
+        542,
+        973,
+        570
+      ],
       "lines": [
-        "SQL · PYTHON · DBT · DUCKDB · POWER BI · AZURE-READY  ·  LICENSE MIT  ·  CI GITHUB ACTIONS"
-      ]
+        "LICENSE  MIT  ·  RUNTIME  Python >=3.12,<3.13  ·  CI  GitHub Actions"
+      ],
+      "font": "DejaVuSansMono.ttf"
+    },
+    "title": {
+      "bbox": [
+        72,
+        136,
+        1369,
+        364
+      ],
+      "lines": [
+        "Energy Procurement",
+        "Risk Analyzer"
+      ],
+      "font": "DejaVuSans-Bold.ttf"
+    },
+    "descriptor": {
+      "bbox": [
+        72,
+        392,
+        1195,
+        472
+      ],
+      "lines": [
+        "Procurement-strategy risk on the Austrian day-ahead market for a 50 GWh",
+        "Styrian consumer. Pipeline built and tested; real-data results pending."
+      ],
+      "font": "DejaVuSans.ttf"
     }
-  }
+  },
+  "guardrails": [
+    "safe-area",
+    "wrap-and-shrink",
+    "line-length",
+    "no-overlap",
+    "glyph-coverage-per-char",
+    "contrast>=4.5",
+    "pixel-scan"
+  ],
+  "validated": true
 }

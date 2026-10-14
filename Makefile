@@ -5,7 +5,7 @@
 UV ?= uv
 
 .PHONY: setup backfill ingest validate-ingest geosphere calendar oespi oespi-reconcile \
-        transform warehouse freshness profile analyze simulate ssot ssot-check export report publish hero \
+        transform warehouse freshness profile analyze simulate ssot ssot-check export report publish \
         test test-live lint token-guard linkcheck all refresh
 
 setup:               ## EN-030 — install exactly the committed uv.lock (ADR-012)
@@ -84,13 +84,10 @@ export:              ## M7 — SPEC-02 §7 / DM-070: exports/*.csv for Power BI
 report:              ## M7 — SPEC-06: data quality, executive charts, EXEC_SUMMARY, README blocks
 	$(UV) run python -m epra.report
 
-hero:                ## README banner; status label derived from data provenance (no overclaim)
-	$(UV) run python scripts/render_hero.py
-
 TARGET ?= local
 publish:             ## ADR-020 — publish exports (+ raw for azure): make publish TARGET=local|azure
 	$(UV) run python -m epra.cloud --target $(TARGET)
 
-all: profile transform analyze simulate ssot export report ssot-check publish hero
+all: profile transform analyze simulate ssot export report ssot-check publish
 
 refresh: ingest validate-ingest freshness all

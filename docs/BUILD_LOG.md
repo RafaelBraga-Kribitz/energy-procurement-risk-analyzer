@@ -523,9 +523,11 @@ partly rest on carried-forward index values until the ÖSPI catches up
   `docs/AZURE_DEPLOYMENT.md` with cost note. Not deployed (no subscription).
 - `.github/workflows/refresh.yml` (DL-8): monthly cron → backfill → gates → `make all`
   → optional Azure publish → PR. CI: export contract, report, publish, link check.
-- README rewrite (answer → chart → skills line → run → question/data/method/results/
-  limitations/decision → architecture → German summary), hero re-rendered with a
-  provenance-driven status, `scripts/check_links.py`, stale-status sweep.
+- README rewrite to the BRAGA README Quality Standard (problem → status → answer/chart
+  blocks → skills line → run → question/data/method/results/limitations/decision →
+  structure/stack/reproduce → German summary); hero regenerated with the standard's own
+  generator (`readme_quality hero`, fallback fonts) after the registry update below;
+  `scripts/check_links.py`; stale-status sweep.
 
 **Gate evidence (FIXTURE data, ADR-018 — not results):**
 ```
@@ -543,4 +545,7 @@ make lint -> clean (89 files); make test -> 422 passed, 3 skipped, coverage 97%
 3. Optional: Azure subscription → `az bicep build`, deploy, GitHub secrets, record the run.
 4. GitHub repo description/topics/pin; profile location "Graz, Austria".
 5. Review the README numbers after the real run before posting about the project.
+7. Merge the `braga-portfolio-docs` registry PR (EPRA status Foundation → Functional,
+   descriptor); until then this repo's README-quality job reads the old status and fails.
+   Re-render the hero with the licensed Söhne fonts locally (`readme_quality hero`).
 6. Repo secret `ENTSOE_API_TOKEN` for the monthly refresh workflow.

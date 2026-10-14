@@ -186,21 +186,3 @@ def test_yearly_winners_single_and_many(ssot_path: Path) -> None:
     assert sentence.startswith("Cheapest strategy per year")
     one = exec_summary.yearly_winners(ssot, [2022], ["S3"])
     assert "in every year" in one
-
-
-# ----------------------------------------------------------------- hero
-
-
-@pytest.mark.parametrize(
-    ("fixture", "label"), [(True, "REAL DATA PENDING"), (False, "COMPLETE · REAL DATA")]
-)
-def test_hero_status_follows_provenance(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, fixture: bool, label: str
-) -> None:
-    hero = _script("render_hero")
-    monkeypatch.setattr(hero, "is_fixture_run", lambda _s: fixture)
-    monkeypatch.setattr(hero, "OUT", tmp_path / "hero.png")
-    monkeypatch.setattr(hero, "LAYOUT", tmp_path / "hero.layout.json")
-    assert hero.main([]) == 0
-    assert label in hero.status_label()
-    assert (tmp_path / "hero.png").exists()
