@@ -37,9 +37,17 @@ None — every priced month is complete.
 
 ## dbt tests
 
+**Warehouse build (`make transform`)**
+
 ### dbt build results (run_results.json) — PASS
 
-`dbt build` generated_at=2026-10-14T20:42:58.765962Z: pass=7, warn=0, error=0, skip=0
+`dbt build` generated_at=2026-10-14T20:46:43.494339Z: pass=64, warn=0, error=0, skip=0
+
+**Cost-mart build (`make simulate`)**
+
+### dbt build results (run_results.json) — PASS
+
+`dbt build` generated_at=2026-10-14T20:46:50.820476Z: pass=7, warn=0, error=0, skip=0
 
 ## How to read this
 

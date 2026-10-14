@@ -57,6 +57,7 @@ order by dq.year_local, dq.month_local
 """
 
 FRESHNESS_LIMIT_DAYS = 40  # DM-066
+TRANSFORM_RESULTS = "run_results_transform.json"
 
 
 def dq_dir(settings: Settings) -> Path:
@@ -135,6 +136,21 @@ def _chart(monthly: pd.DataFrame, settings: Settings) -> None:
     )
 
 
+def dbt_tally() -> str:
+    """Both dbt invocations of ``make all``: the warehouse build (``make transform``,
+    saved as ``run_results_transform.json``) and the cost-mart build in ``make simulate``
+    (the latest ``run_results.json``)."""
+    sections = []
+    for label, path in (
+        ("Warehouse build (`make transform`)", DBT_RUN_RESULTS.with_name(TRANSFORM_RESULTS)),
+        ("Cost-mart build (`make simulate`)", DBT_RUN_RESULTS),
+    ):
+        summary = load_run_results(resolve_repo_path(path))
+        body = summary.render_markdown() if summary else "run_results not found — run dbt."
+        sections.append(f"**{label}**\n\n{body}")
+    return "\n\n".join(sections)
+
+
 def run(settings: Settings, today: date | None = None) -> Path:
     """Write the data-quality report, CSV and chart; returns the markdown path.
 
@@ -145,8 +161,7 @@ def run(settings: Settings, today: date | None = None) -> Path:
     out = dq_dir(settings)
     annual.to_csv(out / "data_quality_annual.csv", index=False)
     _chart(monthly, settings)
-    dbt = load_run_results(resolve_repo_path(DBT_RUN_RESULTS))
-    dbt_text = dbt.render_markdown() if dbt else "dbt run_results.json not found — run dbt."
+    dbt_text = dbt_tally()
     gaps = monthly[monthly["coverage_at_pct"] < 100]
     lines = [
         "# Data quality report (Datenqualität)",

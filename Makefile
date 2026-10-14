@@ -52,6 +52,7 @@ oespi-reconcile:     ## M2 — ING-101: double-entry reconcile of data/manual/oe
 
 transform:           ## M3 — SPEC-02: dbt build (models + tests); cost mart is built by `simulate`
 	cd dbt && $(UV) run dbt build --exclude fct_procurement_cost_monthly+
+	cp dbt/target/run_results.json dbt/target/run_results_transform.json
 
 warehouse:           ## M3 — SPEC-02: full dbt build + human-readable build report (reports/warehouse/)
 	cd dbt && $(UV) run dbt build
