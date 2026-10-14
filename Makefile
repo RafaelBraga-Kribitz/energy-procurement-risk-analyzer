@@ -5,7 +5,7 @@
 UV ?= uv
 
 .PHONY: setup backfill ingest validate-ingest geosphere calendar oespi oespi-reconcile \
-        transform warehouse freshness profile analyze simulate ssot export report \
+        transform warehouse freshness profile analyze simulate ssot ssot-check export report \
         test test-live lint token-guard all refresh
 
 setup:               ## EN-030 — install exactly the committed uv.lock (ADR-012)
@@ -47,11 +47,11 @@ oespi:               ## M2 — SPEC-01 §10: ÖSPI loader + series gates (ING-10
 oespi-reconcile:     ## M2 — ING-101: double-entry reconcile of data/manual/oespi_monthly_entry{1,2}.csv
 	$(UV) run python scripts/oespi_reconcile.py --dir data/manual
 
-transform:           ## M3 — SPEC-02: dbt build (models + tests)
-	cd dbt && $(UV) run dbt build
+transform:           ## M3 — SPEC-02: dbt build (models + tests); cost mart is built by `simulate`
+	cd dbt && $(UV) run dbt build --exclude fct_procurement_cost_monthly+
 
-warehouse:           ## M3 — SPEC-02: dbt build + human-readable build report (reports/warehouse/)
-	$(MAKE) transform
+warehouse:           ## M3 — SPEC-02: full dbt build + human-readable build report (reports/warehouse/)
+	cd dbt && $(UV) run dbt build
 	$(UV) run python -m epra.warehouse.report
 
 freshness:           ## M3 — DM-066 freshness gate on stg_prices_at_hourly (needs real, current data)
@@ -64,11 +64,15 @@ profile:             ## M4 — SPEC-03: styriametal_v1 + flat_baseload → data/
 analyze:             ## M5 — SPEC-04 A1→A2→A4→A3 from marts → reports/analytics/
 	$(UV) run python -m epra.analytics
 
-simulate:            ## M6 — SPEC-05 retrospective + forward risk
-	@echo "ERROR: 'make simulate' not implemented yet (M6 — SPEC-05)." >&2; exit 1
+simulate:            ## M6 — SPEC-05 retrospective + forward risk + ST-602 gate, then re-expose costs via dbt
+	$(UV) run python -m epra.strategies
+	cd dbt && $(UV) run dbt build --select fct_procurement_cost_monthly+
 
-ssot:                ## M6 — scripts/generate_ssot.py
-	@echo "ERROR: 'make ssot' not implemented yet (M6 — SPEC-08 GV-301)." >&2; exit 1
+ssot:                ## M6 — SPEC-08 GV-301/302: reports/NUMERIC_SSOT.md from tagged producer rows
+	$(UV) run python scripts/generate_ssot.py
+
+ssot-check:          ## GV-303 — README/EXEC_SUMMARY numbers ⊂ SSOT, SSOT fresh vs results
+	$(UV) run python scripts/check_ssot_consistency.py
 
 export:              ## M7 — scripts/export_marts.py → exports/
 	@echo "ERROR: 'make export' not implemented yet (M7 — SPEC-02 §7)." >&2; exit 1
@@ -76,6 +80,6 @@ export:              ## M7 — scripts/export_marts.py → exports/
 report:              ## M7 — executive charts
 	@echo "ERROR: 'make report' not implemented yet (M7 — SPEC-06 §2)." >&2; exit 1
 
-all: transform profile analyze simulate ssot export report
+all: profile transform analyze simulate ssot export report
 
 refresh: ingest validate-ingest freshness all

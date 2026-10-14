@@ -4,13 +4,12 @@ Conventions (SPEC-06 §7): thousands separator, "€1.42 M" style for millions,
 EUR/MWh with 1 decimal, English number conventions everywhere in charts and
 exports (RP-705 — German appears only in Power BI subtitles).
 
-Not yet imported by production code: M7's executive charts/exports
-(SPEC-06 §7, RP-701..705) are the intended callers; tests pin the formats now.
-
 Implements: RP-703, RP-705.
 """
 
 from __future__ import annotations
+
+import pandas as pd
 
 MILLION = 1_000_000.0
 
@@ -45,3 +44,20 @@ def format_pct(value: float, decimals: int = 1) -> str:
     Implements: RP-703 (shared formatter), RP-705 (English dot-decimal conventions).
     """
     return f"{value * 100:,.{decimals}f}%"
+
+
+def md_table(frame: pd.DataFrame, floatfmt: str = ".1f") -> str:
+    """GitHub-markdown table without the tabulate dependency.
+
+    Implements: RP-703 (one shared formatter module).
+    """
+
+    def cell(value: object) -> str:
+        if isinstance(value, float):
+            return format(value, floatfmt)
+        return str(value)
+
+    header = "| " + " | ".join(str(c) for c in frame.columns) + " |"
+    rule = "|" + "|".join("---:" if frame[c].dtype.kind in "fiu" else "---" for c in frame.columns)
+    rows = ["| " + " | ".join(cell(v) for v in row) + " |" for row in frame.itertuples(index=False)]
+    return "\n".join([header, rule + "|", *rows])

@@ -1,6 +1,6 @@
-# EN-080 — CI. Jobs 1 (lint), 2 (test), and 3 (dbt-check) are live (M0/M3).
-# Job 4 (ssot-check) arrives with M6.
-# All four become required for merge as they land.
+# EN-080 — CI. Jobs: 1 lint, 2 test, 3 dbt-check (full fixture pipeline:
+# dbt → profile → analytics → simulator → SSOT, ADR-018), 4 ssot-check (GV-303
+# on the committed README/EXEC_SUMMARY/NUMERIC_SSOT).
 # Every job installs exactly the committed uv.lock (EN-030, ADR-012).
 name: ci
 
@@ -60,5 +60,17 @@ jobs:
       - run: uv run python -m epra.warehouse.report
       # M5: SPEC-04 analytics on the fixture marts, incl. the AN-304 gate.
       - run: make analyze
+      # M6: SPEC-05 simulator incl. the ST-602 gate, then the SSOT (GV-302, E-2).
+      - run: make simulate
+      - run: make ssot
 
-  # ssot-check:  # M6 — scripts/check_ssot_consistency.py (EN-080 job 4, GV-303)
+  ssot-check:         # M6 — GV-303 on the COMMITTED docs + SSOT (no regeneration)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: uv sync --frozen --extra dev
+      - run: make ssot-check

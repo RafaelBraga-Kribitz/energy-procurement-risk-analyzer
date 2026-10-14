@@ -208,8 +208,8 @@ def test_run_writes_outputs_and_ssot_row(tmp_settings: Settings, tmp_path: Path)
         "consumer_load_hourly.parquet"
     )
     rows = read_ssot_rows(settings)
-    assert rows["key"].tolist() == ["consumer_peak_share"]
-    assert rows["tag"].tolist() == ["CALIBRATED"]
+    assert rows["key"].tolist() == ["consumer_peak_share", "consumer_peak_share_flat_baseload"]
+    assert set(rows["tag"]) == {"CALIBRATED"}
 
 
 def test_read_calendar_missing_raises(tmp_settings: Settings) -> None:

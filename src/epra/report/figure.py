@@ -10,6 +10,7 @@ Implements: RP-701, RP-702.
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ from matplotlib.figure import Figure
 from epra.report.style import DPI, FIGSIZE, SOURCE_NOTE
 
 _FIXTURE_STAMP = "FIXTURE RUN — synthetic prices, not results (ADR-018)"
+_SUBTITLE_CHARS = 150  # wraps before the 12-in canvas edge at 10 pt
 
 plt.rcParams.update(
     {
@@ -71,8 +73,9 @@ def save_figure(
     fig.text(0.01, 0.975, title, ha="left", va="top", fontsize=14, fontweight="bold")
     top = 0.92
     if subtitle:
-        fig.text(0.01, 0.925, subtitle, ha="left", va="top", fontsize=10, color="#444444")
-        top = 0.89
+        lines = textwrap.wrap(subtitle, width=_SUBTITLE_CHARS)
+        fig.text(0.01, 0.925, "\n".join(lines), ha="left", va="top", fontsize=10, color="#444444")
+        top = 0.89 - 0.035 * (len(lines) - 1)
     fig.text(0.01, 0.01, source, ha="left", va="bottom", fontsize=8, color="#555555")
     if tag:
         fig.text(0.99, 0.01, tag, ha="right", va="bottom", fontsize=8, color="#555555")

@@ -13,10 +13,11 @@ from __future__ import annotations
 import pandas as pd
 import statsmodels.formula.api as smf
 
-from epra.analytics._shared import analytics_dir, md_table, query, write_markdown
+from epra.analytics._shared import analytics_dir, query, write_markdown
 from epra.common.config import Settings
 from epra.common.provenance import is_fixture_run
 from epra.report.figure import new_figure, save_figure
+from epra.report.format import md_table
 from epra.report.style import OKABE_ITO
 
 DAILY_LOAD_SQL = """

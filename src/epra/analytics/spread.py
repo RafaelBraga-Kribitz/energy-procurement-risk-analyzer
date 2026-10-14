@@ -15,7 +15,6 @@ from epra.analytics._shared import (
     analytics_dir,
     by_year,
     complete_years,
-    md_table,
     query,
     write_markdown,
 )
@@ -23,6 +22,7 @@ from epra.common.config import Settings
 from epra.common.provenance import is_fixture_run
 from epra.common.ssot import SsotRow, write_ssot_rows
 from epra.report.figure import new_figure, save_figure
+from epra.report.format import md_table
 from epra.report.style import OKABE_ITO
 
 HOURLY_SPREAD_SQL = """
@@ -65,6 +65,7 @@ def spread_summary(hourly: pd.DataFrame) -> pd.DataFrame:
 def _chart(hourly: pd.DataFrame, settings: Settings) -> None:
     monthly = hourly.groupby(["year_local", "month_local"])["spread_at_delu_eur_mwh"].mean()
     x = pd.to_datetime([f"{y}-{m:02d}-01" for y, m in monthly.index])
+    share_up = float((monthly > 0).mean())
     fig, ax = new_figure()
     ax.plot(x, monthly.to_numpy(), color=OKABE_ITO["vermillion"], lw=1.8)
     ax.fill_between(
@@ -81,7 +82,11 @@ def _chart(hourly: pd.DataFrame, settings: Settings) -> None:
     save_figure(
         fig,
         analytics_dir(settings) / "a2_spread_monthly.png",
-        title="Austrian buyers usually pay a premium over the German price",
+        title=(
+            f"Austria was dearer than Germany in {share_up:.0%} of months"
+            if share_up >= 0.5
+            else f"Austria was cheaper than Germany in {1 - share_up:.0%} of months"
+        ),
         subtitle="Monthly mean of hourly day-ahead spread AT minus DE-LU; above zero = AT dearer",
         fixture=is_fixture_run(settings),
     )

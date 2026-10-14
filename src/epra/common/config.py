@@ -130,6 +130,13 @@ class ForwardCfg(_Frozen):
     horizon_months: int
 
 
+class SensitivityCfg(_Frozen):
+    """ST-303 sensitivity grid: (a) premium values, (c) alternative lock window."""
+
+    fixed_premium_eur_mwh: list[float]
+    lock_window_months: list[int]
+
+
 class StrategyCfg(_Frozen):
     """SPEC-05 §8 schema — all simulator tunables (ST-003)."""
 
@@ -140,6 +147,7 @@ class StrategyCfg(_Frozen):
     hybrid_ratios: list[float]
     forward: ForwardCfg
     peak_available: bool
+    sensitivity: SensitivityCfg
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:

@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 
 from epra.common.config import Settings, resolve_repo_path
 
@@ -42,3 +43,17 @@ def connect(settings: Settings, *, read_only: bool = False) -> duckdb.DuckDBPyCo
     con = duckdb.connect(str(path), read_only=read_only)
     con.execute("SET TimeZone = 'UTC'")  # same session zone as dbt (ADR-014, T-1)
     return con
+
+
+def read_sql(settings: Settings, sql: str) -> pd.DataFrame:
+    """Run one read-only statement against the marts and return a DataFrame.
+
+    The single read path for analytics (SPEC-04) and the simulator (ST-001).
+
+    Implements: ST-001 (marts → pandas), supports AN-701.
+    """
+    con = connect(settings, read_only=True)
+    try:
+        return con.execute(sql).df()
+    finally:
+        con.close()

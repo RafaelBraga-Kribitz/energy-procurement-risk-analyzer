@@ -312,7 +312,7 @@ def test_build_report_records_dbt_warn_and_sanity_numbers(tmp_path: Path) -> Non
         "fct_price_hourly row counts (DM-062)",
         "monthly-mart month coverage (DM-050)",
         "2022-08 reconciliation delta (DM-064)",
-        "future marts",
+        "module-output marts",
     ]
     assert report.all_passed  # sanity rows alone would have said "OK" ...
     assert report.overall() == "1 dbt WARN(s) — see below"  # ... the headline does not

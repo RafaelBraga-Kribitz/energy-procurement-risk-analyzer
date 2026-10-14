@@ -12,11 +12,8 @@ AN-701, AN-703, AN-704, AN-705.
 from __future__ import annotations
 
 import re
-from datetime import date
 from pathlib import Path
 
-import duckdb
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -24,7 +21,6 @@ from epra.analytics import descriptive, regimes, spread, weather
 from epra.analytics.__main__ import main as analytics_main
 from epra.common.config import Settings
 from epra.common.ssot import read_ssot_rows
-from epra.ingest.calendar import calendar_frame
 
 M5_ARTIFACTS = [
     "a1_annual_summary.md",
@@ -42,64 +38,9 @@ M5_ARTIFACTS = [
 ]
 
 
-def _synthetic_marts(seed: int = 7) -> tuple[pd.DataFrame, pd.DataFrame]:
-    rng = np.random.default_rng(seed)
-    cal = calendar_frame(date(2019, 1, 1), date(2024, 12, 31))
-    days = pd.to_datetime(pd.Series(cal["date_local"].unique()))
-    crisis_start, crisis_end = pd.Timestamp("2021-09-01"), pd.Timestamp("2023-06-30")
-    crisis = ((days >= crisis_start) & (days <= crisis_end)).to_numpy()
-    calm = (days < pd.Timestamp("2021-01-01")).to_numpy()
-    noise = np.where(crisis, 45.0, np.where(calm, 2.0, 10.0))  # three volatility tiers
-    level = np.where(crisis, 220.0, np.where(calm, 45.0, 90.0))
-    daily = pd.Series(level + rng.normal(0, 1.0, len(days)) * noise, index=days.dt.date)
-    hourly_base = daily.reindex(cal["date_local"]).to_numpy()
-    month, hour = cal["month_local"].to_numpy(), cal["hour_local"].to_numpy()
-    solar = ((month >= 4) & (month <= 9) & (hour >= 11) & (hour <= 14)).astype(float) * 60.0
-    at = hourly_base - solar + rng.normal(0, 4.0, len(cal))
-    delu = at - rng.normal(3.0, 2.0, len(cal))
-    tavg = 10 - 10 * np.cos(2 * np.pi * (days.dt.dayofyear.to_numpy() - 15) / 365)
-    hdd = pd.Series(np.clip(18 - tavg, 0, None), index=days.dt.date)
-    load = 7000 + 60 * hdd.reindex(cal["date_local"]).to_numpy() + rng.normal(0, 100, len(cal))
-    hourly = cal.assign(
-        price_at_eur_mwh=at,
-        price_delu_eur_mwh=delu,
-        spread_at_delu_eur_mwh=at - delu,
-        load_at_mw=load,
-        is_negative_price=at < 0,
-        hdd_18=hdd.reindex(cal["date_local"]).to_numpy(),
-    )
-    daily_mart = (
-        hourly.groupby("date_local")
-        .agg(price_base_eur_mwh=("price_at_eur_mwh", "mean"), hdd_18=("hdd_18", "first"))
-        .reset_index()
-    )
-    return hourly, daily_mart
-
-
 @pytest.fixture(scope="module")
-def warehouse_settings(tmp_path_factory: pytest.TempPathFactory) -> Settings:
-    from epra.common.config import load_settings
-
-    root = tmp_path_factory.mktemp("m5")
-    settings = load_settings()
-    paths = settings.paths.model_copy(
-        update={
-            "warehouse": root / "epra.duckdb",
-            "reports": root / "reports",
-            "data_processed": root / "processed",
-            "data_raw": root / "raw",
-        }
-    )
-    settings = settings.model_copy(update={"paths": paths})
-    hourly, daily = _synthetic_marts()
-    con = duckdb.connect(str(paths.warehouse))
-    con.execute("create schema marts")
-    con.register("h", hourly)
-    con.register("d", daily)
-    con.execute("create table marts.fct_price_hourly as select * from h")
-    con.execute("create table marts.fct_price_daily as select * from d")
-    con.close()
-    return settings
+def warehouse_settings(synthetic_warehouse: Settings) -> Settings:
+    return synthetic_warehouse
 
 
 @pytest.fixture(scope="module")
@@ -217,7 +158,7 @@ def test_an703_ssot_rows_verified_and_complete_years_only(ran: Settings) -> None
         "garch_persistence",
         "data_last_month",
     } <= keys
-    assert not any(re.search(r"_2025$", k) for k in keys)  # no data for 2025 in the fixture
+    assert not any(re.search(r"_2026$", k) for k in keys)  # 2026 is unpriced in the fixture
 
 
 def test_an705_rerun_identical(ran: Settings) -> None:
