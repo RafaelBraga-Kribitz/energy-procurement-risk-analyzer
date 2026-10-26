@@ -3,9 +3,9 @@
 ![Energy Procurement Risk Analyzer: procurement-strategy risk on the Austrian day-ahead market for a 50 GWh Styrian consumer. Pipeline built and tested; real-data results pending.](docs/assets/hero.png)
 
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Status: pipeline complete, real data pending](https://img.shields.io/badge/status-pipeline%20complete%20%C2%B7%20real%20data%20pending-yellow)](#project-status)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-5A5C61?labelColor=26282C)](https://www.python.org/downloads/release/python-3120/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-5A5C61?labelColor=26282C)](LICENSE)
+[![Status: pipeline complete, real data pending](https://img.shields.io/badge/status-pipeline%20complete%20%C2%B7%20real%20data%20pending-5A5C61?labelColor=26282C)](#project-status)
 
 **Status:** Functional · pipeline complete and tested; real-data run pending
 
@@ -180,6 +180,33 @@ in euros, for the reference consumer, not for any real company.
 ## Architecture
 
 ```mermaid
+%%{init: {
+  "theme": "base",
+  "fontFamily": "BKribitz, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif",
+  "themeVariables": {
+    "background": "#E4E6EA",
+    "primaryColor": "#DCDEE2",
+    "primaryTextColor": "#26282C",
+    "primaryBorderColor": "#26282C",
+    "secondaryColor": "#E4E6EA",
+    "secondaryTextColor": "#26282C",
+    "secondaryBorderColor": "#5A5C61",
+    "tertiaryColor": "#E4E6EA",
+    "tertiaryTextColor": "#26282C",
+    "tertiaryBorderColor": "#C2C4CA",
+    "lineColor": "#5A5C61",
+    "textColor": "#26282C",
+    "mainBkg": "#DCDEE2",
+    "nodeBorder": "#26282C",
+    "clusterBkg": "#E4E6EA",
+    "clusterBorder": "#C2C4CA",
+    "edgeLabelBackground": "#E4E6EA",
+    "titleColor": "#26282C",
+    "fontFamily": "BKribitz, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif",
+    "fontSize": "14px"
+  },
+  "flowchart": { "curve": "linear", "htmlLabels": true, "padding": 8 }
+}}%%
 flowchart TD
     SRC["ENTSO-E / GeoSphere / ÖSPI / holidays"] --> ING["Ingestion<br/>retry, cache, gates"]
     ING --> RAW["data/raw parquet"]
