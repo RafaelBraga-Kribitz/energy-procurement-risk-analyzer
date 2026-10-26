@@ -9,6 +9,7 @@ Implements: AN-201..203.
 
 from __future__ import annotations
 
+import bk_theme as bk
 import pandas as pd
 
 from epra.analytics._shared import (
@@ -23,7 +24,6 @@ from epra.common.provenance import is_fixture_run
 from epra.common.ssot import SsotRow, write_ssot_rows
 from epra.report.figure import new_figure, save_figure
 from epra.report.format import md_table
-from epra.report.style import OKABE_ITO
 
 HOURLY_SPREAD_SQL = """
 select
@@ -67,16 +67,17 @@ def _chart(hourly: pd.DataFrame, settings: Settings) -> None:
     x = pd.to_datetime([f"{y}-{m:02d}-01" for y, m in monthly.index])
     share_up = float((monthly > 0).mean())
     fig, ax = new_figure()
-    ax.plot(x, monthly.to_numpy(), color=OKABE_ITO["vermillion"], lw=1.8)
+    # Above zero AT is dearer for the Austrian buyer: an adverse variance (var-neg tint).
     ax.fill_between(
         x,
         monthly.to_numpy(),
         0,
         where=monthly.to_numpy() > 0,
-        color=OKABE_ITO["vermillion"],
-        alpha=0.15,
+        color=bk.c("var-neg-tint"),
+        lw=0,
     )
-    ax.axhline(0, color="black", lw=0.9)
+    ax.plot(x, monthly.to_numpy(), color=bk.c("sc-ac"), lw=1.8)
+    ax.axhline(0, color=bk.c("ink"), lw=0.9)
     ax.set_xlabel("Month")
     ax.set_ylabel("Mean spread AT − DE-LU (EUR/MWh)")
     save_figure(

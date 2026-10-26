@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+import bk_theme as bk
 import numpy as np
 import pandas as pd
 from arch import arch_model
@@ -38,7 +39,7 @@ from epra.common.provenance import is_fixture_run
 from epra.common.ssot import SsotRow, write_ssot_rows
 from epra.report.figure import new_figure, save_figure
 from epra.report.format import md_table
-from epra.report.style import OKABE_ITO
+from epra.report.style import REGIME_COLORS
 
 DAILY_SQL = """
 select
@@ -50,11 +51,6 @@ order by fpd.date_local
 """
 
 REGIME_LABELS = ("calm", "elevated", "crisis")
-REGIME_COLORS = {
-    "calm": OKABE_ITO["bluish_green"],
-    "elevated": OKABE_ITO["orange"],
-    "crisis": OKABE_ITO["vermillion"],
-}
 HMM_SEEDS = range(42, 52)  # AN-302: 10 restarts
 ROLLING_DAYS = 30  # AN-301
 GARCH_RESCALE = 10.0  # AN-303
@@ -158,7 +154,7 @@ def _realized_vol_chart(frame: pd.DataFrame, settings: Settings) -> None:
     ax.plot(
         frame["date_local"],
         frame["price_base_eur_mwh"],
-        color="#333333",
+        color=bk.c("sc-ac"),
         lw=0.9,
         label="Daily base price",
     )
@@ -168,13 +164,16 @@ def _realized_vol_chart(frame: pd.DataFrame, settings: Settings) -> None:
     ax2.plot(
         frame["date_local"],
         frame["realized_vol"],
-        color=OKABE_ITO["vermillion"],
+        color=bk.c("hl"),
         lw=1.4,
         label="30-day realized volatility",
     )
+    ax2.grid(False)
     ax2.set_ylabel("Std of daily price change, 30 days (EUR/MWh)")
     ax2.spines["right"].set_visible(True)
-    fig.legend(loc="upper left", bbox_to_anchor=(0.06, 0.86), frameon=False)
+    lines = ax.get_legend_handles_labels()
+    extra = ax2.get_legend_handles_labels()
+    ax.legend(lines[0] + extra[0], lines[1] + extra[1], loc="upper left", frameon=False)
     save_figure(
         fig,
         analytics_dir(settings) / "a3_realized_vol.png",
@@ -197,14 +196,13 @@ def _regime_chart(frame: pd.DataFrame, settings: Settings) -> None:
             where=mask,
             step="mid",
             color=REGIME_COLORS[label],
-            alpha=0.25,
             lw=0,
             label=f"{label} regime",
         )
     ax.plot(
         frame["date_local"],
         frame["price_base_eur_mwh"],
-        color="#222222",
+        color=bk.c("sc-ac"),
         lw=0.9,
         label="Daily base price",
     )
@@ -228,14 +226,14 @@ def _garch_chart(
     ax.plot(
         frame["date_local"],
         cond_vol.to_numpy(),
-        color=OKABE_ITO["blue"],
+        color=bk.c("ink"),
         lw=1.0,
         label="GARCH(1,1) conditional volatility",
     )
     ax.plot(
         frame["date_local"],
         frame["realized_vol"],
-        color=OKABE_ITO["vermillion"],
+        color=bk.c("hl"),
         lw=1.4,
         label="30-day realized volatility",
     )

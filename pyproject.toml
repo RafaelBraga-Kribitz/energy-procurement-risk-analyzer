@@ -24,6 +24,8 @@ dependencies = [
     "hmmlearn>=0.3",
     "statsmodels>=0.14",
     "matplotlib>=3.8",
+    # Charts on the Braga design system v2.1 (D-053); pinned to the 2.0.0 commit.
+    "bk-viz @ git+https://github.com/RafaelBraga-Kribitz/bk-viz@fe8125a3043f49a798ef24740b23f81c46863562",
     "pydantic>=2.7",
     "PyYAML>=6",
     "python-dotenv>=1",
@@ -53,6 +55,9 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.metadata]
+allow-direct-references = true  # bk-viz is installed from its git commit
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/epra"]
 
@@ -76,7 +81,7 @@ mypy_path = "src"
 
 [[tool.mypy.overrides]]
 # EN-002 allows ignore_missing_imports for these untyped libraries.
-module = ["entsoe.*", "hmmlearn.*", "arch.*", "statsmodels.*", "azure.*", "pyodbc"]
+module = ["entsoe.*", "hmmlearn.*", "arch.*", "statsmodels.*", "azure.*", "pyodbc", "bk_theme"]
 ignore_missing_imports = true
 
 # --------------------------------------------------------------- tests (EN-070, EN-071)

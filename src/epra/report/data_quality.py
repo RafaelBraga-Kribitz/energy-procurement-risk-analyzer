@@ -15,6 +15,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+import bk_theme as bk
 import pandas as pd
 
 from epra.common.config import Settings, resolve_repo_path
@@ -22,7 +23,6 @@ from epra.common.db import read_sql
 from epra.common.provenance import banner_lines, is_fixture_run
 from epra.report.figure import new_figure, save_figure
 from epra.report.format import md_table
-from epra.report.style import OKABE_ITO
 from epra.warehouse.report import DBT_RUN_RESULTS, load_run_results
 
 ANNUAL_DQ_SQL = """
@@ -117,10 +117,10 @@ def _chart(monthly: pd.DataFrame, settings: Settings) -> None:
         x,
         pt15m_share,
         width=25,
-        color=OKABE_ITO["sky_blue"],
+        color=bk.neutral_ramp(3)[2],
         label="Share of hours built from 15-min quarters (PT15M)",
     )
-    ax.plot(x, monthly["coverage_at_pct"], color=OKABE_ITO["blue"], lw=2, label="AT price coverage")
+    ax.plot(x, monthly["coverage_at_pct"], color=bk.c("hl"), lw=2, label="AT price coverage")
     ax.set_ylim(0, 105)
     ax.set_xlabel("Month")
     ax.set_ylabel("Percent of hours in month (%)")

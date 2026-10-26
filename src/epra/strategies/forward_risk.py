@@ -36,6 +36,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import cast
 
+import bk_theme as bk
 import numpy as np
 import pandas as pd
 
@@ -315,10 +316,20 @@ def _risk_return_chart(summary: pd.DataFrame, settings: Settings) -> None:
                     (rec["mean"] / 1e6, rec["p95"] / 1e6),
                     xytext=(7, 4),
                     textcoords="offset points",
-                    fontsize=9,
+                    fontsize=bk.SIZE["mono-sm"],
+                    color=bk.c("ink"),
                 )
-    ax.scatter([], [], marker="o", color="grey", label="Unconditional pool")
-    ax.scatter([], [], marker="s", facecolors="none", edgecolors="grey", label="No-crisis pool")
+    ax.scatter([], [], s=90, marker="o", color=bk.c("ink-2"), label="Unconditional pool")
+    ax.scatter(
+        [],
+        [],
+        s=90,
+        marker="s",
+        facecolors="none",
+        edgecolors=bk.c("ink-2"),
+        linewidths=2,
+        label="No-crisis pool",
+    )
     ax.legend(frameon=False, loc="upper left")
     ax.set_xlabel("Expected 12-month cost (EUR million)")
     ax.set_ylabel("P95 12-month cost (EUR million)")
