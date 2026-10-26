@@ -14,8 +14,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import bk_theme as bk
 import numpy as np
 import pandas as pd
+from matplotlib.colors import LinearSegmentedColormap
 
 from epra.analytics._shared import (
     analytics_dir,
@@ -27,7 +29,7 @@ from epra.analytics._shared import (
 from epra.common.config import Settings
 from epra.common.provenance import is_fixture_run
 from epra.common.ssot import SsotRow, write_ssot_rows
-from epra.report.figure import new_figure, save_figure
+from epra.report.figure import new_figure, panel_title, save_figure
 from epra.report.format import md_table
 
 HOURLY_SQL = """
@@ -46,6 +48,9 @@ SPIKE_EUR_MWH = 500.0  # AN-101 threshold
 HEATMAP_YEARS = range(2021, 2026)  # AN-102 panels
 SOLAR_MONTHS = range(4, 10)  # AN-104: Apr-Sep
 SOLAR_HOURS = range(10, 17)  # AN-104: 10-16 local
+
+#: Heatmap scale: the design system's sequential ultramarine, light = low price.
+_PRICE_CMAP = LinearSegmentedColormap.from_list("bk_seq", bk.palette("seq", reverse=True))
 
 
 def annual_summary(hourly: pd.DataFrame) -> pd.DataFrame:
@@ -108,12 +113,12 @@ def _heatmap(hourly: pd.DataFrame, settings: Settings) -> None:
             grids[year].to_numpy(),
             aspect="auto",
             origin="lower",
-            cmap="magma",
+            cmap=_PRICE_CMAP,
             vmin=vmin,
             vmax=vmax,
             extent=(0.5, 12.5, -0.5, 23.5),
         )
-        ax.set_title(str(year))
+        panel_title(ax, str(year))
         ax.set_xlabel("Month")
         ax.set_xticks([1, 4, 7, 10])
     axes[0].set_ylabel("Hour of day (local)")
@@ -132,12 +137,15 @@ def _heatmap(hourly: pd.DataFrame, settings: Settings) -> None:
 def _duration_curves(hourly: pd.DataFrame, settings: Settings) -> None:
     fig, ax = new_figure()
     crisis = {2022, 2023}
-    for year, g in hourly.groupby("year_local", sort=True):
+    groups = list(hourly.groupby("year_local", sort=True))
+    # Years are ordered: the long interpolation scale, its pale yellow end left out.
+    colors = bk.palette("long", n=len(groups) + 1)[:-1]
+    for (year, g), color in zip(groups, colors, strict=True):
         prices = np.sort(g["price_at_eur_mwh"].to_numpy())[::-1]
         x = np.linspace(0, 100, len(prices))
         style = {"lw": 2.4, "ls": "-"} if year in crisis else {"lw": 1.2, "ls": "--"}
-        ax.plot(x, prices, label=str(year), **style)
-    ax.axhline(0, color="black", lw=0.8)
+        ax.plot(x, prices, label=str(year), color=color, **style)
+    ax.axhline(0, color=bk.c("ink"), lw=0.8)
     ax.set_xlabel("Share of hours in the year (%)")
     ax.set_ylabel("Price (EUR/MWh)")
     ax.legend(ncol=4, frameon=False)
@@ -152,17 +160,17 @@ def _duration_curves(hourly: pd.DataFrame, settings: Settings) -> None:
 
 def _negative_hours(hourly: pd.DataFrame, summary: pd.DataFrame, settings: Settings) -> None:
     fig, (left, right) = new_figure(1, 2)
-    left.bar(summary["year"], summary["neg_hours"], color="#0072B2")
+    left.bar(summary["year"], summary["neg_hours"], color=bk.c("sc-ac"))
     left.set_xticks(summary["year"])
     left.set_xlabel("Year")
     left.set_ylabel("Negative-price hours (count)")
-    left.set_title("Negative hours per year")
+    panel_title(left, "Negative hours per year")
     neg = hourly[hourly["price_at_eur_mwh"] < 0]
     by_hour = neg.groupby("hour_local").size().reindex(range(24), fill_value=0)
-    right.bar(by_hour.index, by_hour.to_numpy(), color="#009E73")
+    right.bar(by_hour.index, by_hour.to_numpy(), color=bk.c("sc-ac"))
     right.set_xlabel("Hour of day (local)")
     right.set_ylabel("Negative-price hours, all years (count)")
-    right.set_title("When they occur")
+    panel_title(right, "When they occur")
     save_figure(
         fig,
         analytics_dir(settings) / "a1_negative_hours.png",

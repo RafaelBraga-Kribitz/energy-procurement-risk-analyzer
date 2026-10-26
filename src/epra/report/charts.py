@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import bk_theme as bk
 import numpy as np
 import pandas as pd
 
@@ -31,18 +32,13 @@ from epra.report.format import format_eur_millions
 from epra.report.style import (
     CALIBRATED_TAG,
     LP050_CAPTION,
-    OKABE_ITO,
+    REGIME_COLORS,
     SIMULATED_TAG,
     ST502_CAPTION,
     STRATEGY_COLORS,
     STRATEGY_LABELS,
 )
 
-REGIME_COLORS = {
-    "calm": OKABE_ITO["bluish_green"],
-    "elevated": OKABE_ITO["orange"],
-    "crisis": OKABE_ITO["vermillion"],
-}
 MARKET_SQL = """
 select
     fpm.year_local,
@@ -101,21 +97,24 @@ def forward_fan_chart(
         showfliers=False,
         patch_artist=True,
         widths=0.55,
-        medianprops={"color": "black"},
+        medianprops={"color": bk.c("surface"), "linewidth": 1.5},
+        boxprops={"linewidth": 0},
+        whiskerprops={"color": bk.c("ink-2")},
+        capprops={"color": bk.c("ink-2")},
     )
     for patch, sid in zip(box["boxes"], ids, strict=True):
         patch.set_facecolor(STRATEGY_COLORS[sid])
-        patch.set_alpha(0.55)
     base = summary[summary["variant"] == "unconditional"].set_index("strategy_id")
     for i, sid in enumerate(ids, start=1):
         p95 = scalar(base, sid, "p95") / 1e6
-        ax.plot(p95, i, marker="D", color="black", ms=6)
+        ax.plot(p95, i, marker="D", color=bk.c("ink"), ms=6)
         ax.annotate(
             f"P95 {format_eur_millions(p95 * 1e6)}",
             (p95, i),
             xytext=(8, -3),
             textcoords="offset points",
-            fontsize=9,
+            fontsize=bk.SIZE["mono-sm"],
+            color=bk.c("ink"),
         )
     ax.set_yticks(range(1, len(ids) + 1), [STRATEGY_LABELS[s] for s in ids])
     ax.set_xlabel(f"Total energy cost {window} (EUR million)")
@@ -157,18 +156,24 @@ def wrong_cost_chart(annual: pd.DataFrame, path: Path, *, fixture: bool) -> Path
     """
     bars = wrong_cost_bars(annual)
     fig, ax = new_figure()
+    # The gap is money lost to the wrong choice: an adverse variance (IBCS var-neg, ▲).
     ax.bar(
-        bars["year"].astype(str), bars["gap_eur"] / 1e6, color=OKABE_ITO["vermillion"], width=0.6
+        bars["year"].astype(str),
+        bars["gap_eur"] / 1e6,
+        color=[bk.variance_color(-gap) for gap in bars["gap_eur"]],
+        width=0.6,
     )
     for rec in bars.to_dict("records"):
+        amount = bk.variance_label(format_eur_millions(rec["gap_eur"]), -rec["gap_eur"])
         ax.annotate(
-            f"{format_eur_millions(rec['gap_eur'])}\nworst: {STRATEGY_LABELS[rec['worst']]}",
+            f"{amount}\nworst: {STRATEGY_LABELS[rec['worst']]}",
             (str(rec["year"]), rec["gap_eur"] / 1e6),
             xytext=(0, 4),
             textcoords="offset points",
             ha="center",
             va="bottom",
-            fontsize=9,
+            fontsize=bk.SIZE["mono-sm"],
+            color=bk.c("ink"),
         )
     ax.set_ylim(0, float(bars["gap_eur"].max()) / 1e6 * 1.25)
     ax.set_xlabel("Delivery year")
@@ -214,11 +219,12 @@ def market_context_chart(settings: Settings, path: Path) -> Path:
             where=(regimes == label).to_numpy(),
             step="mid",
             color=color,
-            alpha=0.18,
             lw=0,
             label=f"{label} regime (A3)",
         )
-    ax.plot(x, market["price_base_eur_mwh"], color="#222222", lw=2, label="AT monthly base price")
+    ax.plot(
+        x, market["price_base_eur_mwh"], color=bk.c("sc-ac"), lw=2, label="AT monthly base price"
+    )
     ax.set_ylim(0, top)
     ax.set_xlabel("Month")
     ax.set_ylabel("AT day-ahead base price (EUR/MWh)")
@@ -227,13 +233,14 @@ def market_context_chart(settings: Settings, path: Path) -> Path:
     right.plot(
         x,
         100 * market["oespi_base"] / first,
-        color=OKABE_ITO["blue"],
+        color=bk.c("hl"),
         lw=1.6,
         ls="--",
         label="ÖSPI base (first month = 100)",
     )
     right.set_ylabel("ÖSPI base, indexed (first month = 100)")
     right.spines["right"].set_visible(True)
+    right.grid(False)
     handles = ax.get_legend_handles_labels()
     extra = right.get_legend_handles_labels()
     ax.legend(handles[0] + extra[0], handles[1] + extra[1], frameon=False, loc="upper left", ncol=2)

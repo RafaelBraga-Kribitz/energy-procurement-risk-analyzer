@@ -10,6 +10,7 @@ Implements: AN-401, AN-402.
 
 from __future__ import annotations
 
+import bk_theme as bk
 import pandas as pd
 import statsmodels.formula.api as smf
 
@@ -18,7 +19,6 @@ from epra.common.config import Settings
 from epra.common.provenance import is_fixture_run
 from epra.report.figure import new_figure, save_figure
 from epra.report.format import md_table
-from epra.report.style import OKABE_ITO
 
 DAILY_LOAD_SQL = """
 with daily_load as (
@@ -55,12 +55,15 @@ def fit(daily: pd.DataFrame) -> object:
 
 def _chart(daily: pd.DataFrame, slope: float, settings: Settings) -> None:
     fig, ax = new_figure()
+    working, weekend = bk.palette("categorical", 2)
     for flag, color, label in (
-        (False, OKABE_ITO["blue"], "Working day"),
-        (True, OKABE_ITO["orange"], "Weekend / holiday"),
+        (False, working, "Working day"),
+        (True, weekend, "Weekend / holiday"),
     ):
         part = daily[daily["is_weekend_or_holiday"] == flag]
-        ax.scatter(part["hdd_18"], part["load_mean_mw"], s=6, alpha=0.4, color=color, label=label)
+        ax.scatter(
+            part["hdd_18"], part["load_mean_mw"], s=6, linewidths=0, color=color, label=label
+        )
     ax.set_xlabel("Heating degree days, base 18 °C (K·day)")
     ax.set_ylabel("AT system load, daily mean (MW)")
     ax.legend(frameon=False, markerscale=3)

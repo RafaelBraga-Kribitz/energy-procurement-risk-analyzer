@@ -8,7 +8,7 @@ an hour is in this folder:
 |---|---|
 | `README.md` (this file) | Data model, Power Query load steps, page-by-page layout, screenshot checklist |
 | `measures.dax` | Every DAX measure, grouped by home table |
-| `theme.json` | Report theme: Okabe-Ito strategy colours identical to the PNG charts (RP-704, tested) |
+| `theme.json` | Report theme: design-system (v2.1, bk-viz) strategy colours identical to the PNG charts (RP-704, tested) |
 
 Power BI reads **only** `exports/*.csv` (DM-070), never DuckDB, so anyone can
 rebuild the report without the warehouse: `make all` (or `make export` after a

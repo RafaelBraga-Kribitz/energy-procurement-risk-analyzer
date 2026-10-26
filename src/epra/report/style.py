@@ -1,33 +1,31 @@
-"""Chart style constants — colors defined ONCE, stable across every chart (RP-704).
+"""Chart style constants — colours defined ONCE, stable across every chart (RP-704).
 
-Palette: Okabe-Ito (colorblind-safe). Strategy → color mapping is fixed for the
-whole repo: S1 red family (vermillion), S3 blue family, S2 orange, hybrids
-interpolated between the S1 and S3 endpoints by their hedge ratio.
+Colours come from the Braga design system v2.1 through ``bk-viz`` roles (D-053);
+no hex value lives in this repository. Strategy → colour mapping is fixed for the
+whole repo: S3 (fixed) categorical slot 1, S1 (spot) slot 2, S2 (ÖSPI-indexed)
+slot 3, hybrids interpolated between the S1 and S3 endpoints by their hedge ratio.
 
 Figure standards (RP-701): matplotlib Agg backend, 12×6 in, dpi 150, no seaborn
 for executive charts. Every chart carries the source note (bottom-left) and,
 when CALIBRATED/SIMULATED data is shown, the epistemic tag bottom-right (RP-702).
 
-Implements: RP-701 (constants), RP-704; supports RP-702.
+Implements: RP-701 (constants), RP-704 as amended by ADR-021; supports RP-702.
 """
 
 from __future__ import annotations
 
-# Okabe-Ito reference palette
-OKABE_ITO = {
-    "orange": "#E69F00",
-    "sky_blue": "#56B4E9",
-    "bluish_green": "#009E73",
-    "yellow": "#F0E442",
-    "blue": "#0072B2",
-    "vermillion": "#D55E00",
-    "reddish_purple": "#CC79A7",
-    "black": "#000000",
-}
+import bk_theme as bk
+
+bk.apply("light")
 
 FIGSIZE = (12.0, 6.0)  # inches (RP-701)
 DPI = 150  # (RP-701)
 SOURCE_NOTE = "Source: ENTSO-E Transparency / AEA ÖSPI / own calculations"  # RP-702
+
+#: Endpoints of the spot ↔ fixed continuum, as design-system roles.
+S1_ROLE = "cat-2"  # FULL_SPOT
+S3_ROLE = "cat-1"  # FIXED_ANNUAL
+S2_ROLE = "cat-3"  # OESPI_INDEXED
 
 
 def _interpolate_hex(color_a: str, color_b: str, t: float) -> str:
@@ -45,17 +43,25 @@ def hybrid_color(hedge_ratio: float) -> str:
 
     Implements: RP-704 (hybrids interpolated between the S1 and S3 colors).
     """
-    return _interpolate_hex(OKABE_ITO["vermillion"], OKABE_ITO["blue"], hedge_ratio)
+    return _interpolate_hex(bk.c(S1_ROLE), bk.c(S3_ROLE), hedge_ratio)
 
 
 #: strategy_id → hex color, identical across ALL charts (RP-704).
 STRATEGY_COLORS: dict[str, str] = {
-    "S1": OKABE_ITO["vermillion"],  # FULL_SPOT — red family
-    "S2": OKABE_ITO["orange"],  # OESPI_INDEXED
-    "S3": OKABE_ITO["blue"],  # FIXED_ANNUAL — blue family
+    "S1": bk.c(S1_ROLE),  # FULL_SPOT — ochre
+    "S2": bk.c(S2_ROLE),  # OESPI_INDEXED — teal
+    "S3": bk.c(S3_ROLE),  # FIXED_ANNUAL — ultramarine
     "S4_30": hybrid_color(0.30),
     "S4_50": hybrid_color(0.50),
     "S4_70": hybrid_color(0.70),
+}
+
+#: HMM volatility regimes (A3) as opaque background bands: the diverging scale's
+#: good tint, its neutral midpoint and its bad tint (calm → crisis).
+REGIME_COLORS: dict[str, str] = {
+    "calm": bk.c("var-pos-tint"),
+    "elevated": bk.c("surface-3"),
+    "crisis": bk.c("var-neg-tint"),
 }
 
 #: strategy_id → reader-facing label, identical across charts and tables.
