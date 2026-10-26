@@ -97,8 +97,9 @@ Data source: the six CSVs in `exports/` (DM-070). Relationships: `procurement_co
 - RP-703: Euro formatting: thousands separator, "€1.42 M" style for millions, EUR/MWh
   with 1 decimal. One shared formatter module `src/epra/report/format.py` — tested.
 - RP-704: Color constants defined once in `src/epra/report/style.py`; strategies keep
-  the same color across ALL charts (S1 red family, S3 blue family, hybrids interpolated,
-  S2 orange). Colorblind-safe palette (Okabe-Ito).
+  the same color across ALL charts, hybrids interpolated between S1 and S3. Colours are
+  the Braga design system's categorical roles via `bk-viz` (amended by ADR-021; the
+  original S1 red / S2 orange / Okabe-Ito families are superseded there).
 - RP-705: German date/number conventions are NOT used inside charts (English, dot
   decimal) — consistency with CSV exports; German appears only in Power BI subtitles
   (RP-405).

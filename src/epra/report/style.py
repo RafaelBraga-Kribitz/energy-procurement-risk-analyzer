@@ -9,7 +9,7 @@ Figure standards (RP-701): matplotlib Agg backend, 12×6 in, dpi 150, no seaborn
 for executive charts. Every chart carries the source note (bottom-left) and,
 when CALIBRATED/SIMULATED data is shown, the epistemic tag bottom-right (RP-702).
 
-Implements: RP-701 (constants), RP-704; supports RP-702.
+Implements: RP-701 (constants), RP-704 as amended by ADR-021; supports RP-702.
 """
 
 from __future__ import annotations

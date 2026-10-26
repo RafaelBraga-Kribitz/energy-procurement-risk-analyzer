@@ -62,7 +62,7 @@ they exist so "good enough" is never a judgment call.
 
 Every PNG: 12×6 in @150 dpi Agg · business-phrased title · axis labels with
 units · source note bottom-left · epistemic tag bottom-right when CALIBRATED/
-SIMULATED shown · Okabe-Ito strategy colors from `style.STRATEGY_COLORS` only ·
+SIMULATED shown · design-system strategy colors (ADR-021) from `style.STRATEGY_COLORS` only ·
 English/dot-decimal · **[BP]** chart tests inspect matplotlib objects, never
 pixel-diff (cross-platform font variance).
 
