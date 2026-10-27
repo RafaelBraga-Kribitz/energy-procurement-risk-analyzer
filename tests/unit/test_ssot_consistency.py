@@ -96,6 +96,16 @@ def test_freshness_digest_detects_stale_ssot(tmp_path: Path) -> None:
     assert not CHECK.digest_is_fresh(ssot)
 
 
+def test_results_digest_ignores_crlf_line_endings(tmp_path: Path) -> None:
+    gen = _script("generate_ssot")
+    lf, crlf = tmp_path / "lf", tmp_path / "crlf"
+    for root, eol in ((lf, "\n"), (crlf, "\r\n")):
+        (root / "reports" / "strategies").mkdir(parents=True)
+        text = eol.join(["year,cost_eur", "2021,1.5", "2022,2.5", ""])
+        (root / "reports" / "strategies" / "s.csv").write_bytes(text.encode())
+    assert gen.results_digest(lf) == gen.results_digest(crlf)
+
+
 @pytest.mark.parametrize(
     "text", ["window 2026-10..2027-09, EUR million", "badge%20complete%20%C2", "v1.2 EUR"]
 )

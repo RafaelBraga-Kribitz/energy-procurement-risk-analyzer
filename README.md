@@ -172,8 +172,8 @@ data quality. Every page has a German subtitle and its epistemic tag.
 - **HTML twin.** `make dashboard-html` writes the same pages as one static,
   self-contained HTML file from the same CSVs (no server, no CDN).
 
-*Pending the real-data run:* the report has not been opened in Power BI Desktop,
-refreshed or screenshotted yet. The [open-and-refresh checklist](dashboards/README.md)
+*What does not exist yet:* the Power BI screenshots. The report has not been opened in
+Power BI Desktop, refreshed or screenshotted. The [open-and-refresh checklist](dashboards/README.md)
 lists those steps. Until then, the static charts in
 [`reports/executive_charts/`](reports/executive_charts/) are the visual deliverable.
 
