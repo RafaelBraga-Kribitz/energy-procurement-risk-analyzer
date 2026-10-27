@@ -5,9 +5,9 @@
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-5A5C61?labelColor=26282C)](https://www.python.org/downloads/release/python-3120/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5A5C61?labelColor=26282C)](LICENSE)
-[![Status: pipeline complete, real data pending](https://img.shields.io/badge/status-pipeline%20complete%20%C2%B7%20real%20data%20pending-5A5C61?labelColor=26282C)](#project-status)
+[![Status: real-data run complete, dashboard refresh pending](https://img.shields.io/badge/status-real%20data%20run%20complete%20%C2%B7%20dashboard%20refresh%20pending-5A5C61?labelColor=26282C)](#project-status)
 
-**Status:** Functional · pipeline complete and tested; real-data run pending
+**Status:** Functional · pipeline complete and tested; first real-data run done; Power BI refresh in Desktop pending
 
 Since the 2021–2023 energy crisis, how a manufacturer buys electricity is a board-level
 risk in Austria. What did the choice of procurement strategy cost a **50 GWh Styrian
@@ -16,11 +16,11 @@ Transparency Platform) in 2021–2025, and how much cost risk does each strategy
 the next 12 months?
 
 <!-- epra:answer:start -->
-> **Results pending the first real-data run.** The pipeline is complete and tested end to end on a synthetic CI fixture (ADR-018); fixture numbers are never shown here as results. Running `make backfill && make all` with an ENTSO-E token fills this section from `reports/NUMERIC_SSOT.md`.
+Buying electricity with the wrong strategy cost the 50 GWh reference consumer €27.04 M (CALIBRATED) over 2021-2025, the sum of each year's gap between the dearest and the cheapest of four strategies. Over the five years **Fixed annual** was the cheapest strategy at €30.17 M (CALIBRATED) in total. For the next 12 months Fixed annual has the lowest expected cost, €4.77 M (SIMULATED), and Hybrid 70% fixed the lowest P95 exposure: €6.44 M (SIMULATED) against €6.61 M (SIMULATED).
 <!-- epra:answer:end -->
 
 <!-- epra:chart:start -->
-*The headline chart (what the wrong strategy cost per year) is embedded here after the first real-data run. A watermarked [pipeline preview on synthetic fixture data](reports/executive_charts/01_wrong_strategy_cost.png) shows its layout; its figures are not results.*
+![What the wrong electricity procurement strategy cost a 50 GWh Styrian manufacturer](reports/executive_charts/01_wrong_strategy_cost.png)
 <!-- epra:chart:end -->
 
 **Skills demonstrated:** SQL (dbt models, [headline queries in `sql/`](sql/)) · Python
@@ -47,14 +47,13 @@ FIXTURE).
 
 **Status:** Functional
 
-**Real-data results do not exist yet.** Milestones M0–M7 are built, tested and
-green in CI: ingestion, warehouse, load profile, market analytics, strategy simulator,
-SSOT, exports, reports, Power BI project (PBIP) with an HTML twin, monthly refresh workflow. The build
-environment had no ENTSO-E token, so every committed result artifact comes from the
-synthetic fixture (ADR-018) and carries a FIXTURE banner or watermark. The first
-`make all` on real data replaces them; the README answer above is rendered from the SSOT
-at that moment ([real-data run guide](docs/REAL_DATA_RUN.md): `make real-run`). Open human steps: the real-data run, opening and refreshing the
-Power BI project in Desktop and its screenshots, and an optional Azure deployment.
+The first real-data run (ENTSO-E 2019 to 2026-09, ADR-023) is done. Milestones M0–M7 are
+built, tested and green in CI: ingestion, warehouse, load profile, market analytics, strategy
+simulator, SSOT, exports, reports, Power BI project (PBIP) with an HTML twin, monthly refresh
+workflow. Every number in this README comes from `reports/NUMERIC_SSOT.md`. Open human steps:
+opening and refreshing the Power BI project in Desktop with its screenshots, the repo secret
+for the monthly refresh, ÖSPI months after 2026-08, and an optional Azure deployment
+([real-data run guide](docs/REAL_DATA_RUN.md)).
 
 ## Explore this project
 
@@ -128,7 +127,31 @@ stress-tested by resampling history.
 ## Results
 
 <!-- epra:results:start -->
-> **Results pending the first real-data run.** The pipeline is complete and tested end to end on a synthetic CI fixture (ADR-018); fixture numbers are never shown here as results. Running `make backfill && make all` with an ENTSO-E token fills this section from `reports/NUMERIC_SSOT.md`.
+**Annual energy cost per strategy, EUR million (CALIBRATED)**
+
+| Strategy | 2021 | 2022 | 2023 | 2024 | 2025 | 2021-2025 |
+|---|---:|---:|---:|---:|---:|---:|
+| Full spot | 5.70 | 13.84 | 5.51 | 4.34 | 5.22 | 34.61 |
+| ÖSPI-indexed | 2.43 | 8.30 | 12.50 | 4.90 | 4.05 | 32.18 |
+| Fixed annual | 2.17 | 3.08 | 11.64 | 8.95 | 4.34 | 30.17 |
+| Hybrid 30% fixed | 4.64 | 10.61 | 7.35 | 5.72 | 4.95 | 33.28 |
+| Hybrid 50% fixed | 3.93 | 8.46 | 8.58 | 6.64 | 4.78 | 32.39 |
+| Hybrid 70% fixed | 3.23 | 6.31 | 9.80 | 7.56 | 4.60 | 31.50 |
+
+**Next 12 months (2026-10..2027-09), EUR million (SIMULATED)**
+
+| Strategy | Mean | P5 | P50 | P95 | CVaR95 |
+|---|---:|---:|---:|---:|---:|
+| Full spot | 5.36 | 3.65 | 5.25 | 7.56 | 8.24 |
+| ÖSPI-indexed | 5.15 | 3.47 | 5.03 | 7.16 | 7.88 |
+| Fixed annual | 4.77 | 3.75 | 4.51 | 6.61 | 6.96 |
+| Hybrid 30% fixed | 5.18 | 3.80 | 5.07 | 6.85 | 7.37 |
+| Hybrid 50% fixed | 5.06 | 3.84 | 4.98 | 6.61 | 6.97 |
+| Hybrid 70% fixed | 4.95 | 3.88 | 4.82 | 6.44 | 6.80 |
+
+A **cost-minimizing CFO** chooses Fixed annual: the lowest expected 12-month cost, €4.77 M (SIMULATED), with a P95 of €6.61 M (SIMULATED). A **risk-averse CFO** chooses Hybrid 70% fixed: it lowers the P95 by €0.17 M (SIMULATED) and costs €0.18 M (SIMULATED) more in expectation. That premium is the price of the risk reduction.
+
+*Contract prices proxied via ÖSPI (futures-based index); premiums are calibrated assumptions — see LIMITATIONS. Reference load profile is constructed (CALIBRATED), not measured; construction rules in SPEC-03.*
 <!-- epra:results:end -->
 
 Full tables: [strategy comparison](reports/strategies/strategy_annual_summary.md),
@@ -167,8 +190,8 @@ lists those steps. Until then, the static charts in
 - **Energy only:** grid fees, taxes and levies are out of scope.
 - **No forecast skill** is claimed anywhere.
 
-Charts stay in `reports/` (executive charts, analytics, strategies) rather than in this
-page until the real-data run: the committed ones are watermarked fixture previews.
+Further charts stay in `reports/` (executive charts, analytics, strategies) rather than in this
+page.
 
 A metered load profile, or supplier offers that do not track the ÖSPI, would change this
 conclusion; the sensitivity matrix shows how far the premium and the load shape move it.

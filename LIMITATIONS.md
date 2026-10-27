@@ -98,20 +98,58 @@ Procurement-decision scope only (Charter §2): the analysis isolates the energy
 price lever. Total electricity bill impact differs from the numbers shown here.
 
 ## 6. Data-quality caveats for 2025
-*(M1/M2 findings recorded below; 2025 caveats cannot be assessed until the
-re-backfill lands; finalized at M5)* — Any gate that required investigation
+*(M1/M2 findings recorded below; first real-data run 2026-10-28)* — Any gate that required investigation
 (R-8) is documented here with its resolution.
 
-**All committed results are fixture-based until the real-data run (open,
-2026-10-14).** M4–M7 were built in an environment without the ENTSO-E token
-and without network access to ENTSO-E or GeoSphere. Every committed analytics,
-strategy, SSOT, data-quality and executive-chart artifact therefore comes from
-the seeded synthetic CI fixture (ADR-018) and carries a FIXTURE banner or
-watermark; the README shows no numbers in that state. The gates (AN-304,
-ST-602, GV-303) passing on the fixture prove the code paths, not the market
-findings. Resolution: `make backfill && make geosphere && make calendar &&
-make validate-ingest && make all` with the token; any gate that then needs
-investigation is recorded here (R-8).
+**First real-data run (2026-10-28, resolved).** ENTSO-E prices, load and
+generation 2019 to 2026-09 and GeoSphere temperature are ingested; every
+committed result in `reports/` comes from that real run (the fixture is only a
+CI and offline stand-in, ADR-018). All ingestion gates (ING-080..085, 094, 103,
+111) PASS in `reports/ingestion/validation_2026-10-28.md`, dbt passes 64 + 7
+tests with 0 warnings, AN-304 and ST-602 (a)(b)(c) PASS. Numbers in this file
+and in the README are copied from `reports/NUMERIC_SSOT.md` (A-6). The
+paragraph "Data horizon gap" below describes the state before this run and is
+kept as history.
+
+**R-8: two price series per period in the ENTSO-E response (found and fixed
+2026-10-28, ADR-023).** The first real run passed all gates but showed a warning
+in the dbt test `predup_count_prices` in all 186 zone-months and a mismatch
+between the ING-082 2022 mean (264.41) and the warehouse mean (264.02). Cause:
+for AT and DE-LU, ENTSO-E sends two `TimeSeries` per period, told apart by
+`classificationSequence_AttributeInstanceComponent.position`. Position 1 is the
+SDAC day-ahead price; position 2 is a second PT15M series with different prices.
+The parser kept both and the staging dedup picked one at random among ties
+(A-4 breach). Fix: the parser keeps position 1 only, and the staging dedup has a
+deterministic tie-breaker. After the fix, raw has one row per `ts_utc` and zone,
+`predup_count_prices` passes, and the ING-082 annual means equal the warehouse
+annual means (to 0.01). Every price-derived number changed; the committed
+numbers are the corrected ones. A document without the position element is
+parsed as before, and overlapping position-less series with different prices
+fail loudly rather than being guessed.
+
+**GARCH persistence is on the boundary.** The fitted GARCH(1,1) in
+`reports/analytics/a3_regime_stats.md` has alpha 0.1007 and beta 0.8993, so
+alpha + beta = 1.0000: an integrated-GARCH (IGARCH) boundary, where volatility
+shocks do not decay and the unconditional variance is not defined. The text
+"decays only slowly" is therefore a lower bound on persistence. The regimes
+(AN-304) and the bootstrap (which resamples whole historical months, not GARCH
+paths) do not depend on a finite unconditional variance, but the persistence
+number must not be read as a precise estimate.
+
+**The dbt row-count test does not check priced hours.**
+`fct_price_hourly_row_count_per_year` counts rows of `fct_price_hourly`, which
+follows the calendar spine to 2028-03-31 (the forward-risk horizon, ING-110).
+81,071 spine hours exist, of which 67,919 carry an AT price (latest 2026-09).
+The test checks that hours exist per local year, with the edge years only held
+to "1 to a full year". Coverage of priced hours is checked by ING-080 and ING-085
+on complete local years, not by this test.
+
+**GeoSphere rows for the partial month 2026-10.** The GeoSphere pull wrote 31
+rows for 2026-10 (month-end window). The values of 2026-10-01..27 are measured
+daily means. The rows 2026-10-28..31 have `tl_mittel_c = NaN`: the dates are in
+the future relative to the run and GeoSphere returns null for them. They are not
+forecasts and they are not filled (A-2). No analysis uses 2026-10 temperature
+(`data_last_month` is 2026-09).
 
 **Data horizon gap — no 2025 data ingested yet (open).** The committed
 evidence shows the real ingested data stops well short of "latest complete
