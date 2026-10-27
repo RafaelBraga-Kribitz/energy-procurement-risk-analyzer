@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="EPRA procurement risk dashboard: static twin of the Power BI report"><title>EPRA procurement risk dashboard</title><style>:root{color-scheme:light;--surface:#E4E6EA;--surface-2:#DCDEE2;--surface-3:#D4D6DA;--ink:#26282C;--ink-2:#5A5C61;--mid:#9EA0A5;--rule-c:#C2C4CA;--hl:#2F4BE0;--sc-ac:#5A5C61;--var-pos:#007A66;--var-neg:#CC3710;--var-pos-tint:#B3E3D7;--var-neg-tint:#F9C3AD;--on-accent:#FFFFFF;--s-S1:#966400;--s-S2:#0A7399;--s-S3:#2F4BE0;--s-S4_30:#775C43;--s-S4_50:#625870;--s-S4_70:#4E529D;}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--surface:#191A1D;--surface-2:#2C2D30;--surface-3:#484A4D;--ink:#F3F5F9;--ink-2:#CED0D4;--mid:#7E8084;--rule-c:#393A3D;--hl:#7C93FF;--sc-ac:#CED0D4;--var-pos:#00C69F;--var-neg:#F57A5A;--var-pos-tint:#0B4A3E;--var-neg-tint:#6A2311;--on-accent:#1A1A1A;--s-S1:#F0B400;--s-S2:#54C0F0;--s-S3:#7C93FF;--s-S4_30:#CDAA4C;--s-S4_50:#B6A480;--s-S4_70:#9F9DB2;}}:root[data-theme="dark"]{color-scheme:dark;--surface:#191A1D;--surface-2:#2C2D30;--surface-3:#484A4D;--ink:#F3F5F9;--ink-2:#CED0D4;--mid:#7E8084;--rule-c:#393A3D;--hl:#7C93FF;--sc-ac:#CED0D4;--var-pos:#00C69F;--var-neg:#F57A5A;--var-pos-tint:#0B4A3E;--var-neg-tint:#6A2311;--on-accent:#1A1A1A;--s-S1:#F0B400;--s-S2:#54C0F0;--s-S3:#7C93FF;--s-S4_30:#CDAA4C;--s-S4_50:#B6A480;--s-S4_70:#9F9DB2;}/* EPRA HTML dashboard twin (ADR-022). Braga design system v2.1 rules: flat opaque
+   surfaces, no shadow/gradient/alpha, square corners, 1px rule-c gridlines, one
+   highlight per chart, colour in marks never in type, nothing below 12px.
+   Colour values arrive as custom properties from bk tokens (html_dashboard.css_tokens). */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);
+  font:15px/1.5 -apple-system,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1320px;margin:0 auto;padding:0 32px}
+.skip{position:absolute;left:-999px;top:0;background:var(--ink);color:var(--surface);padding:8px 12px}
+.skip:focus{left:8px;z-index:10}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.banner{position:sticky;top:0;z-index:5;background:var(--var-neg-tint);color:var(--ink);
+  border-bottom:2px solid var(--var-neg);padding:10px 32px;font-size:14px}
+.banner code{font-size:13px}
+.top{border-bottom:1px solid var(--rule-c);background:var(--surface)}
+.top .wrap:first-child{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;
+  padding-top:20px}
+.eyebrow{margin:0;font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--ink-2)}
+.meta{margin:4px 0 0;font-size:13px;color:var(--ink-2)}
+.theme{flex:none;font:inherit;font-size:13px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--rule-c);padding:4px 10px;cursor:pointer}
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-top:16px;scrollbar-width:thin}
+.tabs [role=tab]{font:inherit;font-size:15px;font-weight:600;color:var(--ink-2);background:none;
+  border:0;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;white-space:nowrap}
+.tabs [role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--hl)}
+.tabs [role=tab]:hover{color:var(--ink)}
+.page{padding:28px 0 8px}
+.page:focus{outline:none}
+.page-title{margin:0;font-size:28px;line-height:1.2;font-weight:700;max-width:40ch}
+.subtitle{margin:8px 0 0;font-size:16px;color:var(--ink-2);max-width:70ch}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:20px 0 0}
+.controls label{font-size:14px;font-weight:600}
+.controls select,.seg{font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--rule-c);padding:6px 12px;min-height:36px}
+.seg{cursor:pointer}
+.seg[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin-top:20px;
+  border-top:2px solid var(--ink);padding-top:16px}
+.kpis.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpi p{margin:0}
+.kpi-label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.kpi-value{font-size:30px;line-height:1.2;font-weight:700;margin-top:6px!important}
+.kpis.accent .kpi:first-child .kpi-value{border-bottom:4px solid var(--hl);padding-bottom:2px;
+  display:inline-block}
+.kpi-note{font-size:13px;color:var(--ink-2);margin-top:4px!important}
+.grid{display:grid;gap:24px;margin-top:24px}
+.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid.two.lead{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.card{margin:0;background:var(--surface-2);border:1px solid var(--rule-c);padding:16px 18px;min-width:0}
+.card h3{margin:0;font-size:17px;line-height:1.3;font-weight:700}
+.unit{margin:2px 0 0;font-size:13px;color:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:13px;color:var(--ink)}
+.legend:empty{display:none}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:3px}
+.legend i.box{height:10px;width:10px}
+.plot{position:relative;margin-top:8px;min-height:120px}
+.plot:focus-visible{outline-offset:4px}
+.plot svg{display:block;overflow:visible}
+.plot text{font-size:12px;fill:var(--ink-2);font-variant-numeric:tabular-nums}
+.plot .lbl{fill:var(--ink);font-weight:600}
+.plot .grid-l{stroke:var(--rule-c);stroke-width:1;shape-rendering:crispEdges}
+.plot .axis-l{stroke:var(--mid);stroke-width:1;shape-rendering:crispEdges}
+.plot .ref{stroke:var(--ink-2);stroke-width:1}
+.plot .cross{stroke:var(--ink-2);stroke-width:1;pointer-events:none}
+.plot .hot{stroke:var(--ink);stroke-width:2}
+.plot .leader{stroke:var(--mid);stroke-width:1}
+.multiples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 24px;margin-top:12px}
+.multiples .mini h4{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.multiples .mini h4 i{display:inline-block;width:10px;height:10px}
+.note{font-size:13px;color:var(--ink-2);margin:10px 0 0}
+.empty{font-size:15px;margin:12px 0 0}
+details.data{margin-top:12px;font-size:13px}
+details.data summary{cursor:pointer;color:var(--ink-2);font-weight:600}
+details.data[hidden]{display:none}
+.table-wrap{position:relative;overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+caption{text-align:left;font-size:13px;color:var(--ink-2);padding-bottom:4px}
+th,td{text-align:right;padding:6px 7px;border-bottom:1px solid var(--rule-c);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:700;color:var(--ink);border-bottom:1px solid var(--ink-2)}
+table.matrix{font-size:14px}
+table.matrix[hidden]{display:none}
+table.matrix th[scope=row]{position:sticky;left:0;background:var(--surface-2);z-index:1}
+table.matrix td.lo{background:var(--var-pos-tint)}
+table.matrix td.hi{background:var(--var-neg-tint)}
+table.matrix .mk{font-size:11px;color:var(--ink)}
+table.matrix td.tot{font-weight:700;border-left:1px solid var(--ink-2)}
+table.matrix .rank{color:var(--ink-2);font-size:12px}
+.sw{display:inline-block;width:10px;height:10px;margin-right:8px;vertical-align:baseline}
+.page-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;margin-top:28px;
+  border-top:2px solid var(--ink);padding:10px 0 24px;font-size:13px;color:var(--ink-2)}
+.page-foot .tag{font-weight:600}
+.tip{position:absolute;z-index:20;pointer-events:none;background:var(--surface);color:var(--ink);
+  border:1px solid var(--ink-2);padding:8px 10px;font-size:13px;min-width:140px;max-width:280px}
+.tip .tt-h{font-weight:700;margin-bottom:4px}
+.tip .tt-r{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.tip .tt-r i{display:inline-block;width:14px;height:3px;flex:none}
+.tip .tt-r strong{font-weight:700}
+.tip .tt-r span{color:var(--ink-2)}
+@media (max-width:1000px){.kpis,.kpis.five{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.two,.grid.two.lead{grid-template-columns:minmax(0,1fr)}.multiples{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.wrap{padding:0 16px}.tabs{flex-wrap:wrap;overflow-x:visible}
+  .tabs [role=tab]{padding:8px 10px}.banner{padding:8px 16px}
+  .page-title{font-size:22px}.kpi-value{font-size:24px}.kpis{gap:16px}
+  .multiples{grid-template-columns:1fr}.card{padding:12px}}
+@media (forced-colors:active){.seg[aria-pressed=true]{outline:2px solid CanvasText}}
+@media print{.tabs,.theme,.controls{display:none}.page[hidden]{display:block}}
+</style></head><body><a class="skip" href="#main">Skip to the dashboard</a><header class="top"><div class="wrap"><div class="brand"><p class="eyebrow">Energy Procurement Risk Analyzer · Austrian day-ahead market (ENTSO-E)</p><p class="meta">Data through 2026-09 · exports of 2026-10-28 · the same exports/*.csv as dashboards/EPRA.pbip</p></div><button type="button" class="theme" id="theme" aria-label="Colour theme: automatic">Theme: auto</button></div><div class="wrap"><div class="tabs" role="tablist" aria-label="Dashboard pages"><button type="button" role="tab" id="tab-headline" aria-controls="panel-headline" aria-selected="true" tabindex="0">Headline</button><button type="button" role="tab" id="tab-market" aria-controls="panel-market" aria-selected="false" tabindex="-1">Market</button><button type="button" role="tab" id="tab-strategies" aria-controls="panel-strategies" aria-selected="false" tabindex="-1">Strategies</button><button type="button" role="tab" id="tab-risk" aria-controls="panel-risk" aria-selected="false" tabindex="-1">Risk</button><button type="button" role="tab" id="tab-data-quality" aria-controls="panel-data-quality" aria-selected="false" tabindex="-1">Data quality</button></div></div></header><main id="main" class="wrap"><section class="page" role="tabpanel" id="panel-headline" aria-labelledby="tab-headline" tabindex="0"><h2 class="page-title">What the wrong procurement strategy cost a 50 GWh Styrian manufacturer</h2><p class="subtitle" lang="de">Was hat die falsche Beschaffungsstrategie 2021–2025 gekostet, und welches Risiko bleibt?</p><div class="kpis accent"><div class="kpi" data-ssot-key="wrong_strategy_cost_total" data-value="27043731.19"><p class="kpi-label">Wrong strategy cost 2021–2025</p><p class="kpi-value">€27.04 M</p><p class="kpi-note">Dearest minus cheapest strategy, summed per year · CALIBRATED</p></div><div class="kpi" data-ssot-key="best_strategy_5yr" data-value="S3"><p class="kpi-label">Cheapest strategy 2021–2025</p><p class="kpi-value">Fixed annual</p><p class="kpi-note">€30.17 M over five years, €1,330,356 less than Hybrid 70% fixed · CALIBRATED</p></div><div class="kpi" data-ssot-key="p95_next12m_S1" data-value="7555430.08"><p class="kpi-label">P95 next 12 months · full spot</p><p class="kpi-value">€7.56 M</p><p class="kpi-note">Bad-case cost, unconditional pool · SIMULATED</p></div><div class="kpi" data-ssot-key="p95_next12m_S3" data-value="6607054.01"><p class="kpi-label">P95 next 12 months · fixed annual</p><p class="kpi-value">€6.61 M</p><p class="kpi-note">Bad-case cost, unconditional pool · SIMULATED</p></div></div><div class="grid two lead"><figure class="card chart"><figcaption><h3>Cost of the wrong strategy per year</h3><p class="unit">EUR million · dearest minus cheapest strategy; label = the dearest</p></figcaption><div class="legend" id="legend-wrong"></div><div class="plot" id="plot-wrong" data-chart="wrong"></div><details class="data"><summary>Data table: cost of the wrong strategy per year</summary><div class="table-wrap"><table><caption>cost of the wrong strategy per year</caption><thead><tr><th scope="col">Year</th><th scope="col">Gap</th><th scope="col">Dearest strategy</th><th scope="col">Cheapest strategy</th></tr></thead><tbody><tr><td>2021</td><td>€3.53 M</td><td>Full spot</td><td>Fixed annual</td></tr><tr><td>2022</td><td>€10.76 M</td><td>Full spot</td><td>Fixed annual</td></tr><tr><td>2023</td><td>€6.99 M</td><td>ÖSPI-indexed</td><td>Full spot</td></tr><tr><td>2024</td><td>€4.60 M</td><td>Fixed annual</td><td>Full spot</td></tr><tr><td>2025</td><td>€1.17 M</td><td>Full spot</td><td>ÖSPI-indexed</td></tr></tbody></table></div></details></figure><figure class="card chart"><figcaption><h3>Annual cost by strategy</h3><p class="unit">EUR million · ▼ cheapest and ▲ dearest of each year</p></figcaption><div class="table-wrap"><table class="matrix" data-metric="cost"><caption class="sr">Annual cost by strategy, EUR million</caption><thead><tr><th scope="col">Strategy</th><th scope="col">2021</th><th scope="col">2022</th><th scope="col">2023</th><th scope="col">2024</th><th scope="col">2025</th><th scope="col">2021–2025</th></tr></thead><tbody><tr><th scope="row">Full spot</th><td class="hi">€5.70 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="hi">€13.84 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="lo">€5.51 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="lo">€4.34 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="hi">€5.22 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="tot">€34.61 M</td></tr><tr><th scope="row">ÖSPI-indexed</th><td class="">€2.43 M</td><td class="">€8.30 M</td><td class="hi">€12.50 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="">€4.90 M</td><td class="lo">€4.05 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="tot">€32.18 M</td></tr><tr><th scope="row">Fixed annual</th><td class="lo">€2.17 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="lo">€3.08 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="">€11.64 M</td><td class="hi">€8.95 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="">€4.34 M</td><td class="tot">€30.17 M <span class="mk">▼</span><span class="sr"> cheapest</span></td></tr><tr><th scope="row">Hybrid 30% fixed</th><td class="">€4.64 M</td><td class="">€10.61 M</td><td class="">€7.35 M</td><td class="">€5.72 M</td><td class="">€4.95 M</td><td class="tot">€33.28 M</td></tr><tr><th scope="row">Hybrid 50% fixed</th><td class="">€3.93 M</td><td class="">€8.46 M</td><td class="">€8.58 M</td><td class="">€6.64 M</td><td class="">€4.78 M</td><td class="tot">€32.39 M</td></tr><tr><th scope="row">Hybrid 70% fixed</th><td class="">€3.23 M</td><td class="">€6.31 M</td><td class="">€9.80 M</td><td class="">€7.56 M</td><td class="">€4.60 M</td><td class="tot">€31.50 M</td></tr></tbody></table></div></figure></div><footer class="page-foot"><span>Source: ENTSO-E Transparency / AEA ÖSPI / own calculations</span><span class="tag">CALIBRATED · constructed load profile (SPEC-03) · contract prices via ÖSPI proxy</span></footer></section><section class="page" role="tabpanel" id="panel-market" aria-labelledby="tab-market" tabindex="0" hidden><h2 class="page-title">The Austrian day-ahead market since 2019</h2><p class="subtitle" lang="de">Der österreichische Day-Ahead-Markt: Preisniveau, negative Stunden und Abstand zu Deutschland.</p><div class="controls"><label for="market-year">Year</label><select id="market-year"><option value="all">All years</option><option value="2019">2019</option><option value="2020">2020</option><option value="2021">2021</option><option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option></select></div><div class="grid"><figure class="card chart wide"><figcaption><h3>Monthly AT day-ahead price, base and peak</h3><p class="unit">EUR/MWh · monthly mean</p></figcaption><div class="legend" id="legend-price"></div><div class="plot" id="plot-price" data-chart="price"></div><details class="data"><summary>Data table: monthly prices and spread</summary><div class="table-wrap"><table><caption>monthly prices and spread</caption><thead><tr><th scope="col">Month</th><th scope="col">Base EUR/MWh</th><th scope="col">Peak EUR/MWh</th><th scope="col">AT − DE-LU EUR/MWh</th></tr></thead><tbody><tr><td>2019-01</td><td>56.0</td><td>68.5</td><td>6.6</td></tr><tr><td>2019-02</td><td>46.0</td><td>52.1</td><td>3.2</td></tr><tr><td>2019-03</td><td>33.1</td><td>40.0</td><td>2.5</td></tr><tr><td>2019-04</td><td>37.7</td><td>42.2</td><td>0.8</td></tr><tr><td>2019-05</td><td>37.9</td><td>43.5</td><td>0.1</td></tr><tr><td>2019-06</td><td>34.6</td><td>41.1</td><td>2.1</td></tr><tr><td>2019-07</td><td>40.1</td><td>44.1</td><td>0.4</td></tr><tr><td>2019-08</td><td>37.7</td><td>42.6</td><td>0.9</td></tr><tr><td>2019-09</td><td>38.0</td><td>44.3</td><td>2.3</td></tr><tr><td>2019-10</td><td>39.0</td><td>47.3</td><td>2.0</td></tr><tr><td>2019-11</td><td>42.7</td><td>53.7</td><td>1.7</td></tr><tr><td>2019-12</td><td>38.1</td><td>47.6</td><td>6.1</td></tr><tr><td>2020-01</td><td>40.7</td><td>47.5</td><td>5.7</td></tr><tr><td>2020-02</td><td>29.1</td><td>36.6</td><td>7.2</td></tr><tr><td>2020-03</td><td>24.6</td><td>30.2</td><td>2.1</td></tr><tr><td>2020-04</td><td>18.3</td><td>20.2</td><td>1.2</td></tr><tr><td>2020-05</td><td>17.5</td><td>22.4</td><td>-0.1</td></tr><tr><td>2020-06</td><td>26.5</td><td>32.8</td><td>0.4</td></tr><tr><td>2020-07</td><td>32.3</td><td>37.3</td><td>2.2</td></tr><tr><td>2020-08</td><td>36.0</td><td>41.9</td><td>1.1</td></tr><tr><td>2020-09</td><td>45.5</td><td>54.7</td><td>1.9</td></tr><tr><td>2020-10</td><td>35.5</td><td>44.9</td><td>1.5</td></tr><tr><td>2020-11</td><td>41.2</td><td>51.2</td><td>2.4</td></tr><tr><td>2020-12</td><td>50.2</td><td>63.8</td><td>6.7</td></tr><tr><td>2021-01</td><td>57.7</td><td>72.2</td><td>4.9</td></tr><tr><td>2021-02</td><td>50.4</td><td>62.4</td><td>1.7</td></tr><tr><td>2021-03</td><td>53.6</td><td>60.5</td><td>6.5</td></tr><tr><td>2021-04</td><td>60.0</td><td>69.3</td><td>6.4</td></tr><tr><td>2021-05</td><td>54.8</td><td>64.0</td><td>1.5</td></tr><tr><td>2021-06</td><td>74.3</td><td>83.6</td><td>0.2</td></tr><tr><td>2021-07</td><td>83.7</td><td>93.1</td><td>2.3</td></tr><tr><td>2021-08</td><td>82.8</td><td>92.8</td><td>0.1</td></tr><tr><td>2021-09</td><td>134.7</td><td>152.8</td><td>6.3</td></tr><tr><td>2021-10</td><td>169.7</td><td>210.1</td><td>30.3</td></tr><tr><td>2021-11</td><td>206.2</td><td>257.1</td><td>30.0</td></tr><tr><td>2021-12</td><td>250.1</td><td>311.5</td><td>29.1</td></tr><tr><td>2022-01</td><td>189.0</td><td>232.2</td><td>21.3</td></tr><tr><td>2022-02</td><td>167.8</td><td>190.7</td><td>39.0</td></tr><tr><td>2022-03</td><td>282.9</td><td>314.3</td><td>30.9</td></tr><tr><td>2022-04</td><td>186.2</td><td>213.5</td><td>20.5</td></tr><tr><td>2022-05</td><td>184.5</td><td>197.4</td><td>7.0</td></tr><tr><td>2022-06</td><td>228.3</td><td>261.7</td><td>10.3</td></tr><tr><td>2022-07</td><td>359.1</td><td>415.1</td><td>44.1</td></tr><tr><td>2022-08</td><td>493.8</td><td>544.2</td><td>28.7</td></tr><tr><td>2022-09</td><td>386.4</td><td>442.5</td><td>40.3</td></tr><tr><td>2022-10</td><td>175.1</td><td>211.6</td><td>22.5</td></tr><tr><td>2022-11</td><td>212.5</td><td>266.5</td><td>38.9</td></tr><tr><td>2022-12</td><td>261.2</td><td>342.9</td><td>9.6</td></tr><tr><td>2023-01</td><td>144.6</td><td>180.2</td><td>26.7</td></tr><tr><td>2023-02</td><td>144.6</td><td>161.6</td><td>16.3</td></tr><tr><td>2023-03</td><td>113.4</td><td>124.9</td><td>10.9</td></tr><tr><td>2023-04</td><td>104.8</td><td>113.2</td><td>4.1</td></tr><tr><td>2023-05</td><td>82.3</td><td>87.9</td><td>0.6</td></tr><tr><td>2023-06</td><td>94.8</td><td>98.9</td><td>0.1</td></tr><tr><td>2023-07</td><td>84.8</td><td>96.3</td><td>7.2</td></tr><tr><td>2023-08</td><td>92.7</td><td>94.8</td><td>-1.6</td></tr><tr><td>2023-09</td><td>101.4</td><td>109.1</td><td>0.7</td></tr><tr><td>2023-10</td><td>99.2</td><td>121.2</td><td>11.9</td></tr><tr><td>2023-11</td><td>93.6</td><td>122.1</td><td>2.5</td></tr><tr><td>2023-12</td><td>73.2</td><td>102.4</td><td>4.7</td></tr><tr><td>2024-01</td><td>81.3</td><td>97.4</td><td>4.8</td></tr><tr><td>2024-02</td><td>65.8</td><td>75.1</td><td>4.4</td></tr><tr><td>2024-03</td><td>63.6</td><td>73.3</td><td>-1.1</td></tr><tr><td>2024-04</td><td>58.7</td><td>63.7</td><td>-3.6</td></tr><tr><td>2024-05</td><td>64.1</td><td>64.2</td><td>-3.1</td></tr><tr><td>2024-06</td><td>67.7</td><td>70.7</td><td>-5.2</td></tr><tr><td>2024-07</td><td>63.4</td><td>61.0</td><td>-4.3</td></tr><tr><td>2024-08</td><td>85.1</td><td>85.6</td><td>3.1</td></tr><tr><td>2024-09</td><td>81.9</td><td>92.4</td><td>3.6</td></tr><tr><td>2024-10</td><td>85.6</td><td>102.2</td><td>-0.5</td></tr><tr><td>2024-11</td><td>130.8</td><td>167.3</td><td>16.9</td></tr><tr><td>2024-12</td><td>129.7</td><td>175.7</td><td>21.4</td></tr><tr><td>2025-01</td><td>133.8</td><td>163.0</td><td>19.7</td></tr><tr><td>2025-02</td><td>140.8</td><td>156.5</td><td>12.3</td></tr><tr><td>2025-03</td><td>103.9</td><td>107.2</td><td>9.2</td></tr><tr><td>2025-04</td><td>81.0</td><td>76.9</td><td>3.1</td></tr><tr><td>2025-05</td><td>70.6</td><td>59.5</td><td>3.2</td></tr><tr><td>2025-06</td><td>66.5</td><td>46.0</td><td>2.5</td></tr><tr><td>2025-07</td><td>87.9</td><td>82.1</td><td>0.1</td></tr><tr><td>2025-08</td><td>74.3</td><td>62.6</td><td>-2.7</td></tr><tr><td>2025-09</td><td>92.3</td><td>102.5</td><td>8.8</td></tr><tr><td>2025-10</td><td>108.9</td><td>124.3</td><td>24.5</td></tr><tr><td>2025-11</td><td>116.0</td><td>141.1</td><td>14.1</td></tr><tr><td>2025-12</td><td>114.0</td><td>133.7</td><td>20.6</td></tr><tr><td>2026-01</td><td>141.4</td><td>184.2</td><td>31.3</td></tr><tr><td>2026-02</td><td>109.2</td><td>124.0</td><td>12.6</td></tr><tr><td>2026-03</td><td>112.4</td><td>108.7</td><td>13.1</td></tr><tr><td>2026-04</td><td>86.6</td><td>79.3</td><td>8.1</td></tr><tr><td>2026-05</td><td>100.0</td><td>90.3</td><td>2.4</td></tr><tr><td>2026-06</td><td>106.7</td><td>94.8</td><td>-2.8</td></tr><tr><td>2026-07</td><td>117.2</td><td>102.2</td><td>11.8</td></tr><tr><td>2026-08</td><td>148.1</td><td>146.7</td><td>21.2</td></tr><tr><td>2026-09</td><td>173.7</td><td>172.5</td><td>28.8</td></tr></tbody></table></div></details></figure></div><div class="grid two"><figure class="card chart"><figcaption><h3>Hours with a negative price</h3><p class="unit">hours per year · * partial year, through 2026-09</p></figcaption><div class="legend" id="legend-neg"></div><div class="plot" id="plot-neg" data-chart="neg"></div><details class="data"><summary>Data table: negative-price hours per year</summary><div class="table-wrap"><table><caption>negative-price hours per year</caption><thead><tr><th scope="col">Year</th><th scope="col">Hours</th></tr></thead><tbody><tr><td>2019</td><td>68</td></tr><tr><td>2020</td><td>111</td></tr><tr><td>2021</td><td>64</td></tr><tr><td>2022</td><td>0</td></tr><tr><td>2023</td><td>111</td></tr><tr><td>2024</td><td>296</td></tr><tr><td>2025</td><td>378</td></tr><tr><td>2026 (partial)</td><td>260</td></tr></tbody></table></div></details></figure><figure class="card chart"><figcaption><h3>AT minus DE-LU day-ahead spread</h3><p class="unit">EUR/MWh · above 0 = Austria dearer</p></figcaption><div class="legend" id="legend-spread"></div><div class="plot" id="plot-spread" data-chart="spread"></div><p class="note">The values are in the price table above.</p></figure></div><footer class="page-foot"><span>Source: ENTSO-E Transparency / AEA ÖSPI / own calculations</span><span class="tag">VERIFIED · computed from ENTSO-E day-ahead prices, no modelling</span></footer></section><section class="page" role="tabpanel" id="panel-strategies" aria-labelledby="tab-strategies" tabindex="0" hidden><h2 class="page-title">Annual energy cost of each procurement strategy, 2021–2025</h2><p class="subtitle" lang="de">Jährliche Energiekosten je Strategie für einen Verbraucher mit 50 GWh pro Jahr.</p><div class="controls" role="group" aria-label="Matrix metric"><button type="button" class="seg" data-metric="cost" aria-pressed="true">Total cost</button><button type="button" class="seg" data-metric="unit" aria-pressed="false">Unit cost and rank</button></div><div class="grid"><figure class="card chart wide"><figcaption><h3>Annual cost by strategy</h3><p class="unit">▼ cheapest and ▲ dearest of each year</p></figcaption><div class="table-wrap"><table class="matrix" data-metric="cost"><caption class="sr">Annual cost by strategy, EUR million</caption><thead><tr><th scope="col">Strategy</th><th scope="col">2021</th><th scope="col">2022</th><th scope="col">2023</th><th scope="col">2024</th><th scope="col">2025</th><th scope="col">2021–2025</th></tr></thead><tbody><tr><th scope="row"><span class="sw" style="background:var(--s-S1)"></span>Full spot</th><td class="hi">€5.70 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="hi">€13.84 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="lo">€5.51 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="lo">€4.34 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="hi">€5.22 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="tot">€34.61 M</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S2)"></span>ÖSPI-indexed</th><td class="">€2.43 M</td><td class="">€8.30 M</td><td class="hi">€12.50 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="">€4.90 M</td><td class="lo">€4.05 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="tot">€32.18 M</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S3)"></span>Fixed annual</th><td class="lo">€2.17 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="lo">€3.08 M <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="">€11.64 M</td><td class="hi">€8.95 M <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="">€4.34 M</td><td class="tot">€30.17 M <span class="mk">▼</span><span class="sr"> cheapest</span></td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S4_30)"></span>Hybrid 30% fixed</th><td class="">€4.64 M</td><td class="">€10.61 M</td><td class="">€7.35 M</td><td class="">€5.72 M</td><td class="">€4.95 M</td><td class="tot">€33.28 M</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S4_50)"></span>Hybrid 50% fixed</th><td class="">€3.93 M</td><td class="">€8.46 M</td><td class="">€8.58 M</td><td class="">€6.64 M</td><td class="">€4.78 M</td><td class="tot">€32.39 M</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S4_70)"></span>Hybrid 70% fixed</th><td class="">€3.23 M</td><td class="">€6.31 M</td><td class="">€9.80 M</td><td class="">€7.56 M</td><td class="">€4.60 M</td><td class="tot">€31.50 M</td></tr></tbody></table></div><div class="table-wrap"><table class="matrix" data-metric="unit"><caption class="sr">Annual unit cost and rank by strategy, EUR/MWh, #rank (1 = cheapest)</caption><thead><tr><th scope="col">Strategy</th><th scope="col">2021</th><th scope="col">2022</th><th scope="col">2023</th><th scope="col">2024</th><th scope="col">2025</th><th scope="col">2021–2025</th></tr></thead><tbody><tr><th scope="row"><span class="sw" style="background:var(--s-S1)"></span>Full spot</th><td class="hi">114.0 <span class="rank">#6</span> <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="hi">276.8 <span class="rank">#6</span> <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="lo">110.2 <span class="rank">#1</span> <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="lo">86.9 <span class="rank">#1</span> <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="hi">104.3 <span class="rank">#6</span> <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="tot">138.4</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S2)"></span>ÖSPI-indexed</th><td class="">48.7 <span class="rank">#2</span></td><td class="">166.0 <span class="rank">#3</span></td><td class="hi">250.0 <span class="rank">#6</span> <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="">97.9 <span class="rank">#2</span></td><td class="lo">81.0 <span class="rank">#1</span> <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="tot">128.7</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S3)"></span>Fixed annual</th><td class="lo">43.4 <span class="rank">#1</span> <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="lo">61.7 <span class="rank">#1</span> <span class="mk">▼</span><span class="sr"> cheapest</span></td><td class="">232.8 <span class="rank">#5</span></td><td class="hi">178.9 <span class="rank">#6</span> <span class="mk">▲</span><span class="sr"> dearest</span></td><td class="">86.8 <span class="rank">#2</span></td><td class="tot">120.7 <span class="mk">▼</span><span class="sr"> cheapest</span></td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S4_30)"></span>Hybrid 30% fixed</th><td class="">92.8 <span class="rank">#5</span></td><td class="">212.3 <span class="rank">#5</span></td><td class="">147.0 <span class="rank">#2</span></td><td class="">114.5 <span class="rank">#3</span></td><td class="">99.1 <span class="rank">#5</span></td><td class="tot">133.1</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S4_50)"></span>Hybrid 50% fixed</th><td class="">78.7 <span class="rank">#4</span></td><td class="">169.2 <span class="rank">#4</span></td><td class="">171.5 <span class="rank">#3</span></td><td class="">132.9 <span class="rank">#4</span></td><td class="">95.5 <span class="rank">#4</span></td><td class="tot">129.6</td></tr><tr><th scope="row"><span class="sw" style="background:var(--s-S4_70)"></span>Hybrid 70% fixed</th><td class="">64.5 <span class="rank">#3</span></td><td class="">126.2 <span class="rank">#2</span></td><td class="">196.0 <span class="rank">#4</span></td><td class="">151.3 <span class="rank">#5</span></td><td class="">92.0 <span class="rank">#3</span></td><td class="tot">126.0</td></tr></tbody></table></div></figure><figure class="card chart wide"><figcaption><h3>Cumulative cost since January 2021</h3><p class="unit">EUR million · running total</p></figcaption><div class="legend" id="legend-cum"></div><div class="plot" id="plot-cum" data-chart="cum"></div><details class="data"><summary>Data table: cumulative cost at 2025-12</summary><div class="table-wrap"><table><caption>cumulative cost at 2025-12</caption><thead><tr><th scope="col">Strategy</th><th scope="col">Cumulative cost</th></tr></thead><tbody><tr><td>Full spot</td><td>€34.61 M</td></tr><tr><td>ÖSPI-indexed</td><td>€32.18 M</td></tr><tr><td>Fixed annual</td><td>€30.17 M</td></tr><tr><td>Hybrid 30% fixed</td><td>€33.28 M</td></tr><tr><td>Hybrid 50% fixed</td><td>€32.39 M</td></tr><tr><td>Hybrid 70% fixed</td><td>€31.50 M</td></tr></tbody></table></div></details></figure></div><footer class="page-foot"><span>Source: ENTSO-E Transparency / AEA ÖSPI / own calculations</span><span class="tag">CALIBRATED · constructed load profile (SPEC-03) · contract prices via ÖSPI proxy</span></footer></section><section class="page" role="tabpanel" id="panel-risk" aria-labelledby="tab-risk" tabindex="0" hidden><h2 class="page-title">What the next 12 months could cost, by strategy</h2><p class="subtitle" lang="de">Kostenverteilung der nächsten 12 Monate aus 2.000 simulierten Pfaden – keine Prognose.</p><div class="controls" role="group" aria-label="Bootstrap pool"><button type="button" class="seg" data-variant="unconditional" aria-pressed="true">Unconditional pool</button><button type="button" class="seg" data-variant="no_crisis" aria-pressed="false">No-crisis pool</button></div><div class="kpis"><div class="kpi" data-ssot-key="q4_cost_min_strategy" data-value="S3"><p class="kpi-label">Cost-minimising choice</p><p class="kpi-value">Fixed annual</p><p class="kpi-note">Lowest mean cost, €175,805 lower than Hybrid 70% fixed; unconditional pool · SIMULATED</p></div><div class="kpi" data-ssot-key="q4_risk_averse_strategy" data-value="S4_70"><p class="kpi-label">Risk-averse choice</p><p class="kpi-value">Hybrid 70% fixed</p><p class="kpi-note">Lowest P95 cost, €170,572 lower than Fixed annual; unconditional pool · SIMULATED</p></div><div class="kpi" data-ssot-key="q4_risk_premium_eur" data-value="175805.27"><p class="kpi-label">Risk premium of the hedge</p><p class="kpi-value">€175,805</p><p class="kpi-note">Extra expected cost of the risk-averse choice, unconditional pool · SIMULATED</p></div><div class="kpi" data-ssot-key="q4_p95_reduction_eur" data-value="170571.79"><p class="kpi-label">P95 reduction of the hedge</p><p class="kpi-value">€170,572</p><p class="kpi-note">Lower P95 cost of the risk-averse choice, unconditional pool · SIMULATED</p></div></div><div class="grid two"><figure class="card chart"><figcaption><h3>Next-12-month cost: P5, P50 and P95</h3><p class="unit">EUR million · line = P5 to P95, dot = P50 (median)</p></figcaption><div class="legend" id="legend-range"></div><div class="plot" id="plot-range" data-chart="range"></div><details class="data" data-variant="no_crisis"><summary>Data table: next-12-month cost, no-crisis pool</summary><div class="table-wrap"><table><caption>next-12-month cost, no-crisis pool</caption><thead><tr><th scope="col">Strategy</th><th scope="col">Mean</th><th scope="col">P5</th><th scope="col">P50</th><th scope="col">P95</th><th scope="col">CVaR95</th></tr></thead><tbody><tr><td>Full spot</td><td>€3.83 M</td><td>€3.03 M</td><td>€3.82 M</td><td>€4.64 M</td><td>€4.80 M</td></tr><tr><td>ÖSPI-indexed</td><td>€4.98 M</td><td>€3.38 M</td><td>€4.87 M</td><td>€6.96 M</td><td>€7.52 M</td></tr><tr><td>Fixed annual</td><td>€4.26 M</td><td>€3.64 M</td><td>€4.24 M</td><td>€5.01 M</td><td>€5.17 M</td></tr><tr><td>Hybrid 30% fixed</td><td>€3.96 M</td><td>€3.30 M</td><td>€3.95 M</td><td>€4.61 M</td><td>€4.73 M</td></tr><tr><td>Hybrid 50% fixed</td><td>€4.04 M</td><td>€3.47 M</td><td>€4.05 M</td><td>€4.65 M</td><td>€4.76 M</td></tr><tr><td>Hybrid 70% fixed</td><td>€4.13 M</td><td>€3.57 M</td><td>€4.14 M</td><td>€4.71 M</td><td>€4.86 M</td></tr></tbody></table></div></details><details class="data" data-variant="unconditional"><summary>Data table: next-12-month cost, unconditional pool</summary><div class="table-wrap"><table><caption>next-12-month cost, unconditional pool</caption><thead><tr><th scope="col">Strategy</th><th scope="col">Mean</th><th scope="col">P5</th><th scope="col">P50</th><th scope="col">P95</th><th scope="col">CVaR95</th></tr></thead><tbody><tr><td>Full spot</td><td>€5.36 M</td><td>€3.65 M</td><td>€5.25 M</td><td>€7.56 M</td><td>€8.24 M</td></tr><tr><td>ÖSPI-indexed</td><td>€5.15 M</td><td>€3.47 M</td><td>€5.03 M</td><td>€7.16 M</td><td>€7.88 M</td></tr><tr><td>Fixed annual</td><td>€4.77 M</td><td>€3.75 M</td><td>€4.51 M</td><td>€6.61 M</td><td>€6.96 M</td></tr><tr><td>Hybrid 30% fixed</td><td>€5.18 M</td><td>€3.80 M</td><td>€5.07 M</td><td>€6.85 M</td><td>€7.37 M</td></tr><tr><td>Hybrid 50% fixed</td><td>€5.06 M</td><td>€3.84 M</td><td>€4.98 M</td><td>€6.61 M</td><td>€6.97 M</td></tr><tr><td>Hybrid 70% fixed</td><td>€4.95 M</td><td>€3.88 M</td><td>€4.82 M</td><td>€6.44 M</td><td>€6.80 M</td></tr></tbody></table></div></details></figure><figure class="card chart"><figcaption><h3>Expected cost vs bad case</h3><p class="unit">EUR million · mean (x) vs P95 (y); lower left is cheaper and safer</p></figcaption><div class="legend" id="legend-scatter"></div><div class="plot" id="plot-scatter" data-chart="scatter"></div><p class="note">The values are in the percentile table on this page.</p></figure></div><div class="grid"><figure class="card chart wide"><figcaption><h3>Simulated 12-month cost per path</h3><p class="unit">paths per €0.1 M bin · one panel per strategy · line = P95</p></figcaption><div class="multiples" id="plot-hist"></div><p class="note">Path counts per bin are summarised by the percentiles in the table above.</p></figure></div><footer class="page-foot"><span>Source: ENTSO-E Transparency / AEA ÖSPI / own calculations</span><span class="tag">SIMULATED · seeded block bootstrap of historical months · not a forecast</span></footer></section><section class="page" role="tabpanel" id="panel-data-quality" aria-labelledby="tab-data-quality" tabindex="0" hidden><h2 class="page-title">How complete and clean the input data is</h2><p class="subtitle" lang="de">Vollständigkeit und Qualität der Eingangsdaten je Monat.</p><div class="kpis five"><div class="kpi"><p class="kpi-label">AT price coverage</p><p class="kpi-value">100.00%</p><p class="kpi-note">Priced of expected hours</p></div><div class="kpi"><p class="kpi-label">Months below full coverage</p><p class="kpi-value">0</p><p class="kpi-note">0 = every month complete</p></div><div class="kpi"><p class="kpi-label">DST transition days</p><p class="kpi-value">15</p><p class="kpi-note">23- and 25-hour days</p></div><div class="kpi"><p class="kpi-label">Hours from 15-min quarters</p><p class="kpi-value">8,760</p><p class="kpi-note">Hourly price = mean of four quarter-hours</p></div><div class="kpi"><p class="kpi-label">Months without ÖSPI</p><p class="kpi-value">1</p><p class="kpi-note">Months with no ÖSPI value in the data</p></div></div><div class="grid"><figure class="card chart wide"><figcaption><h3>Monthly AT price coverage</h3><p class="unit">% of expected hours · axis zoomed, starts at 99 %</p></figcaption><div class="legend" id="legend-cov"></div><div class="plot" id="plot-cov" data-chart="cov"></div><details class="data"><summary>Data table: monthly coverage and 15-minute hours</summary><div class="table-wrap"><table><caption>monthly coverage and 15-minute hours</caption><thead><tr><th scope="col">Month</th><th scope="col">Coverage %</th><th scope="col">Hours from 15-min</th></tr></thead><tbody><tr><td>2019-01</td><td>100.00</td><td>0</td></tr><tr><td>2019-02</td><td>100.00</td><td>0</td></tr><tr><td>2019-03</td><td>100.00</td><td>0</td></tr><tr><td>2019-04</td><td>100.00</td><td>0</td></tr><tr><td>2019-05</td><td>100.00</td><td>0</td></tr><tr><td>2019-06</td><td>100.00</td><td>0</td></tr><tr><td>2019-07</td><td>100.00</td><td>0</td></tr><tr><td>2019-08</td><td>100.00</td><td>0</td></tr><tr><td>2019-09</td><td>100.00</td><td>0</td></tr><tr><td>2019-10</td><td>100.00</td><td>0</td></tr><tr><td>2019-11</td><td>100.00</td><td>0</td></tr><tr><td>2019-12</td><td>100.00</td><td>0</td></tr><tr><td>2020-01</td><td>100.00</td><td>0</td></tr><tr><td>2020-02</td><td>100.00</td><td>0</td></tr><tr><td>2020-03</td><td>100.00</td><td>0</td></tr><tr><td>2020-04</td><td>100.00</td><td>0</td></tr><tr><td>2020-05</td><td>100.00</td><td>0</td></tr><tr><td>2020-06</td><td>100.00</td><td>0</td></tr><tr><td>2020-07</td><td>100.00</td><td>0</td></tr><tr><td>2020-08</td><td>100.00</td><td>0</td></tr><tr><td>2020-09</td><td>100.00</td><td>0</td></tr><tr><td>2020-10</td><td>100.00</td><td>0</td></tr><tr><td>2020-11</td><td>100.00</td><td>0</td></tr><tr><td>2020-12</td><td>100.00</td><td>0</td></tr><tr><td>2021-01</td><td>100.00</td><td>0</td></tr><tr><td>2021-02</td><td>100.00</td><td>0</td></tr><tr><td>2021-03</td><td>100.00</td><td>0</td></tr><tr><td>2021-04</td><td>100.00</td><td>0</td></tr><tr><td>2021-05</td><td>100.00</td><td>0</td></tr><tr><td>2021-06</td><td>100.00</td><td>0</td></tr><tr><td>2021-07</td><td>100.00</td><td>0</td></tr><tr><td>2021-08</td><td>100.00</td><td>0</td></tr><tr><td>2021-09</td><td>100.00</td><td>0</td></tr><tr><td>2021-10</td><td>100.00</td><td>0</td></tr><tr><td>2021-11</td><td>100.00</td><td>0</td></tr><tr><td>2021-12</td><td>100.00</td><td>0</td></tr><tr><td>2022-01</td><td>100.00</td><td>0</td></tr><tr><td>2022-02</td><td>100.00</td><td>0</td></tr><tr><td>2022-03</td><td>100.00</td><td>0</td></tr><tr><td>2022-04</td><td>100.00</td><td>0</td></tr><tr><td>2022-05</td><td>100.00</td><td>0</td></tr><tr><td>2022-06</td><td>100.00</td><td>0</td></tr><tr><td>2022-07</td><td>100.00</td><td>0</td></tr><tr><td>2022-08</td><td>100.00</td><td>0</td></tr><tr><td>2022-09</td><td>100.00</td><td>0</td></tr><tr><td>2022-10</td><td>100.00</td><td>0</td></tr><tr><td>2022-11</td><td>100.00</td><td>0</td></tr><tr><td>2022-12</td><td>100.00</td><td>0</td></tr><tr><td>2023-01</td><td>100.00</td><td>0</td></tr><tr><td>2023-02</td><td>100.00</td><td>0</td></tr><tr><td>2023-03</td><td>100.00</td><td>0</td></tr><tr><td>2023-04</td><td>100.00</td><td>0</td></tr><tr><td>2023-05</td><td>100.00</td><td>0</td></tr><tr><td>2023-06</td><td>100.00</td><td>0</td></tr><tr><td>2023-07</td><td>100.00</td><td>0</td></tr><tr><td>2023-08</td><td>100.00</td><td>0</td></tr><tr><td>2023-09</td><td>100.00</td><td>0</td></tr><tr><td>2023-10</td><td>100.00</td><td>0</td></tr><tr><td>2023-11</td><td>100.00</td><td>0</td></tr><tr><td>2023-12</td><td>100.00</td><td>0</td></tr><tr><td>2024-01</td><td>100.00</td><td>0</td></tr><tr><td>2024-02</td><td>100.00</td><td>0</td></tr><tr><td>2024-03</td><td>100.00</td><td>0</td></tr><tr><td>2024-04</td><td>100.00</td><td>0</td></tr><tr><td>2024-05</td><td>100.00</td><td>0</td></tr><tr><td>2024-06</td><td>100.00</td><td>0</td></tr><tr><td>2024-07</td><td>100.00</td><td>0</td></tr><tr><td>2024-08</td><td>100.00</td><td>0</td></tr><tr><td>2024-09</td><td>100.00</td><td>0</td></tr><tr><td>2024-10</td><td>100.00</td><td>0</td></tr><tr><td>2024-11</td><td>100.00</td><td>0</td></tr><tr><td>2024-12</td><td>100.00</td><td>0</td></tr><tr><td>2025-01</td><td>100.00</td><td>0</td></tr><tr><td>2025-02</td><td>100.00</td><td>0</td></tr><tr><td>2025-03</td><td>100.00</td><td>0</td></tr><tr><td>2025-04</td><td>100.00</td><td>0</td></tr><tr><td>2025-05</td><td>100.00</td><td>0</td></tr><tr><td>2025-06</td><td>100.00</td><td>0</td></tr><tr><td>2025-07</td><td>100.00</td><td>0</td></tr><tr><td>2025-08</td><td>100.00</td><td>0</td></tr><tr><td>2025-09</td><td>100.00</td><td>0</td></tr><tr><td>2025-10</td><td>100.00</td><td>745</td></tr><tr><td>2025-11</td><td>100.00</td><td>720</td></tr><tr><td>2025-12</td><td>100.00</td><td>744</td></tr><tr><td>2026-01</td><td>100.00</td><td>744</td></tr><tr><td>2026-02</td><td>100.00</td><td>672</td></tr><tr><td>2026-03</td><td>100.00</td><td>743</td></tr><tr><td>2026-04</td><td>100.00</td><td>720</td></tr><tr><td>2026-05</td><td>100.00</td><td>744</td></tr><tr><td>2026-06</td><td>100.00</td><td>720</td></tr><tr><td>2026-07</td><td>100.00</td><td>744</td></tr><tr><td>2026-08</td><td>100.00</td><td>744</td></tr><tr><td>2026-09</td><td>100.00</td><td>720</td></tr></tbody></table></div></details></figure><figure class="card chart wide"><figcaption><h3>Hours built from 15-minute quarters</h3><p class="unit">hours per month</p></figcaption><div class="legend" id="legend-pt15"></div><div class="plot" id="plot-pt15" data-chart="pt15"></div><p class="note">The values are in the coverage table above.</p></figure><figure class="card chart wide"><figcaption><h3>Months below full price coverage</h3><p class="unit">empty = every month complete</p></figcaption><p class="empty">No month below 100 % coverage.</p></figure></div><footer class="page-foot"><span>Source: ENTSO-E Transparency / AEA ÖSPI / own calculations</span><span class="tag">VERIFIED · computed from ENTSO-E day-ahead prices, no modelling</span></footer></section></main><div id="tip" class="tip" hidden></div><p id="live" class="sr" aria-live="polite"></p><noscript><p class="wrap">Charts need JavaScript; every value is in the data tables.</p></noscript><script type="application/json" id="epra-data">{"cumulative":{"months":["2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12"],"series":{"S1":[263716.54,489703.45,748006.98,1019606.02,1257778.98,1576396.25,1942396.0,2276820.77,2873121.02,3646654.4,4613106.98,5697810.58,6587874.92,7319041.24,8674913.83,9493485.98,10306961.52,11270453.87,12832773.57,14822014.8,16545266.56,17338768.55,18340042.9,19537670.74,20243852.55,20874496.62,21416837.68,21858756.86,22218442.47,22622268.31,22999115.53,23373364.29,23807532.23,24274543.51,24722970.25,25049147.28,25446726.56,25744430.55,26039890.29,26309576.72,26576216.63,26868475.89,27152326.94,27481797.68,27840379.94,28252267.78,28852310.17,29391865.79,30032516.04,30643371.83,31114742.88,31473446.46,31773462.07,32029307.95,32411561.62,32689050.14,33102245.34,33623590.43,34149478.18,34608935.0],"S2":[162726.22,323971.14,510770.5,687081.23,858741.92,1041208.97,1238438.14,1428080.22,1653408.14,1895967.73,2175256.76,2433046.14,2773283.82,3165496.47,3612196.51,4064937.27,4617374.57,5158065.47,5789254.16,6453339.71,7268300.34,8309908.92,9577718.08,10735169.47,12246221.34,13721292.08,15246187.62,16563704.85,17865211.83,18989826.29,19964033.4,20748079.92,21474526.07,22149615.07,22752120.16,23233225.04,23822496.54,24356471.74,24870527.2,25334838.66,25745250.98,26121928.57,26504228.83,26817760.58,27153137.38,27510895.74,27840949.02,28128838.64,28489843.75,28829339.25,29188812.74,29539008.67,29879785.51,30193690.82,30541818.06,30836685.6,31178924.49,31544482.23,31887078.44,32176611.72],"S3":[186556.82,368479.74,568072.89,751724.84,925455.84,1101761.72,1283365.86,1448510.3,1633025.22,1816861.75,2007859.78,2168672.06,2440867.92,2699500.83,2983254.86,3237765.61,3497649.73,3741980.05,3993908.53,4228688.14,4491006.0,4752359.45,5023894.11,5252514.84,6308332.38,7286475.62,8359626.3,9297293.25,10255779.83,11203721.99,12156509.23,13044439.87,14012130.83,15025698.31,16052635.66,16891142.86,17716276.17,18494400.5,19273927.42,20026811.92,20739025.32,21443578.52,22206094.16,22865080.65,23602907.45,24414042.66,25177308.62,25836561.49,26229195.65,26592944.54,26973144.95,27340350.99,27696790.02,28031538.84,28403442.29,28716059.31,29084990.81,29480607.6,29852877.02,30174415.9],"S4_30":[240568.62,453336.33,694026.75,939241.67,1158082.04,1434005.89,1744686.96,2028327.63,2501092.28,3097716.61,3831532.82,4639069.03,5343772.82,5933179.11,6967416.14,7616769.87,8264167.99,9011911.72,10181114.06,11644016.8,12928988.39,13562845.82,14345198.26,15252123.97,16063196.5,16798090.32,17499674.27,18090317.78,18629643.68,19196704.41,19746333.64,20274686.97,20868911.81,21499889.95,22121869.87,22601745.95,23127591.44,23569421.54,24010101.43,24424747.28,24825059.24,25241006.68,25668457.1,26096782.57,26569138.19,27100800.24,27749809.71,28325274.5,28891519.92,29428243.64,29872263.5,30233517.82,30550460.46,30829977.22,31209125.82,31497152.89,31897068.98,32380695.58,32860497.83,33278579.27],"S4_50":[225136.68,429091.59,658039.93,885665.43,1091617.41,1339078.98,1612880.93,1862665.54,2253073.12,2731758.08,3310483.38,3933241.32,4514371.42,5009271.03,5829084.34,6365625.8,6902305.63,7506216.96,8413341.05,9525351.47,10518136.28,11045564.0,11681968.5,12395092.79,13276092.46,14080486.12,14888231.99,15578025.05,16237111.15,16912995.15,17577812.38,18208902.08,18909831.53,19650120.91,20387802.95,20970145.07,21581501.36,22119415.53,22656908.86,23168194.32,23657620.97,24156027.2,24679210.55,25173439.17,25721643.7,26333155.22,27014809.4,27614213.64,28130855.84,28618158.18,29043943.91,29406898.73,29735126.05,30030423.39,30407501.96,30702554.73,31093618.08,31552099.02,32001177.6,32391675.45],"S4_70":[209704.74,404846.85,622053.12,832089.19,1025152.78,1244152.08,1481074.9,1697003.44,2005053.96,2365799.55,2789433.94,3227413.62,3684970.02,4085362.95,4690752.55,5114481.73,5540443.27,6000522.2,6645568.04,7406686.14,8107284.17,8528282.18,9018738.75,9538061.61,10488988.43,11362881.92,12276789.71,13065732.33,13844578.62,14629285.89,15409291.12,16143117.2,16950751.25,17800351.87,18653736.03,19338544.19,20035411.29,20669409.51,21303716.28,21911641.36,22490182.71,23071047.73,23689963.99,24250095.76,24874149.2,25565510.2,26279809.09,26903152.78,27370191.77,27808072.73,28215624.33,28580279.63,28919791.63,29230869.57,29605878.09,29907956.56,30290167.17,30723502.45,31141857.37,31504771.63]}},"dq":{"axis_min":99,"coverage":[100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0,100.0],"months":["2019-01","2019-02","2019-03","2019-04","2019-05","2019-06","2019-07","2019-08","2019-09","2019-10","2019-11","2019-12","2020-01","2020-02","2020-03","2020-04","2020-05","2020-06","2020-07","2020-08","2020-09","2020-10","2020-11","2020-12","2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"pt15m":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,745,720,744,744,672,743,720,744,720,744,744,720]},"market":{"base":[56.0109,46.0384,33.0813,37.7332,37.9334,34.5963,40.0504,37.7082,38.0367,38.9779,42.7423,38.1134,40.7024,29.109,24.6036,18.3071,17.5233,26.538,32.3,35.9552,45.5498,35.5057,41.1604,50.1734,57.6938,50.3866,53.6455,60.0404,54.8276,74.2867,83.6816,82.8274,134.6536,169.7452,206.1981,250.1431,189.0108,167.7794,282.8996,186.2236,184.4897,228.2933,359.065,493.8421,386.4079,175.0999,212.4914,261.2121,144.5648,144.6017,113.373,104.8023,82.3153,94.8131,84.8429,92.6988,101.3755,99.2452,93.5855,73.1711,81.3314,65.7821,63.6393,58.719,64.141,67.7197,63.3955,85.1112,81.9416,85.5751,130.8197,129.6708,133.8465,140.8084,103.9082,81.0418,70.5543,66.458,87.9119,74.2902,92.2846,108.9214,116.0195,114.0413,141.4392,109.1865,112.384,86.6474,99.9754,106.7166,117.2216,148.0629,173.6571],"months":["2019-01","2019-02","2019-03","2019-04","2019-05","2019-06","2019-07","2019-08","2019-09","2019-10","2019-11","2019-12","2020-01","2020-02","2020-03","2020-04","2020-05","2020-06","2020-07","2020-08","2020-09","2020-10","2020-11","2020-12","2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04","2026-05","2026-06","2026-07","2026-08","2026-09"],"neg_hours":[68,111,64,0,111,296,378,260],"neg_partial":[false,false,false,false,false,false,false,true],"neg_years":[2019,2020,2021,2022,2023,2024,2025,2026],"peak":[68.4789,52.1465,39.9764,42.2469,43.51,41.1463,44.0802,42.5702,44.3327,47.2511,53.739,47.5996,47.4587,36.6265,30.2067,20.1645,22.4266,32.7681,37.3174,41.8833,54.6988,44.9039,51.1849,63.7854,72.1814,62.3553,60.4572,69.2624,63.9963,83.6393,93.0596,92.7673,152.7922,210.0887,257.1288,311.5246,232.1856,190.744,314.3276,213.5049,197.4171,261.6637,415.0598,544.2052,442.4574,211.6249,266.5006,342.9085,180.2108,161.618,124.8752,113.2065,87.9053,98.9207,96.2745,94.7876,109.1142,121.1658,122.08,102.4152,97.4386,75.056,73.2734,63.7485,64.2287,70.6995,61.0104,85.6078,92.4469,102.2117,167.2993,175.7498,162.9514,156.4868,107.2092,76.8713,59.5314,45.9524,82.0927,62.5872,102.5392,124.2542,141.0731,133.7479,184.1582,124.032,108.6532,79.2863,90.3353,94.7704,102.2013,146.6737,172.4583],"spread":[6.6175,3.2176,2.4543,0.7773,0.0898,2.0787,0.3654,0.8597,2.2859,2.0414,1.7411,6.1472,5.6675,7.19,2.1178,1.2139,-0.0732,0.3531,2.2371,1.0913,1.8596,1.5361,2.3747,6.6537,4.8876,1.6816,6.4806,6.4273,1.4787,0.2067,2.3123,0.1306,6.2813,30.252,30.0467,29.0827,21.2843,38.9767,30.8927,20.4917,7.0128,10.2601,44.064,28.6586,40.2927,22.496,38.8571,9.5957,26.7355,16.2898,10.8515,4.0583,0.6,0.057,7.2367,-1.6231,0.652,11.8696,2.4632,4.6518,4.7603,4.4463,-1.0627,-3.6418,-3.069,-5.168,-4.3015,3.0641,3.6316,-0.5215,16.9133,21.3552,19.7063,12.286,9.1807,3.1062,3.2157,2.4705,0.1167,-2.7,8.7735,24.5194,14.138,20.5719,31.3488,12.6101,13.0964,8.1318,2.4395,-2.7992,11.7747,21.1686,28.8369]},"matrix":{"cost":{"S1":[5697810.58,13839860.16,5511476.54,4342718.51,5217069.21],"S2":[2433046.14,8302123.33,12498055.57,4895613.59,4047773.09],"S3":[2168672.06,3083842.78,11638628.02,8945418.63,4337854.41],"S4_30":[4639069.03,10613054.94,7349621.98,5723528.54,4953304.77],"S4_50":[3933241.32,8461851.47,8575052.28,6644068.57,4777461.81],"S4_70":[3227413.62,6310647.99,9800482.57,7564608.59,4601618.85]},"rank":{"S1":[6,6,1,1,6],"S2":[2,3,6,2,1],"S3":[1,1,5,6,2],"S4_30":[5,5,2,3,5],"S4_50":[4,4,3,4,4],"S4_70":[3,2,4,5,3]},"total":{"S1":{"cost":34608935.0,"unit":138.4357},"S2":{"cost":32176611.72,"unit":128.7064},"S3":{"cost":30174415.9,"unit":120.6977},"S4_30":{"cost":33278579.27,"unit":133.1143},"S4_50":{"cost":32391675.45,"unit":129.5667},"S4_70":{"cost":31504771.63,"unit":126.0191}},"unit":{"S1":[113.9562,276.7972,110.2295,86.8544,104.3414],"S2":[48.6609,166.0425,249.9611,97.9123,80.9555],"S3":[43.3734,61.6769,232.7726,178.9084,86.7571],"S4_30":[92.7814,212.2611,146.9924,114.4706,99.0661],"S4_50":[78.6648,169.237,171.501,132.8814,95.5492],"S4_70":[64.5483,126.213,196.0097,151.2922,92.0324]},"years":[2021,2022,2023,2024,2025]},"risk":{"no_crisis":{"bin_lo":22,"hist":{"S1":[1,2,2,5,11,15,22,32,51,74,74,98,124,148,160,158,160,157,118,118,112,95,79,63,52,36,14,9,3,2,4,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"S2":[0,0,0,1,0,3,4,16,14,22,21,26,35,38,46,43,68,39,49,74,65,73,85,74,79,71,81,77,67,62,60,59,58,58,62,48,49,34,28,40,35,37,24,14,25,12,10,22,18,7,13,9,11,4,4,5,4,1,2,3,1,1,0,1,1,1,0,1,1,0,1,2,1],"S3":[0,0,0,0,0,0,0,0,0,0,0,0,0,69,78,92,247,33,282,162,145,170,179,131,131,76,50,44,23,74,0,0,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"S4_30":[0,0,0,0,0,2,3,10,15,23,46,67,88,114,153,183,186,200,183,179,165,127,77,67,63,29,12,4,3,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"S4_50":[0,0,0,0,0,0,0,2,2,9,18,40,62,77,135,175,163,211,218,220,189,172,107,76,57,35,27,4,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"S4_70":[0,0,0,0,0,0,0,0,0,0,4,16,40,59,100,168,161,186,201,223,233,166,150,84,100,45,28,29,4,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"stats":{"S1":{"cvar95":4800554.53,"mean":3825061.77,"p5":3028789.16,"p50":3816611.18,"p95":4637662.95},"S2":{"cvar95":7521219.78,"mean":4976275.78,"p5":3382524.03,"p50":4870218.62,"p95":6962557.3},"S3":{"cvar95":5165542.0,"mean":4260602.25,"p5":3636996.3,"p50":4238890.81,"p95":5008037.27},"S4_30":{"cvar95":4732366.28,"mean":3955723.91,"p5":3303463.17,"p50":3945965.64,"p95":4609895.95},"S4_50":{"cvar95":4760481.89,"mean":4042832.01,"p5":3465824.77,"p50":4050340.09,"p95":4647732.33},"S4_70":{"cvar95":4860746.44,"mean":4129940.11,"p5":3572138.89,"p50":4135399.77,"p95":4713948.56}}},"unconditional":{"bin_lo":25,"hist":{"S1":[0,1,1,2,4,5,3,6,19,22,25,24,30,32,39,59,59,56,52,79,75,52,61,58,68,67,78,60,70,75,58,59,53,52,47,60,55,49,38,40,32,25,26,22,15,25,16,12,17,9,13,7,15,10,7,9,6,3,5,5,3,4,7,4,1,3,0,0,1,1,0,0,2,0,1,0,0,0,0,0,0,0,1],"S2":[2,2,2,3,10,12,12,15,20,28,38,35,47,45,57,69,59,59,65,57,59,65,69,74,72,70,64,67,75,38,57,55,51,52,45,45,43,43,42,28,32,23,22,25,24,16,12,9,13,7,9,7,6,3,4,6,5,4,2,3,2,3,3,2,2,1,1,0,0,1,1,0,1,0,0,0,0,0,0,0,0,0,0],"S3":[0,0,0,0,0,0,0,0,0,0,26,47,81,120,141,182,99,113,82,100,78,71,53,36,21,56,70,53,64,89,68,62,44,23,27,32,19,10,0,20,7,29,5,33,6,14,7,0,0,0,6,0,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"S4_30":[0,0,0,0,1,1,2,5,6,10,19,26,33,33,40,54,54,67,75,63,79,85,75,86,106,97,72,79,90,81,67,55,73,47,62,37,35,37,35,31,27,26,21,15,13,14,10,11,8,5,5,6,4,6,4,1,2,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"S4_50":[0,0,0,0,0,0,1,2,2,8,13,17,44,33,46,59,67,73,74,97,90,82,111,95,112,90,98,79,81,79,65,69,48,61,34,38,39,30,18,19,23,19,21,18,7,9,11,5,4,1,4,1,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"S4_70":[0,0,0,0,0,0,0,0,2,2,11,19,36,38,69,72,92,97,113,129,111,90,103,95,77,81,88,76,75,70,54,58,49,41,37,19,30,24,33,21,16,17,13,17,8,1,2,4,2,4,2,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"stats":{"S1":{"cvar95":8238603.64,"mean":5356133.92,"p5":3648067.94,"p50":5247437.43,"p95":7555430.08},"S2":{"cvar95":7880585.38,"mean":5145121.26,"p5":3471325.0,"p50":5030532.97,"p95":7155136.76},"S3":{"cvar95":6963852.45,"mean":4770116.34,"p5":3747976.53,"p50":4513968.2,"p95":6607054.01},"S4_30":{"cvar95":7365529.78,"mean":5180328.65,"p5":3795610.43,"p50":5074586.8,"p95":6852836.71},"S4_50":{"cvar95":6967360.93,"mean":5063125.13,"p5":3835940.75,"p50":4979967.87,"p95":6608637.45},"S4_70":{"cvar95":6804262.47,"mean":4945921.62,"p5":3882180.74,"p50":4816965.06,"p95":6436482.22}}}},"strategies":[{"id":"S1","label":"Full spot"},{"id":"S2","label":"ÖSPI-indexed"},{"id":"S3","label":"Fixed annual"},{"id":"S4_30","label":"Hybrid 30% fixed"},{"id":"S4_50","label":"Hybrid 50% fixed"},{"id":"S4_70","label":"Hybrid 70% fixed"}],"variants":{"no_crisis":"No-crisis pool","unconditional":"Unconditional pool"},"wrong":[{"best":"S3","gap":3529138.52,"worst":"S1","year":2021},{"best":"S3","gap":10756017.38,"worst":"S1","year":2022},{"best":"S1","gap":6986579.03,"worst":"S2","year":2023},{"best":"S1","gap":4602700.12,"worst":"S3","year":2024},{"best":"S2","gap":1169296.13,"worst":"S1","year":2025}]}</script><script>/* EPRA HTML dashboard twin (ADR-022): vanilla JS, inline SVG, no dependencies.
+   Draws every chart from the JSON embedded by epra.report.html_dashboard. Labels come
+   from data, so all text goes through textContent, never innerHTML. */
+(function () {
+  "use strict";
+  var D = JSON.parse(document.getElementById("epra-data").textContent);
+  var NS = "http://www.w3.org/2000/svg";
+  var LABEL = {};
+  D.strategies.forEach(function (s) { LABEL[s.id] = s.label; });
+  var IDS = D.strategies.map(function (s) { return s.id; });
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var state = { year: "all", variant: "unconditional", metric: "cost", page: null };
+  var tip = document.getElementById("tip");
+  var live = document.getElementById("live");
+
+  /* ---- RP-703 formatters (mirror of epra.report.format) ---- */
+  function nf(v, d) {
+    return v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  }
+  function fmtM(v, d) { return "€" + nf(v / 1e6, d === undefined ? 2 : d) + " M"; }
+  function fmtEur(v) { return "€" + nf(Math.round(v), 0); }
+  function fmtMwh(v) { return nf(v, 1) + " EUR/MWh"; }
+  function fmtInt(v) { return nf(Math.round(v), 0); }
+  function sv(id) { return "var(--s-" + id + ")"; }
+  function monthLabel(m) { return MONTHS[+m.slice(5, 7) - 1] + " " + m.slice(0, 4); }
+  function mDecimals(ticks) {
+    var step = ticks.length > 1 ? Math.abs(ticks[1] - ticks[0]) : 1e6;
+    return step >= 1e6 ? 0 : step >= 1e5 ? 1 : 2;
+  }
+
+  /* ---- SVG helpers ---- */
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) { if (Object.prototype.hasOwnProperty.call(attrs, k)) e.setAttribute(k, attrs[k]); }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function text(parent, x, y, s, attrs) {
+    var a = { x: x, y: y };
+    for (var k in attrs || {}) { a[k] = attrs[k]; }
+    var t = el("text", a, parent);
+    t.textContent = s;
+    return t;
+  }
+  var ctx = document.createElement("canvas").getContext("2d");
+  function tw(s, size, weight) {
+    ctx.font = (weight || 400) + " " + (size || 12) + "px -apple-system,'Segoe UI',Inter,Roboto,sans-serif";
+    return ctx.measureText(s).width;
+  }
+  function lin(d0, d1, r0, r1) {
+    var k = (r1 - r0) / ((d1 - d0) || 1);
+    return function (v) { return r0 + (v - d0) * k; };
+  }
+  function niceTicks(lo, hi, n) {
+    if (!isFinite(lo) || !isFinite(hi)) { lo = 0; hi = 1; }
+    if (hi === lo) { hi = lo + 1; }
+    var raw = (hi - lo) / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), e = raw / mag;
+    var step = (e >= 7.5 ? 10 : e >= 3.5 ? 5 : e >= 1.5 ? 2 : 1) * mag;
+    var a = Math.floor(lo / step + 1e-9), b = Math.ceil(hi / step - 1e-9), out = [];
+    for (var i = a; i <= b; i++) { out.push(i * step); }
+    return out;
+  }
+  function maxOf(a) { return a.reduce(function (m, v) { return v != null && v > m ? v : m; }, -Infinity); }
+  function minOf(a) { return a.reduce(function (m, v) { return v != null && v < m ? v : m; }, Infinity); }
+  function plot(id) { return document.getElementById("plot-" + id); }
+  function frame(host, o) {
+    host.replaceChildren();
+    var w = Math.max(240, Math.floor(host.clientWidth));
+    var h = typeof o.height === "function" ? o.height(w) : o.height;
+    var svg = el("svg", { width: w, height: h, viewBox: "0 0 " + w + " " + h, role: "img",
+      "aria-label": o.label }, host);
+    svg.style.width = "100%";
+    host.setAttribute("role", "group");
+    host.setAttribute("aria-label", o.label + ". Focus and use the arrow keys to read values.");
+    return { host: host, svg: svg, w: w, h: h, m: o.m };
+  }
+  function yAxis(f, y, ticks, fmt) {
+    ticks.forEach(function (t) {
+      var yy = Math.round(y(t)) + 0.5;
+      el("line", { x1: f.m.l, x2: f.w - f.m.r, y1: yy, y2: yy, "class": "grid-l" }, f.svg);
+      text(f.svg, f.m.l - 8, yy + 4, fmt(t), { "text-anchor": "end" });
+    });
+  }
+  function xBase(f, yy) {
+    el("line", { x1: f.m.l, x2: f.w - f.m.r, y1: Math.round(yy) + 0.5, y2: Math.round(yy) + 0.5,
+      "class": "axis-l" }, f.svg);
+  }
+  function monthAxis(f, months, x) {
+    var yb = f.h - f.m.b;
+    if (months.length <= 24) {
+      var per = months.length > 1 ? x(1) - x(0) : 60, step = Math.max(1, Math.ceil(38 / per));
+      months.forEach(function (m, i) {
+        if (i % step) return;
+        var lbl = months.length <= 12 ? MONTHS[+m.slice(5, 7) - 1] : MONTHS[+m.slice(5, 7) - 1] + " " + m.slice(2, 4);
+        text(f.svg, x(i), yb + 17, lbl, { "text-anchor": "middle" });
+      });
+      return;
+    }
+    var perYear = (x(1) - x(0)) * 12, ystep = Math.max(1, Math.ceil(44 / perYear));
+    months.forEach(function (m, i) {
+      if (m.slice(5) !== "01" || (+m.slice(0, 4)) % ystep) return;
+      el("line", { x1: x(i), x2: x(i), y1: yb, y2: yb + 4, "class": "axis-l" }, f.svg);
+      text(f.svg, x(i), yb + 17, m.slice(0, 4), { "text-anchor": "middle" });
+    });
+  }
+  function legend(id, items, box) {
+    var L = document.getElementById("legend-" + id);
+    if (!L) return;
+    L.replaceChildren();
+    if (items.length < 2) return;
+    items.forEach(function (it) {
+      var s = document.createElement("span"), i = document.createElement("i");
+      if (box) i.className = "box";
+      i.style.background = it.color;
+      s.appendChild(i);
+      s.appendChild(document.createTextNode(it.label));
+      L.appendChild(s);
+    });
+  }
+
+  /* ---- tooltip + keyboard layer: tooltips enhance, the data tables carry every value ---- */
+  function showTip(f, px, py, title, rows) {
+    tip.replaceChildren();
+    var h = document.createElement("div");
+    h.className = "tt-h";
+    h.textContent = title;
+    tip.appendChild(h);
+    rows.forEach(function (r) {
+      var row = document.createElement("div"), i = document.createElement("i");
+      var v = document.createElement("strong"), l = document.createElement("span");
+      row.className = "tt-r";
+      i.style.background = r.color || "transparent";
+      v.textContent = r.value;
+      l.textContent = r.label;
+      row.appendChild(i); row.appendChild(v); row.appendChild(l);
+      tip.appendChild(row);
+    });
+    tip.hidden = false;
+    var rect = f.svg.getBoundingClientRect(), s = rect.width / f.w;
+    var vw = document.documentElement.clientWidth, width = tip.offsetWidth;
+    var left = rect.left + window.scrollX + px * s + 14;
+    if (left + width > window.scrollX + vw - 8) left = rect.left + window.scrollX + px * s - width - 14;
+    left = Math.max(window.scrollX + 8, left);
+    tip.style.left = left + "px";
+    tip.style.top = (rect.top + window.scrollY + py * s - 12) + "px";
+  }
+  function interact(f, stops, opts) {
+    var idx = -1, hot = null, cross = null;
+    if (opts.crosshair) {
+      cross = el("line", { "class": "cross", y1: f.m.t, y2: f.h - f.m.b, visibility: "hidden" }, f.svg);
+    }
+    el("rect", { x: 0, y: 0, width: f.w, height: f.h, fill: "transparent" }, f.svg);
+    function pick(i, announce) {
+      if (i < 0 || i >= stops.length) return;
+      idx = i;
+      var s = stops[i];
+      if (cross) {
+        cross.setAttribute("x1", s.x); cross.setAttribute("x2", s.x);
+        cross.setAttribute("visibility", "visible");
+      }
+      if (hot) hot.classList.remove("hot");
+      hot = s.mark || null;
+      if (hot) hot.classList.add("hot");
+      showTip(f, s.x, s.y, s.title, s.rows);
+      if (announce) {
+        live.textContent = s.title + ": " + s.rows.map(function (r) { return r.label + " " + r.value; }).join(", ");
+      }
+    }
+    function clear() {
+      if (cross) cross.setAttribute("visibility", "hidden");
+      if (hot) hot.classList.remove("hot");
+      hot = null;
+      tip.hidden = true;
+    }
+    function nearest(ev) {
+      var r = f.svg.getBoundingClientRect(), k = f.w / r.width;
+      var px = (ev.clientX - r.left) * k, py = (ev.clientY - r.top) * k, best = 0, bd = Infinity;
+      stops.forEach(function (s, i) {
+        var d = opts.xy ? Math.hypot(s.x - px, s.y - py) : Math.abs(s.x - px);
+        if (d < bd) { bd = d; best = i; }
+      });
+      return best;
+    }
+    f.svg.addEventListener("pointermove", function (ev) { pick(nearest(ev), false); });
+    f.svg.addEventListener("pointerleave", clear);
+    f.host.tabIndex = 0;
+    f.host.onkeydown = function (ev) {
+      var k = ev.key, j = null;
+      if (k === "ArrowRight" || k === "ArrowDown") j = Math.min(stops.length - 1, idx + 1);
+      else if (k === "ArrowLeft" || k === "ArrowUp") j = Math.max(0, idx - 1);
+      else if (k === "Home") j = 0;
+      else if (k === "End") j = stops.length - 1;
+      else if (k === "Escape") { clear(); return; }
+      if (j !== null) { ev.preventDefault(); pick(j, true); }
+    };
+    f.host.onfocus = function () { pick(idx < 0 ? 0 : idx, true); };
+    f.host.onblur = clear;
+  }
+
+  /* ---- chart forms ---- */
+  function columns(host, o) {
+    var yt = niceTicks(Math.min(0, minOf(o.values)), Math.max(0, maxOf(o.values)), 5);
+    var lw = maxOf(yt.map(function (t) { return tw(o.fmtAxis(t, yt)); })) + 14;
+    var f = frame(host, { height: o.height, label: o.label,
+      m: { t: o.valueLabels ? 24 : 10, r: 8, b: o.sub ? 62 : 28, l: lw } });
+    var y = lin(yt[0], yt[yt.length - 1], f.h - f.m.b, f.m.t);
+    yAxis(f, y, yt, function (t) { return o.fmtAxis(t, yt); });
+    var n = o.values.length, band = (f.w - f.m.l - f.m.r) / n;
+    var bw = Math.max(1, Math.min(o.maxBar || 24, band - 2));
+    var widest = maxOf(o.cats.map(function (c) { return c ? tw(c) : 0; }));
+    var step = Math.max(1, Math.ceil((widest + 10) / band)), stops = [];
+    o.values.forEach(function (v, i) {
+      var cx = f.m.l + band * (i + 0.5), top = y(Math.max(0, v)), y0 = y(0);
+      var r = el("rect", { x: cx - bw / 2, y: Math.min(top, y(Math.min(0, v))), width: bw,
+        height: Math.max(0, Math.abs(y(v) - y0)) }, f.svg);
+      r.style.fill = o.colors[i];
+      if (o.valueLabels) text(f.svg, cx, top - 7, o.fmtVal(v), { "text-anchor": "middle", "class": "lbl" });
+      if (o.cats[i] && (o.denseCats || (n - 1 - i) % step === 0)) {
+        text(f.svg, cx, f.h - f.m.b + 17, o.cats[i], { "text-anchor": "middle" });
+      }
+      if (o.sub) wrapLabel(f.svg, cx, f.h - f.m.b + 34, o.sub[i], band - 6);
+      stops.push({ x: cx, y: top, mark: r, title: o.tipTitle(i), rows: o.tipRows(i) });
+    });
+    xBase(f, y(0));
+    interact(f, stops, {});
+  }
+
+  function wrapLabel(svg, x, y, s, maxW) {
+    var words = s.split(" "), lines = [""];
+    words.forEach(function (w) {
+      var cur = lines[lines.length - 1], next = cur ? cur + " " + w : w;
+      if (tw(next) <= maxW || !cur) lines[lines.length - 1] = next;
+      else lines.push(w);
+    });
+    if (lines.length > 2 || lines.some(function (l) { return tw(l) > maxW; })) return;
+    lines.forEach(function (l, k) { text(svg, x, y + k * 15, l, { "text-anchor": "middle" }); });
+  }
+
+  function placeLabels(items, minGap, lo, hi) {
+    items.sort(function (a, b) { return a.y - b.y; });
+    for (var i = 1; i < items.length; i++) {
+      if (items[i].ly < items[i - 1].ly + minGap) items[i].ly = items[i - 1].ly + minGap;
+    }
+    var over = items.length ? items[items.length - 1].ly - hi : 0;
+    if (over > 0) {
+      items.forEach(function (it) { it.ly -= over; });
+      for (var j = items.length - 2; j >= 0; j--) {
+        if (items[j].ly > items[j + 1].ly - minGap) items[j].ly = items[j + 1].ly - minGap;
+      }
+    }
+    items.forEach(function (it) { it.ly = Math.max(lo, it.ly); });
+    return items;
+  }
+
+  function lines(host, o) {
+    var all = [];
+    o.series.forEach(function (s) { all = all.concat(s.values.filter(function (v) { return v != null; })); });
+    var lo = minOf(all), hi = maxOf(all);
+    if (o.fromZero || o.zero) { lo = Math.min(0, lo); hi = Math.max(0, hi); }
+    if (o.domain) { lo = o.domain[0]; hi = Math.max(o.domain[1], hi); }
+    var yt = niceTicks(lo, hi, 5);
+    var lw = maxOf(yt.map(function (t) { return tw(o.fmtAxis(t, yt)); })) + 14;
+    var width = Math.max(240, Math.floor(host.clientWidth)), ends = !!o.endLabels && width >= 560;
+    var endW = 0;
+    if (ends) {
+      endW = maxOf(o.series.map(function (s) {
+        return tw(s.label, 12, 600) + tw(" " + o.fmtEnd(s.values[s.values.length - 1]));
+      })) + 26;
+    }
+    var f = frame(host, { height: o.height, label: o.label, m: { t: 12, r: ends ? endW : 14, b: 28, l: lw } });
+    var n = o.months.length, x = lin(0, Math.max(1, n - 1), f.m.l, f.w - f.m.r);
+    var y = lin(yt[0], yt[yt.length - 1], f.h - f.m.b, f.m.t);
+    yAxis(f, y, yt, function (t) { return o.fmtAxis(t, yt); });
+    xBase(f, f.h - f.m.b);
+    monthAxis(f, o.months, x);
+    if (o.zero && yt[0] < 0) {
+      el("line", { x1: f.m.l, x2: f.w - f.m.r, y1: Math.round(y(0)) + 0.5, y2: Math.round(y(0)) + 0.5,
+        "class": "ref" }, f.svg);
+    }
+    o.series.forEach(function (s) {
+      var d = "", pen = false;
+      s.values.forEach(function (v, i) {
+        if (v == null) { pen = false; return; }
+        d += (pen ? "L" : "M") + x(i).toFixed(1) + "," + y(v).toFixed(1);
+        pen = true;
+      });
+      var p = el("path", { d: d, fill: "none", "stroke-width": 2, "stroke-linejoin": "round",
+        "stroke-linecap": "round" }, f.svg);
+      p.style.stroke = s.color;
+      if (n === 1) {
+        var c1 = el("circle", { cx: x(0), cy: y(s.values[0]), r: 4 }, f.svg);
+        c1.style.fill = s.color;
+      }
+    });
+    if (ends) {
+      var items = o.series.map(function (s) {
+        var v = s.values[n - 1];
+        return { s: s, v: v, y: y(v), ly: y(v) };
+      });
+      placeLabels(items, 16, f.m.t + 4, f.h - f.m.b);
+      var xe = x(n - 1);
+      items.forEach(function (it) {
+        var dot = el("circle", { cx: xe, cy: it.y, r: 4, "stroke-width": 2 }, f.svg);
+        dot.style.fill = it.s.color;
+        dot.style.stroke = "var(--surface-2)";
+        el("line", { x1: xe + 6, y1: it.y, x2: xe + 14, y2: it.ly, "class": "leader" }, f.svg);
+        var t = text(f.svg, xe + 18, it.ly + 4, it.s.label, { "class": "lbl" });
+        var ts = el("tspan", {}, t);
+        ts.textContent = " " + o.fmtEnd(it.v);
+        ts.setAttribute("class", "val");
+        ts.style.fontWeight = "400";
+        ts.style.fill = "var(--ink-2)";
+      });
+    }
+    var stops = o.months.map(function (m, i) {
+      var rows = o.series.map(function (s) {
+        return { color: s.color, label: s.label, v: s.values[i],
+          value: s.values[i] == null ? "–" : o.fmtVal(s.values[i]) };
+      });
+      rows.sort(function (a, b) { return (b.v == null ? -Infinity : b.v) - (a.v == null ? -Infinity : a.v); });
+      var top = maxOf(rows.map(function (r) { return r.v; }));
+      return { x: x(i), y: isFinite(top) ? y(top) : f.m.t, title: monthLabel(m), rows: rows };
+    });
+    interact(f, stops, { crosshair: true });
+  }
+
+  function ranges(host, rows, label) {
+    var lo = minOf(rows.map(function (r) { return r.p5; })), hi = maxOf(rows.map(function (r) { return r.p95; }));
+    var xt = niceTicks(lo, hi, 4);
+    var lw = maxOf(rows.map(function (r) { return tw(r.label, 12, 600); })) + 16, rowH = 36;
+    var f = frame(host, { height: rows.length * rowH + 40, label: label, m: { t: 8, r: 20, b: 30, l: lw } });
+    var x = lin(xt[0], xt[xt.length - 1], f.m.l, f.w - f.m.r), d = mDecimals(xt), stops = [];
+    var tstep = Math.max(1, Math.ceil((tw(fmtM(xt[xt.length - 1], d)) + 12) / ((f.w - f.m.l - f.m.r) / Math.max(1, xt.length - 1))));
+    xt.forEach(function (t, i) {
+      var xx = Math.round(x(t)) + 0.5;
+      el("line", { x1: xx, x2: xx, y1: f.m.t, y2: f.h - f.m.b, "class": "grid-l" }, f.svg);
+      if (i % tstep === 0) text(f.svg, xx, f.h - f.m.b + 18, fmtM(t, d), { "text-anchor": "middle" });
+    });
+    xBase(f, f.h - f.m.b);
+    rows.forEach(function (r, i) {
+      var cy = f.m.t + rowH * (i + 0.5);
+      text(f.svg, f.m.l - 10, cy + 4, r.label, { "text-anchor": "end", "class": "lbl" });
+      var ln = el("line", { x1: x(r.p5), x2: x(r.p95), y1: cy, y2: cy, "stroke-width": 2 }, f.svg);
+      ln.style.stroke = r.color;
+      [r.p5, r.p95].forEach(function (v) {
+        var tk = el("line", { x1: x(v), x2: x(v), y1: cy - 6, y2: cy + 6, "stroke-width": 2 }, f.svg);
+        tk.style.stroke = r.color;
+      });
+      var dot = el("circle", { cx: x(r.p50), cy: cy, r: 5, "stroke-width": 2 }, f.svg);
+      dot.style.fill = r.color;
+      dot.style.stroke = "var(--surface-2)";
+      stops.push({ x: x(r.p50), y: cy, mark: dot, title: r.label, rows: [
+        { label: "P95", value: fmtM(r.p95) }, { label: "P50", value: fmtM(r.p50) },
+        { label: "P5", value: fmtM(r.p5) }, { label: "mean", value: fmtM(r.mean) }] });
+    });
+    interact(f, stops, { xy: true });
+  }
+
+  function scatter(host, pts, label) {
+    var xs = pts.map(function (p) { return p.x; }), ys = pts.map(function (p) { return p.y; });
+    var px = (maxOf(xs) - minOf(xs)) * 0.08 || 1e5, py = (maxOf(ys) - minOf(ys)) * 0.08 || 1e5;
+    var xt = niceTicks(minOf(xs) - px, maxOf(xs) + px, 4), yt = niceTicks(minOf(ys) - py, maxOf(ys) + py, 4);
+    var dx = mDecimals(xt), dy = mDecimals(yt);
+    var lw = maxOf(yt.map(function (t) { return tw(fmtM(t, dy)); })) + 14;
+    var f = frame(host, { height: function (w) { return Math.max(240, Math.min(320, w * 0.6)); },
+      label: label, m: { t: 22, r: 18, b: 44, l: lw } });
+    var x = lin(xt[0], xt[xt.length - 1], f.m.l, f.w - f.m.r), y = lin(yt[0], yt[yt.length - 1], f.h - f.m.b, f.m.t);
+    yAxis(f, y, yt, function (t) { return fmtM(t, dy); });
+    var tstep = Math.max(1, Math.ceil((tw(fmtM(xt[xt.length - 1], dx)) + 12) / ((f.w - f.m.l - f.m.r) / Math.max(1, xt.length - 1))));
+    xt.forEach(function (t, i) {
+      if (i % tstep === 0) text(f.svg, x(t), f.h - f.m.b + 18, fmtM(t, dx), { "text-anchor": "middle" });
+    });
+    xBase(f, f.h - f.m.b);
+    text(f.svg, f.w - f.m.r, f.h - 6, "Mean 12-month cost →", { "text-anchor": "end" });
+    text(f.svg, f.m.l - lw + 2, 12, "↑ P95 (bad case)", {});
+    var items = pts.map(function (p) { return { p: p, y: y(p.y), ly: y(p.y) + 4 }; });
+    placeLabels(items, 15, f.m.t + 4, f.h - f.m.b);
+    var stops = [];
+    items.forEach(function (it) {
+      var cx = x(it.p.x), wlab = tw(it.p.label, 12, 600), right = cx + 10 + wlab < f.w - 2;
+      var lx = right ? cx + 10 : cx - 10;
+      if (Math.abs(it.ly - 4 - it.y) > 3) {
+        el("line", { x1: cx + (right ? 5 : -5), y1: it.y, x2: lx + (right ? -2 : 2), y2: it.ly - 4, "class": "leader" }, f.svg);
+      }
+      text(f.svg, lx, it.ly, it.p.label, { "class": "lbl", "text-anchor": right ? "start" : "end" });
+    });
+    pts.forEach(function (p) {
+      var c = el("circle", { cx: x(p.x), cy: y(p.y), r: 5, "stroke-width": 2 }, f.svg);
+      c.style.fill = p.color;
+      c.style.stroke = "var(--surface-2)";
+      stops.push({ x: x(p.x), y: y(p.y), mark: c, title: p.label,
+        rows: [{ label: "mean", value: fmtM(p.x) }, { label: "P95", value: fmtM(p.y) }] });
+    });
+    interact(f, stops, { xy: true });
+  }
+
+  function histograms(container, r) {
+    container.replaceChildren();
+    var ymax = 0, nb = 0, bw = 1e5;
+    IDS.forEach(function (id) {
+      if (!r.hist[id]) return;
+      ymax = Math.max(ymax, maxOf(r.hist[id]));
+      nb = Math.max(nb, r.hist[id].length);
+    });
+    var x0 = r.bin_lo * bw, x1 = (r.bin_lo + nb) * bw, xt = niceTicks(x0, x1, 4), d = mDecimals(xt);
+    var yt = niceTicks(0, ymax, 2);
+    IDS.forEach(function (id) {
+      if (!r.hist[id]) return;
+      var box = document.createElement("div"), h4 = document.createElement("h4"), sw = document.createElement("i");
+      var host = document.createElement("div");
+      box.className = "mini";
+      sw.style.background = sv(id);
+      h4.appendChild(sw);
+      h4.appendChild(document.createTextNode(LABEL[id]));
+      host.className = "plot";
+      box.appendChild(h4);
+      box.appendChild(host);
+      container.appendChild(box);
+      var lw = maxOf(yt.map(function (t) { return tw(fmtInt(t)); })) + 12;
+      var f = frame(host, { height: 150, label: "Paths per cost bin, " + LABEL[id], m: { t: 16, r: 10, b: 26, l: lw } });
+      var x = lin(xt[0], xt[xt.length - 1], f.m.l, f.w - f.m.r), y = lin(0, yt[yt.length - 1], f.h - f.m.b, f.m.t);
+      yAxis(f, y, yt, fmtInt);
+      var tstep = Math.max(1, Math.ceil((tw(fmtM(xt[xt.length - 1], d)) + 10) / ((f.w - f.m.l - f.m.r) / Math.max(1, xt.length - 1))));
+      xt.forEach(function (t, i) {
+        if (i % tstep === 0) text(f.svg, x(t), f.h - f.m.b + 17, fmtM(t, d), { "text-anchor": "middle" });
+      });
+      var stops = [];
+      r.hist[id].forEach(function (c, i) {
+        var a = (r.bin_lo + i) * bw, xa = x(a), xb = x(a + bw);
+        var rect = el("rect", { x: xa + 1, y: y(c), width: Math.max(0.5, xb - xa - 2), height: Math.max(0, y(0) - y(c)) }, f.svg);
+        rect.style.fill = sv(id);
+        stops.push({ x: (xa + xb) / 2, y: y(c), mark: rect, title: fmtM(a) + " to " + fmtM(a + bw),
+          rows: [{ label: "paths", value: fmtInt(c) }] });
+      });
+      xBase(f, y(0));
+      var p95 = r.stats[id].p95, xp = Math.round(x(p95)) + 0.5;
+      el("line", { x1: xp, x2: xp, y1: f.m.t - 4, y2: f.h - f.m.b, "class": "ref" }, f.svg);
+      var right = xp + 6 + tw("P95 " + fmtM(p95)) < f.w;
+      text(f.svg, right ? xp + 4 : xp - 4, f.m.t - 4, "P95 " + fmtM(p95), { "text-anchor": right ? "start" : "end" });
+      interact(f, stops, {});
+    });
+  }
+
+  /* ---- pages ---- */
+  function hTwo(w) { return Math.round(Math.max(230, Math.min(320, w * 0.55))); }
+  function hWide(w) { return Math.round(Math.max(230, Math.min(340, w * 0.3))); }
+  function mAxis(t, ticks) { return fmtM(t, mDecimals(ticks)); }
+
+  function drawHeadline() {
+    var w = D.wrong, top = 0;
+    w.forEach(function (r, i) { if (r.gap > w[top].gap) top = i; });
+    columns(plot("wrong"), {
+      cats: w.map(function (r) { return String(r.year); }), values: w.map(function (r) { return r.gap; }),
+      colors: w.map(function (r, i) { return i === top ? "var(--hl)" : "var(--sc-ac)"; }),
+      valueLabels: true, fmtVal: function (v) { return fmtM(v); }, fmtAxis: mAxis, height: hTwo,
+      sub: w.map(function (r) { return LABEL[r.worst]; }), denseCats: true,
+      label: "Column chart: cost of the wrong strategy per year in euros",
+      tipTitle: function (i) { return String(w[i].year); },
+      tipRows: function (i) {
+        return [{ value: fmtM(w[i].gap), label: "dearest minus cheapest" },
+          { value: LABEL[w[i].worst], label: "dearest" }, { value: LABEL[w[i].best], label: "cheapest" }];
+      } });
+  }
+
+  function drawMarket() {
+    var mk = D.market, idx = [];
+    mk.months.forEach(function (m, i) { if (state.year === "all" || m.slice(0, 4) === state.year) idx.push(i); });
+    var months = idx.map(function (i) { return mk.months[i]; });
+    function pick(a) { return idx.map(function (i) { return a[i]; }); }
+    lines(plot("price"), { months: months, height: hWide, fromZero: true,
+      series: [{ label: "Peak", values: pick(mk.peak), color: "var(--sc-ac)" },
+        { label: "Base", values: pick(mk.base), color: "var(--hl)" }],
+      fmtVal: fmtMwh, fmtAxis: function (t) { return nf(t, 0); }, fmtEnd: function (v) { return nf(v, 1); },
+      endLabels: true, label: "Line chart: monthly Austrian day-ahead base and peak price in EUR/MWh" });
+    legend("price", [{ label: "Base", color: "var(--hl)" }, { label: "Peak", color: "var(--sc-ac)" }]);
+    var hiIdx = 0;
+    mk.neg_hours.forEach(function (v, i) { if (v > mk.neg_hours[hiIdx]) hiIdx = i; });
+    columns(plot("neg"), { cats: mk.neg_years.map(function (y, i) { return String(y) + (mk.neg_partial[i] ? "*" : ""); }),
+      values: mk.neg_hours, height: hTwo,
+      colors: mk.neg_years.map(function (y, i) {
+        var on = state.year === "all" ? i === hiIdx : String(y) === state.year;
+        return on ? "var(--hl)" : "var(--sc-ac)";
+      }),
+      valueLabels: true, fmtVal: fmtInt, fmtAxis: function (t) { return fmtInt(t); },
+      label: "Column chart: hours with a negative price per year",
+      tipTitle: function (i) { return String(mk.neg_years[i]) + (mk.neg_partial[i] ? " (partial year)" : ""); },
+      tipRows: function (i) { return [{ value: fmtInt(mk.neg_hours[i]) + " hours", label: "negative price" }]; } });
+    lines(plot("spread"), { months: months, height: hTwo, zero: true,
+      series: [{ label: "AT − DE-LU", values: pick(mk.spread), color: "var(--hl)" }],
+      fmtVal: fmtMwh, fmtAxis: function (t) { return nf(t, 0); }, fmtEnd: function (v) { return nf(v, 1); },
+      label: "Line chart: monthly AT minus DE-LU day-ahead spread in EUR/MWh" });
+  }
+
+  function drawStrategies() {
+    var cum = D.cumulative;
+    lines(plot("cum"), { months: cum.months, height: function (w) { return Math.round(Math.max(260, Math.min(380, w * 0.34))); },
+      fromZero: true, endLabels: true,
+      series: IDS.map(function (id) { return { label: LABEL[id], values: cum.series[id], color: sv(id) }; }),
+      fmtVal: function (v) { return fmtM(v); }, fmtEnd: function (v) { return fmtM(v); }, fmtAxis: mAxis,
+      label: "Line chart: cumulative energy cost per strategy since January 2021 in euros" });
+    legend("cum", IDS.map(function (id) { return { label: LABEL[id], color: sv(id) }; }));
+  }
+
+  function drawRisk() {
+    var r = D.risk[state.variant];
+    if (!r) return;
+    var rows = IDS.filter(function (id) { return r.stats[id]; }).map(function (id) {
+      var s = r.stats[id];
+      return { label: LABEL[id], color: sv(id), p5: s.p5, p50: s.p50, p95: s.p95, mean: s.mean };
+    });
+    ranges(plot("range"), rows, "Range chart: P5 to P95 of the simulated next-12-month cost per strategy");
+    scatter(plot("scatter"), IDS.filter(function (id) { return r.stats[id]; }).map(function (id) {
+      return { label: LABEL[id], color: sv(id), x: r.stats[id].mean, y: r.stats[id].p95 };
+    }), "Scatter chart: mean versus P95 of the simulated next-12-month cost per strategy");
+    histograms(document.getElementById("plot-hist"), r);
+    document.querySelectorAll("details[data-variant]").forEach(function (d) {
+      d.hidden = d.getAttribute("data-variant") !== state.variant;
+    });
+  }
+
+  function drawDq() {
+    var dq = D.dq;
+    lines(plot("cov"), { months: dq.months, height: hWide, domain: [dq.axis_min, 100],
+      series: [{ label: "Coverage", values: dq.coverage, color: "var(--hl)" }],
+      fmtVal: function (v) { return nf(v, 2) + "%"; }, fmtAxis: function (t, ticks) {
+        var st = ticks.length > 1 ? ticks[1] - ticks[0] : 1;
+        return nf(t, st >= 1 ? 0 : st >= 0.1 ? 1 : 2) + "%";
+      }, label: "Line chart: monthly Austrian price coverage in percent of expected hours" });
+    columns(plot("pt15"), { cats: dq.months.map(function (m) { return m.slice(5) === "01" ? m.slice(0, 4) : ""; }),
+      values: dq.pt15m, colors: dq.pt15m.map(function () { return "var(--hl)"; }), height: hWide,
+      fmtVal: fmtInt, fmtAxis: function (t) { return fmtInt(t); }, maxBar: 12,
+      label: "Column chart: hours per month built from 15-minute quarters",
+      tipTitle: function (i) { return monthLabel(dq.months[i]); },
+      tipRows: function (i) { return [{ value: fmtInt(dq.pt15m[i]) + " hours", label: "from 15-min quarters" }]; } });
+  }
+
+  var DRAW = { headline: drawHeadline, market: drawMarket, strategies: drawStrategies, risk: drawRisk,
+    "data-quality": drawDq };
+
+  /* ---- tabs (WAI-ARIA tabs pattern), controls, theme ---- */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll("[role=tab]"));
+  function activate(id, focus) {
+    tabs.forEach(function (t) {
+      var on = t.id === "tab-" + id;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+      if (on && focus) t.focus();
+    });
+    state.page = id;
+    if (location.hash !== "#" + id) {
+      try { history.replaceState(null, "", "#" + id); } catch (e) { location.hash = id; }
+    }
+    tip.hidden = true;
+    DRAW[id]();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { activate(t.id.slice(4)); });
+    t.addEventListener("keydown", function (ev) {
+      var j = null;
+      if (ev.key === "ArrowRight") j = (i + 1) % tabs.length;
+      else if (ev.key === "ArrowLeft") j = (i - 1 + tabs.length) % tabs.length;
+      else if (ev.key === "Home") j = 0;
+      else if (ev.key === "End") j = tabs.length - 1;
+      if (j !== null) { ev.preventDefault(); activate(tabs[j].id.slice(4), true); }
+    });
+  });
+  window.addEventListener("hashchange", function () {
+    var id = location.hash.slice(1);
+    if (DRAW[id] && id !== state.page) activate(id);
+  });
+  document.getElementById("market-year").addEventListener("change", function (ev) {
+    state.year = ev.target.value;
+    drawMarket();
+  });
+  document.querySelectorAll("[data-metric].seg").forEach(function (b) {
+    b.addEventListener("click", function () {
+      state.metric = b.getAttribute("data-metric");
+      document.querySelectorAll("[data-metric].seg").forEach(function (o) {
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      document.querySelectorAll("#panel-strategies table.matrix").forEach(function (t) {
+        t.hidden = t.getAttribute("data-metric") !== state.metric;
+      });
+    });
+  });
+  document.querySelectorAll("#panel-strategies table.matrix").forEach(function (t) {
+    t.hidden = t.getAttribute("data-metric") !== state.metric;
+  });
+  document.querySelectorAll("[data-variant].seg").forEach(function (b) {
+    b.addEventListener("click", function () {
+      state.variant = b.getAttribute("data-variant");
+      document.querySelectorAll("[data-variant].seg").forEach(function (o) {
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      drawRisk();
+    });
+  });
+  var THEMES = ["auto", "light", "dark"], themeBtn = document.getElementById("theme");
+  function setTheme(t) {
+    if (t === "auto") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", t);
+    themeBtn.textContent = "Theme: " + t;
+    themeBtn.setAttribute("aria-label", "Colour theme: " + (t === "auto" ? "automatic" : t));
+    try { localStorage.setItem("epra-theme", t); } catch (e) { /* storage unavailable */ }
+  }
+  themeBtn.addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme") || "auto";
+    setTheme(THEMES[(THEMES.indexOf(cur) + 1) % THEMES.length]);
+  });
+  try { var saved = localStorage.getItem("epra-theme"); if (saved && saved !== "auto") setTheme(saved); } catch (e) { /* none */ }
+  var lastW = 0, timer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      var w = document.documentElement.clientWidth;
+      if (w !== lastW) { lastW = w; DRAW[state.page](); }
+    }, 120);
+  });
+  var start = location.hash.slice(1);
+  lastW = document.documentElement.clientWidth;
+  activate(DRAW[start] ? start : tabs[0].id.slice(4));
+})();
+</script></body></html>
