@@ -1,6 +1,6 @@
 # Energy Procurement Risk Analyzer (EPRA)
 
-![Energy Procurement Risk Analyzer: procurement-strategy risk on the Austrian day-ahead market for a 50 GWh Styrian consumer. Pipeline built and tested; real-data results pending.](docs/assets/hero.png)
+![Energy Procurement Risk Analyzer: Procurement-strategy risk on the Austrian day-ahead market for a 50 GWh Styrian consumer, backtested on real ENTSO-E prices 2019–2026.](docs/assets/hero.png)
 
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-5A5C61?labelColor=26282C)](https://www.python.org/downloads/release/python-3120/)

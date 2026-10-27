@@ -80,8 +80,8 @@
       ],
       "lines": [
         "Procurement-strategy risk on the Austrian day-ahead market",
-        "for a 50 GWh Styrian consumer. Pipeline built and tested;",
-        "real-data results pending."
+        "for a 50 GWh Styrian consumer, backtested on real ENTSO-E",
+        "prices 2019–2026."
       ],
       "font": "BKribitz-400.woff2"
     }
