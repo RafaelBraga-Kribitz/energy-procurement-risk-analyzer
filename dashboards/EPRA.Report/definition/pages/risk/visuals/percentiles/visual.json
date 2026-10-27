@@ -1,0 +1,122 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
+  "name": "percentiles",
+  "position": {
+    "x": 16,
+    "y": 164,
+    "z": 14000,
+    "height": 260,
+    "width": 616,
+    "tabOrder": 5000
+  },
+  "visual": {
+    "visualType": "clusteredBarChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "dim_strategy"
+                    }
+                  },
+                  "Property": "strategy_label"
+                }
+              },
+              "queryRef": "dim_strategy.strategy_label",
+              "nativeQueryRef": "strategy_label"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "forward_risk_summary"
+                    }
+                  },
+                  "Property": "Forward P5 EUR"
+                }
+              },
+              "queryRef": "forward_risk_summary.Forward P5 EUR",
+              "nativeQueryRef": "Forward P5 EUR",
+              "displayName": "P5"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "forward_risk_summary"
+                    }
+                  },
+                  "Property": "Forward P50 EUR"
+                }
+              },
+              "queryRef": "forward_risk_summary.Forward P50 EUR",
+              "nativeQueryRef": "Forward P50 EUR",
+              "displayName": "P50"
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "forward_risk_summary"
+                    }
+                  },
+                  "Property": "Forward P95 EUR"
+                }
+              },
+              "queryRef": "forward_risk_summary.Forward P95 EUR",
+              "nativeQueryRef": "Forward P95 EUR",
+              "displayName": "P95"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Next-12-month cost: P5, P50, P95 by strategy (EUR)'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Bar chart: per strategy, the 5th percentile, median and 95th percentile of the simulated next-12-month cost in euros.'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

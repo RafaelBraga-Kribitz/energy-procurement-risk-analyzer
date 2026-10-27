@@ -1,0 +1,39 @@
+relationship b0d1a33e-d448-5ee5-a38d-f9ee7aa3a886
+	fromColumn: procurement_cost_monthly.strategy_id
+	toColumn: dim_strategy.strategy_id
+
+relationship 5b9eab24-90ac-5386-9412-28fac752a98a
+	fromColumn: strategy_annual_summary.strategy_id
+	toColumn: dim_strategy.strategy_id
+
+relationship 55db11d4-af72-51b2-a712-13cdb22a18fc
+	fromColumn: forward_risk_summary.strategy_id
+	toColumn: dim_strategy.strategy_id
+
+relationship 3f1ea25f-4c76-5beb-82db-8c7577447296
+	fromColumn: forward_paths.strategy_id
+	toColumn: dim_strategy.strategy_id
+
+relationship e8cbec7e-36d9-51fb-8075-e6d78565d182
+	fromColumn: procurement_cost_monthly.MonthStart
+	toColumn: DimMonth.Date
+
+relationship 17491e8d-fff1-51b0-bc91-8f044dc851d1
+	fromColumn: strategy_annual_summary.MonthStart
+	toColumn: DimMonth.Date
+
+relationship 6b97373d-6906-503e-884e-388eb1f38213
+	fromColumn: price_monthly.MonthStart
+	toColumn: DimMonth.Date
+
+relationship 70df480e-c219-5022-8a70-56a0471fa286
+	fromColumn: spread_monthly.MonthStart
+	toColumn: DimMonth.Date
+
+relationship a65198a4-22e2-52c4-bc11-34e1e145764a
+	fromColumn: generation_monthly.MonthStart
+	toColumn: DimMonth.Date
+
+relationship 795a5367-8429-56a1-9348-7598d0da86a6
+	fromColumn: data_quality_monthly.MonthStart
+	toColumn: DimMonth.Date

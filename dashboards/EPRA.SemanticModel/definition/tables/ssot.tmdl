@@ -1,0 +1,116 @@
+/// reports/NUMERIC_SSOT.md as a table; headline cards read it (A-6, GV-301).
+table ssot
+	lineageTag: bfc01d5b-8e33-50b2-abb3-f0d7be92a2c0
+
+	/// Numeric value of the single SSOT row in context; blank for text rows (strategy ids, months) and when several rows are in context. Parsed with the model culture en-US.
+	measure 'SSOT Number' =
+			VAR SelectedUnit = SELECTEDVALUE ( ssot[unit] )
+			VAR SelectedValue = SELECTEDVALUE ( ssot[value] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( SelectedValue )
+			            && NOT ( SelectedUnit IN { "strategy_id", "month", "months" } ),
+			        VALUE ( SelectedValue )
+			    )
+		formatString: #,0.####
+		displayFolder: SSOT
+		lineageTag: c58431e7-4d05-57bd-b71b-051b1eb33c6b
+
+	/// SSOT wrong_strategy_cost_total: what the wrong strategy cost over 2021-2025, EUR (CALIBRATED; RP-401 card).
+	measure 'Card Wrong Strategy Cost 5y EUR' = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "wrong_strategy_cost_total" ) )
+		formatString: \€#,0.00,, \M
+		displayFolder: SSOT
+		lineageTag: 596afcef-3c9b-52d1-8e39-2174b268d147
+
+	/// Label of SSOT best_strategy_5yr, the cheapest strategy over 2021-2025 (CALIBRATED).
+	measure 'Card Best Strategy 5y' =
+			VAR Id = LOOKUPVALUE ( ssot[value], ssot[key], "best_strategy_5yr" )
+			RETURN
+			    LOOKUPVALUE ( dim_strategy[strategy_label], dim_strategy[strategy_id], Id )
+		displayFolder: Labels & notes
+		lineageTag: 4af871be-b2ae-52db-ac7e-85a2777c210c
+
+	/// SSOT p95_next12m_S1: 95th-percentile next-12-month cost of full spot, EUR (SIMULATED).
+	measure 'Card P95 Full Spot EUR' = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "p95_next12m_S1" ) )
+		formatString: \€#,0.00,, \M
+		displayFolder: SSOT
+		lineageTag: d62b2120-9637-523e-8ef2-49eb19857cbb
+
+	/// SSOT p95_next12m_S3: 95th-percentile next-12-month cost of the fixed annual contract, EUR (SIMULATED).
+	measure 'Card P95 Fixed Annual EUR' = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "p95_next12m_S3" ) )
+		formatString: \€#,0.00,, \M
+		displayFolder: SSOT
+		lineageTag: 469cc02c-351d-525a-ac4f-b806b49974fe
+
+	/// SSOT q4_risk_premium_eur: extra expected cost of the risk-averse choice over the cost-minimising one, EUR (SIMULATED; ST-404).
+	measure 'Card Risk Premium EUR' = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "q4_risk_premium_eur" ) )
+		formatString: \€#,0
+		displayFolder: SSOT
+		lineageTag: bfbb4116-778a-52f4-96d9-64c51087879c
+
+	/// SSOT q4_p95_reduction_eur: how much the risk-averse choice lowers the P95 cost, EUR (SIMULATED; ST-404).
+	measure 'Card P95 Reduction EUR' = VALUE ( LOOKUPVALUE ( ssot[value], ssot[key], "q4_p95_reduction_eur" ) )
+		formatString: \€#,0
+		displayFolder: SSOT
+		lineageTag: 4e447224-87e6-5873-ba1c-75a5a4204c3b
+
+	/// SSOT data_last_month: last complete month in the data (YYYY-MM).
+	measure 'Card Data Through' = LOOKUPVALUE ( ssot[value], ssot[key], "data_last_month" )
+		displayFolder: Labels & notes
+		lineageTag: 4a748719-d5ba-5eaf-b264-2f41486b0677
+
+	/// SSOT key.
+	column key
+		dataType: string
+		lineageTag: 3aebb9f6-6e88-564f-b3c5-95e4c8d9ff06
+		summarizeBy: none
+		sourceColumn: key
+
+		annotation SummarizationSetBy = User
+
+	/// Value as text: numbers, strategy ids and months.
+	column value
+		dataType: string
+		lineageTag: 79609306-d6f5-5a9b-be47-93f0cca8e6b1
+		summarizeBy: none
+		sourceColumn: value
+
+		annotation SummarizationSetBy = User
+
+	/// Unit of the value.
+	column unit
+		dataType: string
+		lineageTag: 782c3744-3df8-5c19-af83-4207fe3593cc
+		summarizeBy: none
+		sourceColumn: unit
+
+		annotation SummarizationSetBy = User
+
+	/// Epistemic tag: VERIFIED, CALIBRATED or SIMULATED.
+	column tag
+		dataType: string
+		lineageTag: 20ec7875-77f4-5fd3-9adb-df45d5f34ae6
+		summarizeBy: none
+		sourceColumn: tag
+
+		annotation SummarizationSetBy = User
+
+	/// Module that produced the row.
+	column produced_by
+		dataType: string
+		lineageTag: a44d789d-1e61-5ffb-9674-4dcfa43c4441
+		summarizeBy: none
+		sourceColumn: produced_by
+
+		annotation SummarizationSetBy = User
+
+	partition ssot = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("ssot.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"key", type text}, {"value", type text}, {"unit", type text}, {"tag", type text}, {"produced_by", type text}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

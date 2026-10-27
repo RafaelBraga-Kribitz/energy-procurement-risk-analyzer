@@ -1,0 +1,27 @@
+/// Folder that holds the exported CSVs (`make export` writes them to <repo>/exports/).
+/// Change only this value to re-point the whole model; a trailing slash is optional.
+expression ExportsPath = "C:\path\to\energy-procurement-risk-analyzer\exports\" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+	lineageTag: f7c0e4f0-3415-583d-8b3d-bb9395fda834
+
+	annotation PBI_ResultType = Text
+
+/// Loads one export file: UTF-8 CSV, comma-delimited, header row; empty fields become null.
+/// Every table query calls it, so the CSV dialect is defined once (DM-070).
+expression LoadExport =
+		(fileName as text) as table =>
+		let
+		    Folder =
+		        if Text.EndsWith(ExportsPath, "\") or Text.EndsWith(ExportsPath, "/")
+		        then ExportsPath
+		        else ExportsPath & "\",
+		    Source = Csv.Document(
+		        File.Contents(Folder & fileName),
+		        [Delimiter = ",", Encoding = 65001, QuoteStyle = QuoteStyle.Csv]
+		    ),
+		    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+		    EmptyAsNull = Table.TransformColumns(Promoted, {}, each if _ = "" then null else _)
+		in
+		    EmptyAsNull
+	lineageTag: 16e781b8-668a-572b-9a05-c1b1dc6339a2
+
+	annotation PBI_ResultType = Function

@@ -1,0 +1,214 @@
+/// Monthly input completeness and quality (VERIFIED; ADR-020 §3).
+table data_quality_monthly
+	lineageTag: 27eaa2a9-a7a9-5bda-b972-8ecc029bc401
+
+	/// Hours the months in context should have, DST days counted as 23 or 25 hours.
+	measure 'Expected Hours' = SUM ( data_quality_monthly[expected_hours] )
+		formatString: #,0
+		displayFolder: Data quality
+		lineageTag: 5cecead4-5d7c-55fe-bcdd-b5974d78a019
+
+	/// Hours in context that have an AT day-ahead price.
+	measure 'Priced Hours AT' = SUM ( data_quality_monthly[priced_hours_at] )
+		formatString: #,0
+		displayFolder: Data quality
+		lineageTag: 13c4a6f0-aa22-540a-97dc-44f55e9fbd69
+
+	/// Share of expected hours that have an AT price, in percent (100 = complete). Blank when no month is in context.
+	measure 'Price Coverage Pct' = DIVIDE ( [Priced Hours AT], [Expected Hours] ) * 100
+		formatString: #,0.00
+		displayFolder: Data quality
+		lineageTag: 6211864e-d6d6-5a5c-9a07-ba76dfe9006c
+
+	/// Months in context whose AT price coverage is below 100 %; 0 means every month is complete.
+	measure 'Months Below Full Coverage' =
+			COALESCE (
+			    COUNTROWS ( FILTER ( data_quality_monthly, data_quality_monthly[coverage_at_pct] < 100 ) ),
+			    0
+			)
+		formatString: #,0
+		displayFolder: Data quality
+		lineageTag: 4f39273b-c7ec-5563-9089-328e6eb998a8
+
+	/// Daylight-saving transition days (23- and 25-hour days) in context.
+	measure 'DST Days' = SUM ( data_quality_monthly[n_dst_days] )
+		formatString: #,0
+		displayFolder: Data quality
+		lineageTag: 45d5bf75-66a8-5bc2-9d9c-d98a6a71b597
+
+	/// Hours whose price is the mean of four 15-minute quarters (ING-062), not an hourly auction value.
+	measure 'Hours From 15min Quarters' = SUM ( data_quality_monthly[n_hours_from_pt15m] )
+		formatString: #,0
+		displayFolder: Data quality
+		lineageTag: 655f8f72-ec9f-5979-b3fb-d12844d114d9
+
+	/// Months in context without an ÖSPI index value; 0 = none missing.
+	measure 'Months Missing OESPI' =
+			COALESCE (
+			    COUNTROWS ( FILTER ( data_quality_monthly, NOT data_quality_monthly[has_oespi] ) ),
+			    0
+			)
+		formatString: #,0
+		displayFolder: Data quality
+		lineageTag: b3d82a46-a698-5888-b452-96f08f7964bd
+
+	/// Calendar year.
+	column year_local
+		dataType: int64
+		formatString: 0
+		lineageTag: a1a8fc04-1fad-58b0-ae69-ba1284657f49
+		summarizeBy: none
+		sourceColumn: year_local
+
+		annotation SummarizationSetBy = User
+
+	/// Calendar month 1-12.
+	column month_local
+		dataType: int64
+		formatString: 0
+		lineageTag: 0694d76d-215b-5d2c-a7a8-4c8e0f9b1228
+		summarizeBy: none
+		sourceColumn: month_local
+
+		annotation SummarizationSetBy = User
+
+	/// Hours in the month (23/25-hour DST days included).
+	column expected_hours
+		dataType: int64
+		formatString: 0
+		lineageTag: 6313e890-cd2d-568f-9da2-94be8cf3b644
+		summarizeBy: sum
+		sourceColumn: expected_hours
+
+		annotation SummarizationSetBy = User
+
+	/// Hours with an AT price.
+	column priced_hours_at
+		dataType: int64
+		formatString: 0
+		lineageTag: ace60126-7e16-5ade-af14-d9e425cbc610
+		summarizeBy: sum
+		sourceColumn: priced_hours_at
+
+		annotation SummarizationSetBy = User
+
+	/// Hours with a DE-LU price.
+	column priced_hours_delu
+		dataType: int64
+		formatString: 0
+		lineageTag: 86e74685-2201-5870-aa3a-1e81129f9c4f
+		summarizeBy: sum
+		sourceColumn: priced_hours_delu
+
+		annotation SummarizationSetBy = User
+
+	/// Hours with an AT load value.
+	column load_hours
+		dataType: int64
+		formatString: 0
+		lineageTag: 2b2aa6e8-89e0-562f-8b63-b5f125e5166a
+		summarizeBy: sum
+		sourceColumn: load_hours
+
+		annotation SummarizationSetBy = User
+
+	/// Days with a temperature reading.
+	column weather_days
+		dataType: int64
+		formatString: 0
+		lineageTag: 97e62c6d-cd48-52a1-a0e7-578bb79d78ab
+		summarizeBy: sum
+		sourceColumn: weather_days
+
+		annotation SummarizationSetBy = User
+
+	/// Days in the month.
+	column days_in_month
+		dataType: int64
+		formatString: 0
+		lineageTag: e800755e-aa01-5949-8f79-d6c6acecad90
+		summarizeBy: sum
+		sourceColumn: days_in_month
+
+		annotation SummarizationSetBy = User
+
+	/// priced_hours_at / expected_hours, %.
+	column coverage_at_pct
+		dataType: double
+		formatString: #,0.00
+		lineageTag: aeb9275d-4985-59f5-859b-091c715d2e5a
+		summarizeBy: none
+		sourceColumn: coverage_at_pct
+
+		annotation SummarizationSetBy = User
+
+	/// Daylight-saving transition days in the month.
+	column n_dst_days
+		dataType: int64
+		formatString: 0
+		lineageTag: 5c591d52-dc9a-5c2b-9cfd-55d740c6ae20
+		summarizeBy: sum
+		sourceColumn: n_dst_days
+
+		annotation SummarizationSetBy = User
+
+	/// Hours aggregated from 15-minute quarters.
+	column n_hours_from_pt15m
+		dataType: int64
+		formatString: 0
+		lineageTag: 8c3e9614-bc01-5c66-b834-b68cfb9b04fd
+		summarizeBy: sum
+		sourceColumn: n_hours_from_pt15m
+
+		annotation SummarizationSetBy = User
+
+	/// Source resolution: PT60M, PT15M or mixed.
+	column resolution
+		dataType: string
+		lineageTag: 1af11489-31de-5f7c-a5a1-189597b5bf85
+		summarizeBy: none
+		sourceColumn: resolution
+
+		annotation SummarizationSetBy = User
+
+	/// Hours with a negative AT price.
+	column n_negative_hours
+		dataType: int64
+		formatString: 0
+		lineageTag: a0cfd5de-baa2-5f6a-adde-c4001d3f6b67
+		summarizeBy: sum
+		sourceColumn: n_negative_hours
+
+		annotation SummarizationSetBy = User
+
+	/// True when the month has an ÖSPI value.
+	column has_oespi
+		dataType: boolean
+		lineageTag: 835e27f2-799a-5660-beab-2634ab17c04b
+		summarizeBy: none
+		sourceColumn: has_oespi
+
+		annotation SummarizationSetBy = User
+
+	/// First day of the month; joins DimMonth[Date].
+	column MonthStart
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm
+		lineageTag: 35bbfbee-ca74-5038-961e-c884356fe6df
+		summarizeBy: none
+		sourceColumn: MonthStart
+
+		annotation SummarizationSetBy = User
+
+	partition data_quality_monthly = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("data_quality_monthly.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"year_local", Int64.Type}, {"month_local", Int64.Type}, {"expected_hours", Int64.Type}, {"priced_hours_at", Int64.Type}, {"priced_hours_delu", Int64.Type}, {"load_hours", Int64.Type}, {"weather_days", Int64.Type}, {"days_in_month", Int64.Type}, {"coverage_at_pct", type number}, {"n_dst_days", Int64.Type}, {"n_hours_from_pt15m", Int64.Type}, {"resolution", type text}, {"n_negative_hours", Int64.Type}, {"has_oespi", type logical}}, "en-US"),
+				    WithMonth = Table.AddColumn(Typed, "MonthStart", each #date([year_local], [month_local], 1), type date)
+				in
+				    WithMonth
+
+	annotation PBI_ResultType = Table

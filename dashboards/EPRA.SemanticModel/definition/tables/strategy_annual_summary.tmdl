@@ -1,0 +1,96 @@
+/// Annual cost, unit cost and rank per strategy, 2021-2025 (CALIBRATED; ST-301).
+table strategy_annual_summary
+	lineageTag: b254cad3-b91c-51b2-bbbd-caa56eeafb74
+
+	/// Calendar year.
+	column year
+		dataType: int64
+		formatString: 0
+		lineageTag: f1ca8c02-29d1-51bd-94c6-760ec4bb5acb
+		summarizeBy: none
+		sourceColumn: year
+
+		annotation SummarizationSetBy = User
+
+	/// Strategy key.
+	column strategy_id
+		dataType: string
+		isHidden
+		lineageTag: 101dc46f-8045-5bfc-9dfc-197c28c06c32
+		summarizeBy: none
+		sourceColumn: strategy_id
+
+		annotation SummarizationSetBy = User
+
+	/// Annual volume, MWh.
+	column volume_mwh
+		dataType: double
+		formatString: #,0
+		lineageTag: ea3676e8-b3d4-5060-96e7-a764d9b64337
+		summarizeBy: sum
+		sourceColumn: volume_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Annual cost, EUR.
+	column cost_eur
+		dataType: double
+		formatString: \€#,0
+		lineageTag: f720504b-f99a-5972-a267-af467dab56de
+		summarizeBy: sum
+		sourceColumn: cost_eur
+
+		annotation SummarizationSetBy = User
+
+	/// Annual unit cost, EUR/MWh.
+	column unit_cost_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 0d8ff343-c86d-5318-911d-bec6179502ab
+		summarizeBy: none
+		sourceColumn: unit_cost_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Cost above the year's cheapest strategy, EUR.
+	column delta_vs_min_eur
+		dataType: double
+		formatString: \€#,0
+		lineageTag: aa5d83ed-f82a-5c25-90ba-7a12d85e82c4
+		summarizeBy: sum
+		sourceColumn: delta_vs_min_eur
+
+		annotation SummarizationSetBy = User
+
+	/// 1 = cheapest strategy of the year.
+	column rank
+		dataType: int64
+		formatString: 0
+		lineageTag: 0f80f4cf-e715-5601-a75f-2d1f10020371
+		summarizeBy: none
+		sourceColumn: rank
+
+		annotation SummarizationSetBy = User
+
+	/// 1 January of the year; joins DimMonth[Date].
+	column MonthStart
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm
+		lineageTag: 1692df87-9e36-5b54-9085-e63d0aa494c6
+		summarizeBy: none
+		sourceColumn: MonthStart
+
+		annotation SummarizationSetBy = User
+
+	partition strategy_annual_summary = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("strategy_annual_summary.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"year", Int64.Type}, {"strategy_id", type text}, {"volume_mwh", type number}, {"cost_eur", type number}, {"unit_cost_eur_mwh", type number}, {"delta_vs_min_eur", type number}, {"rank", Int64.Type}}, "en-US"),
+				    WithMonth = Table.AddColumn(Typed, "MonthStart", each #date([year], 1, 1), type date)
+				in
+				    WithMonth
+
+	annotation PBI_ResultType = Table

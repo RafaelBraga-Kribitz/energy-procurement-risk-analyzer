@@ -1,0 +1,159 @@
+/// Next-12-month cost distribution per strategy and bootstrap variant (SIMULATED; ST-404).
+table forward_risk_summary
+	lineageTag: fe154ffa-67ec-5490-a9fd-be061a3e4357
+
+	/// Mean next-12-month cost in EUR (SIMULATED). Per strategy it equals SSOT mean_next12m_<strategy> (unconditional) or mean_next12m_nocrisis_<strategy>. Reads one variant: the one selected on forward_risk_summary[variant], else 'unconditional' (averaging the two variants would mean nothing).
+	measure 'Forward Mean EUR' =
+			VAR SelectedVariant = SELECTEDVALUE ( forward_risk_summary[variant], "unconditional" )
+			RETURN
+			    CALCULATE (
+			        AVERAGE ( forward_risk_summary[mean] ),
+			        forward_risk_summary[variant] = SelectedVariant
+			    )
+		formatString: \€#,0
+		displayFolder: Forward risk
+		lineageTag: b07eb510-0930-5ab8-a435-7a451332764e
+
+	/// 5th-percentile next-12-month cost in EUR (SIMULATED); SSOT p5_next12m_<strategy>. Reads one variant: the one selected on forward_risk_summary[variant], else 'unconditional' (averaging the two variants would mean nothing).
+	measure 'Forward P5 EUR' =
+			VAR SelectedVariant = SELECTEDVALUE ( forward_risk_summary[variant], "unconditional" )
+			RETURN
+			    CALCULATE (
+			        AVERAGE ( forward_risk_summary[p5] ),
+			        forward_risk_summary[variant] = SelectedVariant
+			    )
+		formatString: \€#,0
+		displayFolder: Forward risk
+		lineageTag: d1a48e6e-b467-569f-8431-b6b7b3c56192
+
+	/// Median next-12-month cost in EUR (SIMULATED); SSOT p50_next12m_<strategy>. Reads one variant: the one selected on forward_risk_summary[variant], else 'unconditional' (averaging the two variants would mean nothing).
+	measure 'Forward P50 EUR' =
+			VAR SelectedVariant = SELECTEDVALUE ( forward_risk_summary[variant], "unconditional" )
+			RETURN
+			    CALCULATE (
+			        AVERAGE ( forward_risk_summary[p50] ),
+			        forward_risk_summary[variant] = SelectedVariant
+			    )
+		formatString: \€#,0
+		displayFolder: Forward risk
+		lineageTag: 8f9165c1-1bfa-552b-a0f1-83d7fe98ecfd
+
+	/// 95th-percentile next-12-month cost in EUR (SIMULATED); SSOT p95_next12m_<strategy>. Reads one variant: the one selected on forward_risk_summary[variant], else 'unconditional' (averaging the two variants would mean nothing).
+	measure 'Forward P95 EUR' =
+			VAR SelectedVariant = SELECTEDVALUE ( forward_risk_summary[variant], "unconditional" )
+			RETURN
+			    CALCULATE (
+			        AVERAGE ( forward_risk_summary[p95] ),
+			        forward_risk_summary[variant] = SelectedVariant
+			    )
+		formatString: \€#,0
+		displayFolder: Forward risk
+		lineageTag: 10c679bd-9415-5ee8-a8f4-123b2a677f10
+
+	/// Mean of the worst 5 % of simulated 12-month costs in EUR (SIMULATED); SSOT cvar95_next12m_<strategy>. Reads one variant: the one selected on forward_risk_summary[variant], else 'unconditional' (averaging the two variants would mean nothing).
+	measure 'Forward CVaR95 EUR' =
+			VAR SelectedVariant = SELECTEDVALUE ( forward_risk_summary[variant], "unconditional" )
+			RETURN
+			    CALCULATE (
+			        AVERAGE ( forward_risk_summary[cvar95] ),
+			        forward_risk_summary[variant] = SelectedVariant
+			    )
+		formatString: \€#,0
+		displayFolder: Forward risk
+		lineageTag: 351cd5db-d076-5703-b2d5-5cb7d2715897
+
+	/// How far the bad case (P95) sits above the typical case (P50), EUR (SIMULATED).
+	measure 'Tail Spread P95 minus P50 EUR' = [Forward P95 EUR] - [Forward P50 EUR]
+		formatString: \€#,0
+		displayFolder: Forward risk
+		lineageTag: 9452a7ae-30a7-5051-bfc1-0f78b21ebffe
+
+	/// unconditional or no_crisis (ST-401.4) pool.
+	column variant
+		dataType: string
+		lineageTag: 9cf61bdc-ad26-5944-a7d8-1be14083683c
+		summarizeBy: none
+		sourceColumn: variant
+
+		annotation SummarizationSetBy = User
+
+	/// Strategy key.
+	column strategy_id
+		dataType: string
+		isHidden
+		lineageTag: 35179bc2-81bd-5270-9e68-68ac5974e9a7
+		summarizeBy: none
+		sourceColumn: strategy_id
+
+		annotation SummarizationSetBy = User
+
+	/// Mean 12-month cost, EUR.
+	column mean
+		dataType: double
+		formatString: \€#,0
+		lineageTag: e13bdaa0-d8d2-5c9b-981e-0315ed03de47
+		summarizeBy: none
+		sourceColumn: mean
+
+		annotation SummarizationSetBy = User
+
+	/// Standard deviation, EUR.
+	column std
+		dataType: double
+		formatString: \€#,0
+		lineageTag: b08e504d-8cd7-585c-8160-c4ca2d669125
+		summarizeBy: none
+		sourceColumn: std
+
+		annotation SummarizationSetBy = User
+
+	/// 5th percentile, EUR.
+	column p5
+		dataType: double
+		formatString: \€#,0
+		lineageTag: 82f6be83-eede-588f-9456-d46e9773934c
+		summarizeBy: none
+		sourceColumn: p5
+
+		annotation SummarizationSetBy = User
+
+	/// Median, EUR.
+	column p50
+		dataType: double
+		formatString: \€#,0
+		lineageTag: 686336c4-4d19-546e-8f0d-0a953587149a
+		summarizeBy: none
+		sourceColumn: p50
+
+		annotation SummarizationSetBy = User
+
+	/// 95th percentile, EUR.
+	column p95
+		dataType: double
+		formatString: \€#,0
+		lineageTag: e1ec5908-0bb0-5e81-ab04-c01f11477767
+		summarizeBy: none
+		sourceColumn: p95
+
+		annotation SummarizationSetBy = User
+
+	/// Mean of the worst 5 % of paths, EUR.
+	column cvar95
+		dataType: double
+		formatString: \€#,0
+		lineageTag: df570cc5-9b6c-58c8-ad4b-1309f9d7792c
+		summarizeBy: none
+		sourceColumn: cvar95
+
+		annotation SummarizationSetBy = User
+
+	partition forward_risk_summary = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("forward_risk_summary.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"variant", type text}, {"strategy_id", type text}, {"mean", type number}, {"std", type number}, {"p5", type number}, {"p50", type number}, {"p95", type number}, {"cvar95", type number}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

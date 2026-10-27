@@ -1,0 +1,65 @@
+/// Calendar table, one row per day, marked as the date table. Monthly facts join on the first
+/// day of their month (DimMonth[Date] = fact[MonthStart]); visuals group by MonthStart or Year.
+table DimMonth
+	lineageTag: f4b2b768-28eb-5b8a-bc17-69d57425f00c
+	dataCategory: Time
+
+	/// Calendar day; the key of the marked date table.
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: yyyy-mm-dd
+		lineageTag: a98b3be6-32f8-5526-b830-c4394a764b9a
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Date]
+
+		annotation SummarizationSetBy = User
+
+	/// First day of the month; the monthly axis of every time chart.
+	column MonthStart
+		dataType: dateTime
+		formatString: yyyy-mm
+		lineageTag: 80353838-8039-5672-8083-629352d814e1
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [MonthStart]
+
+		annotation SummarizationSetBy = User
+
+	/// Calendar year.
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: ae9869da-6ddc-54bb-bd38-f04d14f96fe2
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Year]
+
+		annotation SummarizationSetBy = User
+
+	/// Calendar month 1-12.
+	column Month
+		dataType: int64
+		formatString: 0
+		lineageTag: 46aeb1b7-3385-5637-908a-7ae9a13ed519
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Month]
+
+		annotation SummarizationSetBy = User
+
+	partition DimMonth = calculated
+		mode: import
+		source =
+				VAR FirstMonth = MIN ( price_monthly[MonthStart] )
+				VAR LastMonth = MAX ( price_monthly[MonthStart] )
+				RETURN
+				    ADDCOLUMNS (
+				        CALENDAR ( FirstMonth, EOMONTH ( LastMonth, 12 ) ),
+				        "MonthStart", DATE ( YEAR ( [Date] ), MONTH ( [Date] ), 1 ),
+				        "Year", YEAR ( [Date] ),
+				        "Month", MONTH ( [Date] )
+				    )
+
+	annotation PBI_ResultType = Table

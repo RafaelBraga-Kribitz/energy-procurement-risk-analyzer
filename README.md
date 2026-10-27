@@ -26,7 +26,7 @@ the next 12 months?
 **Skills demonstrated:** SQL (dbt models, [headline queries in `sql/`](sql/)) · Python
 (pandas, NumPy, statsmodels) · ETL with retries, caching and validation gates ·
 data quality reporting ([Datenqualität](reports/data_quality/DATA_QUALITY.md)) · DuckDB + dbt
-warehouse · Power BI ([build kit](dashboards/)) · Azure-ready deployment path
+warehouse · Power BI ([PBIP project](dashboards/)) · Azure-ready deployment path
 ([Blob + Azure SQL, Bicep](docs/AZURE_DEPLOYMENT.md)) · CI/CD on GitHub Actions.
 
 **Run it:**
@@ -49,19 +49,19 @@ FIXTURE).
 
 **Real-data results do not exist yet.** Milestones M0–M7 are built, tested and
 green in CI: ingestion, warehouse, load profile, market analytics, strategy simulator,
-SSOT, exports, reports, Power BI build kit, monthly refresh workflow. The build
+SSOT, exports, reports, Power BI project (PBIP) with an HTML twin, monthly refresh workflow. The build
 environment had no ENTSO-E token, so every committed result artifact comes from the
 synthetic fixture (ADR-018) and carries a FIXTURE banner or watermark. The first
 `make all` on real data replaces them; the README answer above is rendered from the SSOT
-at that moment ([real-data run guide](docs/REAL_DATA_RUN.md): `make real-run`). Open human steps: the real-data run, the Power BI `.pbix` and
-its screenshots, and an optional Azure deployment.
+at that moment ([real-data run guide](docs/REAL_DATA_RUN.md): `make real-run`). Open human steps: the real-data run, opening and refreshing the
+Power BI project in Desktop and its screenshots, and an optional Azure deployment.
 
 ## Explore this project
 
 | Audience | Start here |
 |---|---|
 | Recruiter / hiring manager | The answer above, then [`reports/EXEC_SUMMARY.md`](reports/EXEC_SUMMARY.md) (two pages, CFO view) |
-| BI / data analyst | [`sql/`](sql/) headline queries, [`dashboards/`](dashboards/) Power BI build kit, [data-quality report](reports/data_quality/DATA_QUALITY.md) |
+| BI / data analyst | [`sql/`](sql/) headline queries, [`dashboards/`](dashboards/) Power BI project (TMDL + PBIR) and HTML twin, [data-quality report](reports/data_quality/DATA_QUALITY.md) |
 | Data engineer | [Architecture](#architecture), [`dbt/`](dbt/), [`.github/workflows/`](.github/workflows/), [Azure path](docs/AZURE_DEPLOYMENT.md) |
 | Data scientist | [Analytics A1–A4](reports/analytics/), [simulator specs](docs/SPEC-05_strategy_simulator.md), [forward-risk report](reports/strategies/forward_risk_summary.md) |
 | Reviewer / auditor | [`reports/NUMERIC_SSOT.md`](reports/NUMERIC_SSOT.md), [`LIMITATIONS.md`](LIMITATIONS.md), [ADRs](docs/ADR/), [build log](docs/BUILD_LOG.md) |
@@ -138,12 +138,21 @@ Full tables: [strategy comparison](reports/strategies/strategy_annual_summary.md
 
 ## Dashboard
 
-Power BI on the exported CSVs, five pages: decision, market, strategies, risk, data
-quality. The [build kit](dashboards/README.md) contains the star schema, Power Query
-steps, every DAX measure ([`measures.dax`](dashboards/measures.dax)) and the theme. The
-`.pbix` and its screenshots are built by hand after the real-data run; until then the
-static charts in [`reports/executive_charts/`](reports/executive_charts/) are the visual
-deliverable.
+Power BI on the exported CSVs, five pages: headline, market, strategies, risk,
+data quality. Every page has a German subtitle and its epistemic tag.
+
+- **[`dashboards/EPRA.pbip`](dashboards/)** is the report as a Power BI Project in
+  text form: a TMDL semantic model with documented DAX measures, and a PBIR report
+  with one JSON file per visual. A test checks that every field a visual uses
+  exists in the model, and every file validates against Microsoft's schemas
+  ([ADR-022](docs/ADR/ADR-022_powerbi-pbip-and-static-html-twin.md)).
+- **HTML twin.** `make dashboard-html` writes the same pages as one static,
+  self-contained HTML file from the same CSVs (no server, no CDN).
+
+*Pending the real-data run:* the report has not been opened in Power BI Desktop,
+refreshed or screenshotted yet. The [open-and-refresh checklist](dashboards/README.md)
+lists those steps. Until then, the static charts in
+[`reports/executive_charts/`](reports/executive_charts/) are the visual deliverable.
 
 ## Limitations
 
@@ -206,7 +215,7 @@ flowchart TD
 | `src/epra/report/` | Charts, data-quality report, executive summary |
 | `src/epra/cloud/` | Publish targets: local (default) and Azure |
 | `sql/` | Headline answers as plain SQL, tested against the Python engine |
-| `dashboards/` | Power BI build kit |
+| `dashboards/` | Power BI project (PBIP), build kit, HTML twin generator target |
 | `infra/azure/` | Bicep for the optional Azure path |
 | `reports/` | SSOT, executive summary, analytics, strategies, data quality |
 | `docs/` | Charter specs SPEC-01…08, ADRs, build log |
@@ -219,7 +228,7 @@ flowchart TD
 | DuckDB + dbt | Warehouse, SQL transformations, data tests |
 | pandas, NumPy, statsmodels, hmmlearn, arch | Analytics and simulation |
 | matplotlib | Charts (one shared style module) |
-| Power BI | Interactive dashboard on the exported CSVs |
+| Power BI (PBIP: TMDL + PBIR) | Interactive dashboard on the exported CSVs, plus a static HTML twin |
 | Azure Blob Storage + Azure SQL (optional) | Cloud copy of raw data and results |
 | GitHub Actions | Lint, tests, fixture pipeline run, SSOT check, monthly refresh |
 
@@ -256,7 +265,7 @@ hoch ist das Kostenrisiko (P95) für die nächsten 12 Monate? Grundlage sind rea
 Day-Ahead-Preise für Österreich (ENTSO-E), der Strompreisindex ÖSPI und Wetterdaten
 aus Graz. Das Lastprofil ist konstruiert, nicht gemessen. Alle Kennzahlen stehen mit
 Herkunftskennzeichnung in `reports/NUMERIC_SSOT.md`; Datenqualität und Reporting sind
-automatisiert, das Dashboard wird in Power BI gebaut.
+automatisiert; das Dashboard liegt als Power-BI-Projekt (PBIP) und als statische HTML-Fassung vor.
 
 ## Future work
 

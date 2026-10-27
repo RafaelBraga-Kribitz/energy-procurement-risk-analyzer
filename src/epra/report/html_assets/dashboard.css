@@ -1,0 +1,110 @@
+/* EPRA HTML dashboard twin (ADR-022). Braga design system v2.1 rules: flat opaque
+   surfaces, no shadow/gradient/alpha, square corners, 1px rule-c gridlines, one
+   highlight per chart, colour in marks never in type, nothing below 12px.
+   Colour values arrive as custom properties from bk tokens (html_dashboard.css_tokens). */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--surface);color:var(--ink);
+  font:15px/1.5 -apple-system,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:1320px;margin:0 auto;padding:0 32px}
+.skip{position:absolute;left:-999px;top:0;background:var(--ink);color:var(--surface);padding:8px 12px}
+.skip:focus{left:8px;z-index:10}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:2px solid var(--hl);outline-offset:2px}
+.banner{position:sticky;top:0;z-index:5;background:var(--var-neg-tint);color:var(--ink);
+  border-bottom:2px solid var(--var-neg);padding:10px 32px;font-size:14px}
+.banner code{font-size:13px}
+.top{border-bottom:1px solid var(--rule-c);background:var(--surface)}
+.top .wrap:first-child{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;
+  padding-top:20px}
+.eyebrow{margin:0;font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--ink-2)}
+.meta{margin:4px 0 0;font-size:13px;color:var(--ink-2)}
+.theme{flex:none;font:inherit;font-size:13px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--rule-c);padding:4px 10px;cursor:pointer}
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-top:16px;scrollbar-width:thin}
+.tabs [role=tab]{font:inherit;font-size:15px;font-weight:600;color:var(--ink-2);background:none;
+  border:0;border-bottom:3px solid transparent;padding:10px 14px;cursor:pointer;white-space:nowrap}
+.tabs [role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--hl)}
+.tabs [role=tab]:hover{color:var(--ink)}
+.page{padding:28px 0 8px}
+.page:focus{outline:none}
+.page-title{margin:0;font-size:28px;line-height:1.2;font-weight:700;max-width:40ch}
+.subtitle{margin:8px 0 0;font-size:16px;color:var(--ink-2);max-width:70ch}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:20px 0 0}
+.controls label{font-size:14px;font-weight:600}
+.controls select,.seg{font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);
+  border:1px solid var(--rule-c);padding:6px 12px;min-height:36px}
+.seg{cursor:pointer}
+.seg[aria-pressed=true]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;margin-top:20px;
+  border-top:2px solid var(--ink);padding-top:16px}
+.kpis.five{grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpi p{margin:0}
+.kpi-label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.kpi-value{font-size:30px;line-height:1.2;font-weight:700;margin-top:6px!important}
+.kpis.accent .kpi:first-child .kpi-value{border-bottom:4px solid var(--hl);padding-bottom:2px;
+  display:inline-block}
+.kpi-note{font-size:13px;color:var(--ink-2);margin-top:4px!important}
+.grid{display:grid;gap:24px;margin-top:24px}
+.grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid.two.lead{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.card{margin:0;background:var(--surface-2);border:1px solid var(--rule-c);padding:16px 18px;min-width:0}
+.card h3{margin:0;font-size:17px;line-height:1.3;font-weight:700}
+.unit{margin:2px 0 0;font-size:13px;color:var(--ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:13px;color:var(--ink)}
+.legend:empty{display:none}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:16px;height:3px}
+.legend i.box{height:10px;width:10px}
+.plot{position:relative;margin-top:8px;min-height:120px}
+.plot:focus-visible{outline-offset:4px}
+.plot svg{display:block;overflow:visible}
+.plot text{font-size:12px;fill:var(--ink-2);font-variant-numeric:tabular-nums}
+.plot .lbl{fill:var(--ink);font-weight:600}
+.plot .grid-l{stroke:var(--rule-c);stroke-width:1;shape-rendering:crispEdges}
+.plot .axis-l{stroke:var(--mid);stroke-width:1;shape-rendering:crispEdges}
+.plot .ref{stroke:var(--ink-2);stroke-width:1}
+.plot .cross{stroke:var(--ink-2);stroke-width:1;pointer-events:none}
+.plot .hot{stroke:var(--ink);stroke-width:2}
+.plot .leader{stroke:var(--mid);stroke-width:1}
+.multiples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 24px;margin-top:12px}
+.multiples .mini h4{margin:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.multiples .mini h4 i{display:inline-block;width:10px;height:10px}
+.note{font-size:13px;color:var(--ink-2);margin:10px 0 0}
+.empty{font-size:15px;margin:12px 0 0}
+details.data{margin-top:12px;font-size:13px}
+details.data summary{cursor:pointer;color:var(--ink-2);font-weight:600}
+details.data[hidden]{display:none}
+.table-wrap{position:relative;overflow-x:auto;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+caption{text-align:left;font-size:13px;color:var(--ink-2);padding-bottom:4px}
+th,td{text-align:right;padding:6px 7px;border-bottom:1px solid var(--rule-c);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-weight:700;color:var(--ink);border-bottom:1px solid var(--ink-2)}
+table.matrix{font-size:14px}
+table.matrix[hidden]{display:none}
+table.matrix th[scope=row]{position:sticky;left:0;background:var(--surface-2);z-index:1}
+table.matrix td.lo{background:var(--var-pos-tint)}
+table.matrix td.hi{background:var(--var-neg-tint)}
+table.matrix .mk{font-size:11px;color:var(--ink)}
+table.matrix td.tot{font-weight:700;border-left:1px solid var(--ink-2)}
+table.matrix .rank{color:var(--ink-2);font-size:12px}
+.sw{display:inline-block;width:10px;height:10px;margin-right:8px;vertical-align:baseline}
+.page-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;margin-top:28px;
+  border-top:2px solid var(--ink);padding:10px 0 24px;font-size:13px;color:var(--ink-2)}
+.page-foot .tag{font-weight:600}
+.tip{position:absolute;z-index:20;pointer-events:none;background:var(--surface);color:var(--ink);
+  border:1px solid var(--ink-2);padding:8px 10px;font-size:13px;min-width:140px;max-width:280px}
+.tip .tt-h{font-weight:700;margin-bottom:4px}
+.tip .tt-r{display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.tip .tt-r i{display:inline-block;width:14px;height:3px;flex:none}
+.tip .tt-r strong{font-weight:700}
+.tip .tt-r span{color:var(--ink-2)}
+@media (max-width:1000px){.kpis,.kpis.five{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.two,.grid.two.lead{grid-template-columns:minmax(0,1fr)}.multiples{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.wrap{padding:0 16px}.tabs{flex-wrap:wrap;overflow-x:visible}
+  .tabs [role=tab]{padding:8px 10px}.banner{padding:8px 16px}
+  .page-title{font-size:22px}.kpi-value{font-size:24px}.kpis{gap:16px}
+  .multiples{grid-template-columns:1fr}.card{padding:12px}}
+@media (forced-colors:active){.seg[aria-pressed=true]{outline:2px solid CanvasText}}
+@media print{.tabs,.theme,.controls{display:none}.page[hidden]{display:block}}

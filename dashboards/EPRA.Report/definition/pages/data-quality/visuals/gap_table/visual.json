@@ -1,0 +1,172 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
+  "name": "gap_table",
+  "position": {
+    "x": 832,
+    "y": 200,
+    "z": 11000,
+    "height": 472,
+    "width": 432,
+    "tabOrder": 3000
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "data_quality_monthly"
+                    }
+                  },
+                  "Property": "year_local"
+                }
+              },
+              "queryRef": "data_quality_monthly.year_local",
+              "nativeQueryRef": "year_local",
+              "displayName": "Year"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "data_quality_monthly"
+                    }
+                  },
+                  "Property": "month_local"
+                }
+              },
+              "queryRef": "data_quality_monthly.month_local",
+              "nativeQueryRef": "month_local",
+              "displayName": "Month"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "data_quality_monthly"
+                    }
+                  },
+                  "Property": "coverage_at_pct"
+                }
+              },
+              "queryRef": "data_quality_monthly.coverage_at_pct",
+              "nativeQueryRef": "coverage_at_pct",
+              "displayName": "Coverage %"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "data_quality_monthly"
+                    }
+                  },
+                  "Property": "resolution"
+                }
+              },
+              "queryRef": "data_quality_monthly.resolution",
+              "nativeQueryRef": "resolution",
+              "displayName": "Resolution"
+            }
+          ]
+        }
+      }
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Months below full price coverage (empty = complete)'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Table: months whose Austrian price coverage is below 100 percent; an empty table means every month is complete.'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "coverage_below_100",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "data_quality_monthly"
+              }
+            },
+            "Property": "coverage_at_pct"
+          }
+        },
+        "type": "Advanced",
+        "filter": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "t",
+              "Entity": "data_quality_monthly",
+              "Type": 0
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "Comparison": {
+                  "ComparisonKind": 3,
+                  "Left": {
+                    "Column": {
+                      "Expression": {
+                        "SourceRef": {
+                          "Source": "t"
+                        }
+                      },
+                      "Property": "coverage_at_pct"
+                    }
+                  },
+                  "Right": {
+                    "Literal": {
+                      "Value": "100D"
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "howCreated": "User"
+      }
+    ]
+  }
+}

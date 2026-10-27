@@ -550,3 +550,45 @@ make lint -> clean (89 files); make test -> 422 passed, 3 skipped, coverage 97%
    descriptor); until then this repo's README-quality job reads the old status and fails.
    Re-render the hero with the licensed Söhne fonts locally (`readme_quality hero`).
 6. Repo secret `ENTSOE_API_TOKEN` for the monthly refresh workflow.
+
+## 2026-10-27 — Power BI as PBIP + static HTML twin (SPEC-06 §4, ADR-022)
+
+**What shipped:**
+- `dashboards/EPRA.pbip` with `EPRA.SemanticModel/` (TMDL: 13 tables loaded from
+  `exports/*.csv` through one `LoadExport` helper and the single `ExportsPath`
+  parameter; daily `DimMonth` marked as date table; 10 single-direction
+  many-to-one relationships; every build-kit measure ported under its name, each
+  with `///` description, format string and display folder) and `EPRA.Report/`
+  (PBIR: five 1280×720 pages per SPEC-06 §4 + ADR-020 page 5, English headings,
+  German subtitles, `Data Banner` with fixture fill, RP-702 footers, alt text and
+  reading-order tab order on every visual, the design-system theme registered).
+- DAX corrections while porting (names unchanged, `measures.dax` regenerated as
+  the mirror): strategy comparisons iterate `ALL ( dim_strategy )` so a label
+  filter cannot zero `Cost vs Cheapest EUR`; `TOPN` tie-break on `sort_order`;
+  forward-risk measures and `Paths` read one variant (selected, else
+  unconditional) instead of averaging both; `Is Fixture Run` no longer applies
+  `MAX` to a Boolean; zero-row counts return 0 not blank; new `Data Banner Fill`.
+- `epra.report.dashboard_pages`: one page registry for both deliverables.
+- `make dashboard-html` (`epra.report.html_dashboard`, in `make all`): the HTML
+  twin, one self-contained file, deterministic; `dashboards/html/` git-ignored.
+- `scripts/validate_pbip.py` / `make pbip-validate`: schema gate, offline, skips
+  without a schema dir. `tests/unit/test_pbip_integrity.py` (model ↔ report),
+  `tests/unit/test_html_dashboard.py` (determinism, no external refs, twin = SSOT).
+- `style.strategy_colors(mode)`: dark-mode strategy colours from the same roles.
+
+**Gate evidence (FIXTURE exports, ADR-018 — not results):**
+```
+bootstrap --force -> make all                     exit 0
+make pbip-validate PBIP_SCHEMA_DIR=<offline copy> validate_pbip: 62 files, 0 errors
+pbip-accessibility scan (read-only)               5 pages, 51 visuals, 0 issues
+make lint -> clean (96 files); make test -> 447 passed, 3 skipped, coverage 96.75%
+check_ssot_consistency -> 21 numbers in 2 docs; 0 unmatched
+HTML twin: two builds byte-identical; bars = wrong_strategy_cost_<year>, matrix
+totals = cost5yr_<strategy> (test_twin_numbers_equal_the_ssot)
+```
+
+**Open questions / human steps:** open the PBIP in Power BI Desktop after the
+real-data run, set `ExportsPath`, refresh, check the cards against the SSOT, add
+small multiples to the Risk histogram (one drag), take the RP-406 screenshots,
+and commit the real HTML build with `git add -f` (`dashboards/README.md` §0, §6).
+The PBIR files are schema-valid but have not yet been loaded by Desktop.

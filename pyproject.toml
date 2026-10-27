@@ -69,8 +69,9 @@ src = ["src", "tests", "scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
-# Spec math notation quoted verbatim in docstrings (SPEC-04/05 formulas).
-allowed-confusables = ["×", "−", "α", "β"]
+# Spec math notation quoted verbatim in docstrings (SPEC-04/05 formulas); the en dash
+# is the typographic range dash of year spans and German subtitles (RP-405, ADR-022).
+allowed-confusables = ["×", "−", "α", "β", "–"]
 
 # ---------------------------------------------------------------------- typing (EN-002)
 [tool.mypy]
