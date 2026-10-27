@@ -221,3 +221,135 @@ def test_psr_names_covers_appendix_b() -> None:
     assert PSR_NAMES["B04"] == "Fossil Gas"
     # Appendix B lists 18 codes (B01..B06, B09..B20 — B07/B08 are not defined).
     assert len(PSR_NAMES) == 18
+
+
+# --- ADR-023: classificationSequence position 1 only (SDAC day-ahead) -------
+
+
+def _price_series(
+    *,
+    position: int | None,
+    resolution: str,
+    start: str,
+    end: str,
+    prices: list[float],
+) -> str:
+    pos = (
+        f"<classificationSequence_AttributeInstanceComponent.position>{position}"
+        "</classificationSequence_AttributeInstanceComponent.position>"
+        if position is not None
+        else ""
+    )
+    points = "".join(
+        f"<Point><position>{i}</position><price.amount>{p}</price.amount></Point>"
+        for i, p in enumerate(prices, start=1)
+    )
+    return (
+        "<TimeSeries><mRID>1</mRID>"
+        '<in_Domain.mRID codingScheme="A01">10YAT-APG------L</in_Domain.mRID>'
+        '<out_Domain.mRID codingScheme="A01">10YAT-APG------L</out_Domain.mRID>'
+        "<currency_Unit.name>EUR</currency_Unit.name>"
+        "<price_Measure_Unit.name>MWH</price_Measure_Unit.name>"
+        f"{pos}<curveType>A01</curveType>"
+        f"<Period><timeInterval><start>{start}</start><end>{end}</end></timeInterval>"
+        f"<resolution>{resolution}</resolution>{points}</Period></TimeSeries>"
+    )
+
+
+def _doc(*series: str) -> str:
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        "<Publication_MarketDocument "
+        'xmlns="urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:3">'
+        "<type>A44</type>" + "".join(series) + "</Publication_MarketDocument>"
+    )
+
+
+def test_parse_publication_xml_keeps_only_position_1_pt60m_vs_pt15m() -> None:
+    """ADR-023: pos 1 (PT60M) and overlapping pos 2 (PT15M) -> only pos 1 survives."""
+    xml = _doc(
+        _price_series(
+            position=2,
+            resolution="PT15M",
+            start="2022-08-15T00:00Z",
+            end="2022-08-15T01:00Z",
+            prices=[484.90, 484.90, 484.90, 484.90],
+        ),
+        _price_series(
+            position=1,
+            resolution="PT60M",
+            start="2022-08-15T00:00Z",
+            end="2022-08-15T01:00Z",
+            prices=[375.03],
+        ),
+    )
+    frame = parse_publication_xml(xml)
+    assert len(frame) == 1
+    assert frame["resolution"].tolist() == ["PT60M"]
+    assert frame["price_eur_mwh"].tolist() == [375.03]
+    assert frame["ts_utc"].is_unique
+
+
+def test_parse_publication_xml_keeps_only_position_1_post_2025_10_both_pt15m() -> None:
+    """ADR-023: post-2025-10 shape (both PT15M, different prices) -> only pos 1."""
+    xml = _doc(
+        _price_series(
+            position=1,
+            resolution="PT15M",
+            start="2025-10-02T00:00Z",
+            end="2025-10-02T01:00Z",
+            prices=[100.0, 101.0, 102.0, 103.0],
+        ),
+        _price_series(
+            position=2,
+            resolution="PT15M",
+            start="2025-10-02T00:00Z",
+            end="2025-10-02T01:00Z",
+            prices=[90.0, 91.0, 92.0, 93.0],
+        ),
+    )
+    frame = parse_publication_xml(xml)
+    assert frame["price_eur_mwh"].tolist() == [100.0, 101.0, 102.0, 103.0]
+    assert set(frame["resolution"]) == {"PT15M"}
+    assert frame["ts_utc"].is_unique
+
+
+def test_parse_publication_xml_without_position_element_is_unchanged(
+    entsoe_fixtures_dir: Path,
+) -> None:
+    """ADR-023: no position element -> series kept as-is (fixtures predate it)."""
+    xml = _doc(
+        _price_series(
+            position=None,
+            resolution="PT60M",
+            start="2024-01-01T00:00Z",
+            end="2024-01-01T03:00Z",
+            prices=[10.0, 11.0, 12.0],
+        )
+    )
+    frame = parse_publication_xml(xml)
+    assert frame["price_eur_mwh"].tolist() == [10.0, 11.0, 12.0]
+    # and the committed fixtures (no position element) still parse
+    assert not parse_publication_xml(_read(entsoe_fixtures_dir, "prices_pt60m_at.xml")).empty
+
+
+def test_parse_publication_xml_overlapping_unclassified_series_conflict_raises() -> None:
+    """ADR-023: position-less overlapping series with different prices -> fail loudly."""
+    xml = _doc(
+        _price_series(
+            position=None,
+            resolution="PT60M",
+            start="2024-01-01T00:00Z",
+            end="2024-01-01T01:00Z",
+            prices=[10.0],
+        ),
+        _price_series(
+            position=None,
+            resolution="PT60M",
+            start="2024-01-01T00:00Z",
+            end="2024-01-01T01:00Z",
+            prices=[11.0],
+        ),
+    )
+    with pytest.raises(ContractError):
+        parse_publication_xml(xml)
