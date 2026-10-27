@@ -56,6 +56,25 @@ STRATEGY_COLORS: dict[str, str] = {
     "S4_70": hybrid_color(0.70),
 }
 
+#: Hedge ratio (fixed share) of each hybrid: the RP-704 interpolation parameter.
+HYBRID_RATIOS: dict[str, float] = {"S4_30": 0.30, "S4_50": 0.50, "S4_70": 0.70}
+
+
+def strategy_colors(mode: str) -> dict[str, str]:
+    """strategy_id → hex in a design-system mode (``light`` or ``dark``).
+
+    Same roles and interpolation as :data:`STRATEGY_COLORS` (which is the light
+    mode); the HTML dashboard twin uses the dark set under
+    ``prefers-color-scheme: dark`` (ADR-022).
+
+    Implements: RP-704 as amended by ADR-021.
+    """
+    palette = bk.COLOR[mode]
+    s1, s3 = palette[S1_ROLE], palette[S3_ROLE]
+    hybrids = {sid: _interpolate_hex(s1, s3, ratio) for sid, ratio in HYBRID_RATIOS.items()}
+    return {"S1": s1, "S2": palette[S2_ROLE], "S3": s3, **hybrids}
+
+
 #: HMM volatility regimes (A3) as opaque background bands: the diverging scale's
 #: good tint, its neutral midpoint and its bad tint (calm → crisis).
 REGIME_COLORS: dict[str, str] = {

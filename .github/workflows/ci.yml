@@ -68,6 +68,9 @@ jobs:
       - run: make export
       - run: uv run pytest tests/unit/test_exports_contract.py
       - run: make report
+      # ADR-022: the HTML twin builds from the fixture exports and reconciles with the SSOT.
+      - run: make dashboard-html
+      - run: uv run pytest tests/unit/test_html_dashboard.py
       - run: make publish
 
   ssot-check:         # M6 — GV-303 on the COMMITTED docs + SSOT (no regeneration)

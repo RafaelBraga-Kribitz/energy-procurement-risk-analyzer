@@ -5,7 +5,8 @@
 UV ?= uv
 
 .PHONY: setup backfill ingest validate-ingest geosphere calendar oespi oespi-reconcile \
-        transform warehouse freshness profile analyze simulate ssot ssot-check export report publish clean-fixture real-run \
+        transform warehouse freshness profile analyze simulate ssot ssot-check export report dashboard-html \
+        pbip-validate publish clean-fixture real-run \
         test test-live lint token-guard linkcheck all refresh
 
 setup:               ## EN-030 — install exactly the committed uv.lock (ADR-012)
@@ -84,6 +85,13 @@ export:              ## M7 — SPEC-02 §7 / DM-070: exports/*.csv for Power BI
 report:              ## M7 — SPEC-06: data quality, executive charts, EXEC_SUMMARY, README blocks
 	$(UV) run python -m epra.report
 
+dashboard-html:      ## ADR-022 — static HTML twin of the Power BI report: exports/ → dashboards/html/index.html
+	$(UV) run python -m epra.report.html_dashboard
+
+PBIP_SCHEMA_DIR ?=
+pbip-validate:       ## ADR-022 — PBIP JSON vs Microsoft schemas (offline copy: PBIP_SCHEMA_DIR=…; skips without)
+	$(UV) run python scripts/validate_pbip.py $(if $(PBIP_SCHEMA_DIR),--schema-dir $(PBIP_SCHEMA_DIR),)
+
 clean-fixture:       ## ADR-018 — delete synthetic fixture data (only if the fixture marker is present)
 	$(UV) run python scripts/clean_fixture.py
 
@@ -103,6 +111,6 @@ TARGET ?= local
 publish:             ## ADR-020 — publish exports (+ raw for azure): make publish TARGET=local|azure
 	$(UV) run python -m epra.cloud --target $(TARGET)
 
-all: profile transform analyze simulate ssot export report ssot-check publish
+all: profile transform analyze simulate ssot export report dashboard-html ssot-check publish
 
 refresh: ingest validate-ingest all freshness
