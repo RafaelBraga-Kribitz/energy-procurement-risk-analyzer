@@ -1,0 +1,26 @@
+model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	sourceQueryCulture: en-US
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation PBI_QueryOrder = ["ExportsPath","LoadExport","dim_strategy","procurement_cost_monthly","strategy_annual_summary","forward_risk_summary","forward_paths","price_monthly","spread_monthly","price_daily","generation_monthly","data_quality_monthly","ssot","provenance"]
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+ref table dim_strategy
+ref table DimMonth
+ref table procurement_cost_monthly
+ref table strategy_annual_summary
+ref table forward_risk_summary
+ref table forward_paths
+ref table price_monthly
+ref table spread_monthly
+ref table price_daily
+ref table generation_monthly
+ref table data_quality_monthly
+ref table ssot
+ref table provenance

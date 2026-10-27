@@ -1,0 +1,114 @@
+/// Daily AT price statistics with Graz weather (VERIFIED; drill-through detail, not related).
+table price_daily
+	lineageTag: ae44ad53-4851-5ec5-8a45-7ab13e19850e
+
+	/// Local calendar day.
+	column date_local
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: db7562cb-8b14-57f5-be41-afd9b73fb40c
+		summarizeBy: none
+		sourceColumn: date_local
+
+		annotation SummarizationSetBy = User
+
+	/// Daily base price, EUR/MWh.
+	column price_base_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 12046be4-8e8b-51ab-9f9b-c9397d5e23c0
+		summarizeBy: none
+		sourceColumn: price_base_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Daily peak price (blank on non-working days).
+	column price_peak_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: f92aabf3-58b3-5bda-abbe-fc42921f5e8d
+		summarizeBy: none
+		sourceColumn: price_peak_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Lowest hourly price, EUR/MWh.
+	column price_min
+		dataType: double
+		formatString: #,0.0
+		lineageTag: d16afbf1-31d0-557f-be37-4e370d124db5
+		summarizeBy: none
+		sourceColumn: price_min
+
+		annotation SummarizationSetBy = User
+
+	/// Highest hourly price, EUR/MWh.
+	column price_max
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 22efb660-536d-52ff-9d48-bc6ec3d4c0d1
+		summarizeBy: none
+		sourceColumn: price_max
+
+		annotation SummarizationSetBy = User
+
+	/// Standard deviation of hourly prices.
+	column price_std
+		dataType: double
+		formatString: #,0.0
+		lineageTag: f101648d-d7a3-5cd2-8479-b60103dd2995
+		summarizeBy: none
+		sourceColumn: price_std
+
+		annotation SummarizationSetBy = User
+
+	/// Hours with a negative price.
+	column n_negative_hours
+		dataType: int64
+		formatString: 0
+		lineageTag: 487af294-0fe7-502d-a904-54c4b2f1253b
+		summarizeBy: sum
+		sourceColumn: n_negative_hours
+
+		annotation SummarizationSetBy = User
+
+	/// Daily mean temperature, deg C (GeoSphere).
+	column tavg_c
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 250b0226-81b4-55eb-a645-5fbc4ac25060
+		summarizeBy: none
+		sourceColumn: tavg_c
+
+		annotation SummarizationSetBy = User
+
+	/// Heating degree days, base 18 C.
+	column hdd_18
+		dataType: double
+		formatString: #,0.0
+		lineageTag: aec0fc90-c7af-5503-b39d-bf526f32a4c4
+		summarizeBy: sum
+		sourceColumn: hdd_18
+
+		annotation SummarizationSetBy = User
+
+	/// Cooling degree days, base 22 C.
+	column cdd_22
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 5dd3ce08-5241-557b-a980-1e94f8b81830
+		summarizeBy: sum
+		sourceColumn: cdd_22
+
+		annotation SummarizationSetBy = User
+
+	partition price_daily = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("price_daily.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"date_local", type date}, {"price_base_eur_mwh", type number}, {"price_peak_eur_mwh", type number}, {"price_min", type number}, {"price_max", type number}, {"price_std", type number}, {"n_negative_hours", Int64.Type}, {"tavg_c", type number}, {"hdd_18", type number}, {"cdd_22", type number}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

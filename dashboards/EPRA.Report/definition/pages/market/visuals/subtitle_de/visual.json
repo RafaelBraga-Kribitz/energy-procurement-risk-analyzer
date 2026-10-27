@@ -1,0 +1,53 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.5.0/schema.json",
+  "name": "subtitle_de",
+  "position": {
+    "x": 16,
+    "y": 50,
+    "z": 19000,
+    "height": 32,
+    "width": 840,
+    "tabOrder": 7000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Der österreichische Day-Ahead-Markt: Preisniveau, negative Stunden und Abstand zu Deutschland.",
+                    "textStyle": {
+                      "fontSize": "12pt",
+                      "color": "#5A5C61",
+                      "fontFamily": "Segoe UI"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Der österreichische Day-Ahead-Markt: Preisniveau, negative Stunden und Abstand zu Deutschland.'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

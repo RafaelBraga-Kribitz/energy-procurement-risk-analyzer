@@ -1,0 +1,72 @@
+/// Strategy dimension: id, labels, report order and colour (RP-704, ADR-021).
+table dim_strategy
+	lineageTag: 808cb879-aa8c-5ae3-8739-f064ef814d35
+
+	/// Strategy key.
+	column strategy_id
+		dataType: string
+		lineageTag: 9e9934cc-7565-5e6c-a4a1-eda1aae5ebc8
+		summarizeBy: none
+		sourceColumn: strategy_id
+
+		annotation SummarizationSetBy = User
+
+	/// SPEC-05 strategy name.
+	column strategy_name
+		dataType: string
+		lineageTag: fe02bc77-0650-52cf-b5c5-7dac90e67360
+		summarizeBy: none
+		sourceColumn: strategy_name
+
+		annotation SummarizationSetBy = User
+
+	/// Reader-facing label, identical in every chart.
+	column strategy_label
+		dataType: string
+		lineageTag: 7465ce48-1045-534f-9f39-68dd9eb5f881
+		summarizeBy: none
+		sourceColumn: strategy_label
+		sortByColumn: sort_order
+
+		annotation SummarizationSetBy = User
+
+	/// Report order of the strategies.
+	column sort_order
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 046eb17d-b2aa-5bf4-b753-7ef07d5d9511
+		summarizeBy: none
+		sourceColumn: sort_order
+
+		annotation SummarizationSetBy = User
+
+	/// Strategy colour (RP-704, design-system roles).
+	column color_hex
+		dataType: string
+		isHidden
+		lineageTag: c62a6818-eebf-5271-a3bc-cf5596c160f7
+		summarizeBy: none
+		sourceColumn: color_hex
+
+		annotation SummarizationSetBy = User
+
+	/// What the strategy does.
+	column description
+		dataType: string
+		lineageTag: b1ca39cf-7b27-5c4a-9e16-eb42793436af
+		summarizeBy: none
+		sourceColumn: description
+
+		annotation SummarizationSetBy = User
+
+	partition dim_strategy = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("dim_strategy.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"strategy_id", type text}, {"strategy_name", type text}, {"strategy_label", type text}, {"sort_order", Int64.Type}, {"color_hex", type text}, {"description", type text}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table

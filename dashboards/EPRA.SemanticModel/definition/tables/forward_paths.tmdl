@@ -1,0 +1,88 @@
+/// Every simulated next-12-month cost path per strategy and variant (SIMULATED; ST-401).
+table forward_paths
+	lineageTag: bc41745a-aeb8-5c2e-876d-5b6b6f705326
+
+	/// Number of simulated paths in context (histogram height). Per strategy and variant it equals SSOT forward_n_paths. Reads one variant: the one selected on forward_risk_summary[variant], else 'unconditional' (averaging the two variants would mean nothing).
+	measure 'Paths' =
+			VAR SelectedVariant = SELECTEDVALUE ( forward_risk_summary[variant], "unconditional" )
+			RETURN
+			    CALCULATE (
+			        COUNTROWS ( forward_paths ),
+			        forward_paths[variant] = SelectedVariant
+			    )
+		formatString: #,0
+		displayFolder: Forward risk
+		lineageTag: e9897e26-b856-5bfe-84b4-b823b2a83f1e
+
+	/// Sum of the path costs in context, million EUR; with one path in context it is that path's 12-month cost (SIMULATED). Reads one variant: the one selected on forward_risk_summary[variant], else 'unconditional' (averaging the two variants would mean nothing).
+	measure 'Path Cost EUR million' =
+			VAR SelectedVariant = SELECTEDVALUE ( forward_risk_summary[variant], "unconditional" )
+			RETURN
+			    CALCULATE (
+			        DIVIDE ( SUM ( forward_paths[cost_eur] ), 1000000 ),
+			        forward_paths[variant] = SelectedVariant
+			    )
+		formatString: #,0.00
+		displayFolder: Forward risk
+		lineageTag: 3f5fc548-dfbb-5888-8b84-74ddee1138c0
+
+	/// unconditional or no_crisis pool.
+	column variant
+		dataType: string
+		lineageTag: cad4ad46-e4ea-5671-8e88-96e16a5c7f57
+		summarizeBy: none
+		sourceColumn: variant
+
+		annotation SummarizationSetBy = User
+
+	/// Path number within the variant.
+	column path
+		dataType: int64
+		formatString: 0
+		lineageTag: d156ab19-d027-54d9-ae39-dafb70ed4948
+		summarizeBy: none
+		sourceColumn: path
+
+		annotation SummarizationSetBy = User
+
+	/// Strategy key.
+	column strategy_id
+		dataType: string
+		isHidden
+		lineageTag: 61ef53c6-2c2f-5608-9e3e-9e8e912e837f
+		summarizeBy: none
+		sourceColumn: strategy_id
+
+		annotation SummarizationSetBy = User
+
+	/// 12-month cost of the path, EUR.
+	column cost_eur
+		dataType: double
+		formatString: \€#,0
+		lineageTag: 3acf0bf0-d85b-5deb-b663-d3f240688e80
+		summarizeBy: none
+		sourceColumn: cost_eur
+
+		annotation SummarizationSetBy = User
+
+	/// Lower edge of the path's 0.1 M EUR histogram bin, in million EUR.
+	column 'Cost Bin EUR million'
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 45deaf1c-4daf-5a80-9d23-5265965c20c0
+		summarizeBy: none
+		sourceColumn: Cost Bin EUR million
+
+		annotation SummarizationSetBy = User
+
+	partition forward_paths = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("forward_paths.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"variant", type text}, {"path", Int64.Type}, {"strategy_id", type text}, {"cost_eur", type number}}, "en-US"),
+				    WithBin = Table.AddColumn(Typed, "Cost Bin EUR million", each Number.RoundDown([cost_eur] / 100000) / 10, type number)
+				in
+				    WithBin
+
+	annotation PBI_ResultType = Table

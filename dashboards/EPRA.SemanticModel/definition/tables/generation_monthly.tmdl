@@ -1,0 +1,85 @@
+/// Monthly AT generation by production type (VERIFIED; DM-070).
+table generation_monthly
+	lineageTag: 869ce326-2ec3-5726-a2f7-d34ea9abae67
+
+	/// Calendar year.
+	column year_local
+		dataType: int64
+		formatString: 0
+		lineageTag: 02ecc4b1-face-5e85-a58d-4efde83dfcc5
+		summarizeBy: none
+		sourceColumn: year_local
+
+		annotation SummarizationSetBy = User
+
+	/// Calendar month 1-12.
+	column month_local
+		dataType: int64
+		formatString: 0
+		lineageTag: 6edcce82-aa1f-5875-b269-f505e05afa9c
+		summarizeBy: none
+		sourceColumn: month_local
+
+		annotation SummarizationSetBy = User
+
+	/// ENTSO-E production type code.
+	column psr_type
+		dataType: string
+		isHidden
+		lineageTag: 4addeccd-406d-592d-ad32-10e312b3edbe
+		summarizeBy: none
+		sourceColumn: psr_type
+
+		annotation SummarizationSetBy = User
+
+	/// Production type name.
+	column psr_name
+		dataType: string
+		lineageTag: fc7c25e1-fd4b-5525-98d0-2361871f121e
+		summarizeBy: none
+		sourceColumn: psr_name
+
+		annotation SummarizationSetBy = User
+
+	/// Generation, GWh.
+	column gen_gwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 47d14347-737b-5641-a5ba-c9ca4dd328ed
+		summarizeBy: sum
+		sourceColumn: gen_gwh
+
+		annotation SummarizationSetBy = User
+
+	/// Share of the month's total generation.
+	column share_of_total
+		dataType: double
+		formatString: 0.0%
+		lineageTag: da30dc26-77b4-5f57-82b7-c5acceff84e4
+		summarizeBy: none
+		sourceColumn: share_of_total
+
+		annotation SummarizationSetBy = User
+
+	/// First day of the month; joins DimMonth[Date].
+	column MonthStart
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm
+		lineageTag: bb49650f-4126-5a8a-a709-28e6b5b83478
+		summarizeBy: none
+		sourceColumn: MonthStart
+
+		annotation SummarizationSetBy = User
+
+	partition generation_monthly = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("generation_monthly.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"year_local", Int64.Type}, {"month_local", Int64.Type}, {"psr_type", type text}, {"psr_name", type text}, {"gen_gwh", type number}, {"share_of_total", type number}}, "en-US"),
+				    WithMonth = Table.AddColumn(Typed, "MonthStart", each #date([year_local], [month_local], 1), type date)
+				in
+				    WithMonth
+
+	annotation PBI_ResultType = Table

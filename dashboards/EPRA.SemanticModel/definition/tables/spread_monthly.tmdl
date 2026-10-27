@@ -1,0 +1,72 @@
+/// Monthly AT minus DE-LU day-ahead spread (VERIFIED; A2, RP-402).
+table spread_monthly
+	lineageTag: 84bbbe9b-974e-5435-8703-9a447f4c46b4
+
+	/// Mean AT minus DE-LU day-ahead spread, EUR/MWh (VERIFIED); positive = Austria dearer. Over a year it is the unweighted mean of months, close to SSOT spread_mean_<year>.
+	measure 'Avg AT minus DE Spread EUR per MWh' = AVERAGE ( spread_monthly[spread_mean_eur_mwh] )
+		formatString: #,0.0
+		displayFolder: Market
+		lineageTag: bef1850a-8d1f-510f-8609-5f39b493ef64
+
+	/// Calendar year.
+	column year_local
+		dataType: int64
+		formatString: 0
+		lineageTag: 8ac7f47d-237b-55bf-8722-1f9f0a802c02
+		summarizeBy: none
+		sourceColumn: year_local
+
+		annotation SummarizationSetBy = User
+
+	/// Calendar month 1-12.
+	column month_local
+		dataType: int64
+		formatString: 0
+		lineageTag: b076fa80-af7f-5318-bffa-abc43a4c8281
+		summarizeBy: none
+		sourceColumn: month_local
+
+		annotation SummarizationSetBy = User
+
+	/// Mean hourly AT - DE-LU spread, EUR/MWh.
+	column spread_mean_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 9b9db277-1112-5207-a92c-b22cb8448124
+		summarizeBy: none
+		sourceColumn: spread_mean_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Share of hours with AT above DE-LU, %.
+	column share_at_above_de_pct
+		dataType: double
+		formatString: #,0.0
+		lineageTag: a1835712-3ec3-5257-83a3-bf5cd1017f7f
+		summarizeBy: none
+		sourceColumn: share_at_above_de_pct
+
+		annotation SummarizationSetBy = User
+
+	/// First day of the month; joins DimMonth[Date].
+	column MonthStart
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm
+		lineageTag: dbd0af49-7855-5bc8-8410-d178204835ba
+		summarizeBy: none
+		sourceColumn: MonthStart
+
+		annotation SummarizationSetBy = User
+
+	partition spread_monthly = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("spread_monthly.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"year_local", Int64.Type}, {"month_local", Int64.Type}, {"spread_mean_eur_mwh", type number}, {"share_at_above_de_pct", type number}}, "en-US"),
+				    WithMonth = Table.AddColumn(Typed, "MonthStart", each #date([year_local], [month_local], 1), type date)
+				in
+				    WithMonth
+
+	annotation PBI_ResultType = Table

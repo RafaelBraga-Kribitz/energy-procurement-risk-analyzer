@@ -1,0 +1,67 @@
+{
+  "name": "EPRA (Braga design system v2.1, bk-viz)",
+  "dataColors": [
+    "#966400",
+    "#0A7399",
+    "#2F4BE0",
+    "#775C43",
+    "#625870",
+    "#4E529D",
+    "#C4278F",
+    "#7A4A1E",
+    "#9EA0A5",
+    "#5E5E5E"
+  ],
+  "background": "#E4E6EA",
+  "foreground": "#26282C",
+  "tableAccent": "#2F4BE0",
+  "good": "#007A66",
+  "neutral": "#D4D6DA",
+  "bad": "#CC3710",
+  "maximum": "#CC3710",
+  "center": "#D4D6DA",
+  "minimum": "#007A66",
+  "textClasses": {
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 14,
+      "color": "#26282C"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 12,
+      "color": "#26282C"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "fontSize": 10,
+      "color": "#5A5C61"
+    },
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "fontSize": 28,
+      "color": "#26282C"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "border": [
+          {
+            "show": false
+          }
+        ],
+        "dropShadow": [
+          {
+            "show": false
+          }
+        ],
+        "background": [
+          {
+            "show": false
+          }
+        ]
+      }
+    }
+  }
+}

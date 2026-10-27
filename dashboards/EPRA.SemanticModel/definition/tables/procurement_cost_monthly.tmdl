@@ -1,0 +1,161 @@
+/// Monthly energy cost per strategy, 2021-2025 retrospective (CALIBRATED; SPEC-05, DM-070).
+table procurement_cost_monthly
+	lineageTag: d24ebf6b-8d10-596d-92e9-91e650c1ac1a
+
+	/// Energy cost in EUR summed over the months and strategies in context (CALIBRATED). Per strategy and year it equals SSOT cost_<strategy>_<year>.
+	measure 'Total Cost EUR' = SUM ( procurement_cost_monthly[cost_eur] )
+		formatString: \€#,0
+		displayFolder: Strategy cost
+		lineageTag: bb88e80a-331f-5534-a3a4-a3eaad0d38a1
+
+	/// Consumed volume in MWh over the months and strategies in context.
+	measure 'Total Volume MWh' = SUM ( procurement_cost_monthly[volume_mwh] )
+		formatString: #,0
+		displayFolder: Strategy cost
+		lineageTag: 0a308313-7322-58b3-8798-dc78d0753078
+
+	/// Volume-weighted unit cost in EUR/MWh: Total Cost EUR / Total Volume MWh. Blank when no volume is in context.
+	measure 'Unit Cost EUR per MWh' = DIVIDE ( [Total Cost EUR], [Total Volume MWh] )
+		formatString: #,0.0
+		displayFolder: Strategy cost
+		lineageTag: 5ccdfadd-7ec4-515b-bf1b-761feb923153
+
+	/// Cost of the wrong strategy: per year, dearest minus cheapest strategy's annual cost, summed over the years in context, ignoring strategy filters. Equals SSOT wrong_strategy_cost_<year> per year and wrong_strategy_cost_total over 2021-2025 (CALIBRATED; RP-201, RP-401).
+	measure 'Wrong Strategy Cost EUR' =
+			SUMX (
+			    VALUES ( DimMonth[Year] ),
+			    VAR CostByStrategy =
+			        FILTER (
+			            ADDCOLUMNS ( ALL ( dim_strategy ), "@cost", CALCULATE ( [Total Cost EUR] ) ),
+			            NOT ISBLANK ( [@cost] )
+			        )
+			    RETURN
+			        MAXX ( CostByStrategy, [@cost] ) - MINX ( CostByStrategy, [@cost] )
+			)
+		formatString: \€#,0
+		displayFolder: Strategy cost
+		lineageTag: 6978c1e0-f1ea-5d80-80de-14e35a7b7132
+
+	/// Label of the strategy with the lowest Total Cost EUR for the months in context, ignoring strategy filters; ties go to the lower sort_order. Over 2021-2025 it equals SSOT best_strategy_5yr.
+	measure 'Cheapest Strategy' =
+			VAR Ranked =
+			    FILTER (
+			        ADDCOLUMNS ( ALL ( dim_strategy ), "@cost", CALCULATE ( [Total Cost EUR] ) ),
+			        NOT ISBLANK ( [@cost] )
+			    )
+			RETURN
+			    MAXX (
+			        TOPN ( 1, Ranked, [@cost], ASC, dim_strategy[sort_order], ASC ),
+			        dim_strategy[strategy_label]
+			    )
+		displayFolder: Labels & notes
+		lineageTag: a89b8b9d-fe04-5531-886b-b273ffc5df2b
+
+	/// Total Cost EUR of the strategy in context minus the cheapest strategy's cost for the same months (0 for the cheapest). Per year it equals strategy_annual_summary[delta_vs_min_eur].
+	measure 'Cost vs Cheapest EUR' =
+			VAR Cheapest =
+			    MINX ( ALL ( dim_strategy ), CALCULATE ( [Total Cost EUR] ) )
+			RETURN
+			    IF ( NOT ISBLANK ( [Total Cost EUR] ), [Total Cost EUR] - Cheapest )
+		formatString: \€#,0
+		displayFolder: Strategy cost
+		lineageTag: 04860f24-4b43-53eb-b754-bb23543d57e0
+
+	/// Running total of Total Cost EUR from the first month up to the last date in context (RP-403 cumulative cost line); blank in months without cost, so the line spans 2021-2025 only. At December 2025 it equals SSOT cost5yr_<strategy>.
+	measure 'Cumulative Cost EUR' =
+			VAR LastVisibleDate = MAX ( DimMonth[Date] )
+			RETURN
+			    IF (
+			        NOT ISBLANK ( [Total Cost EUR] ),
+			        CALCULATE (
+			            [Total Cost EUR],
+			            DimMonth[Date] <= LastVisibleDate,
+			            REMOVEFILTERS ( DimMonth )
+			        )
+			    )
+		formatString: \€#,0
+		displayFolder: Strategy cost
+		lineageTag: e2e96d01-469f-5bad-86e6-6a62d15279a7
+
+	/// Calendar year, Europe/Vienna local time.
+	column year_local
+		dataType: int64
+		formatString: 0
+		lineageTag: edfa2691-5c39-5fa1-bcc8-90de0f327604
+		summarizeBy: none
+		sourceColumn: year_local
+
+		annotation SummarizationSetBy = User
+
+	/// Calendar month 1-12, Europe/Vienna.
+	column month_local
+		dataType: int64
+		formatString: 0
+		lineageTag: 9ca9b917-cdcb-5395-9a3c-5ccbe9600fde
+		summarizeBy: none
+		sourceColumn: month_local
+
+		annotation SummarizationSetBy = User
+
+	/// Strategy key (S1, S2, S3, S4_30, S4_50, S4_70).
+	column strategy_id
+		dataType: string
+		isHidden
+		lineageTag: a28cdf78-c225-507f-b114-0e0a979c0234
+		summarizeBy: none
+		sourceColumn: strategy_id
+
+		annotation SummarizationSetBy = User
+
+	/// Consumed volume in the month, MWh.
+	column volume_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 358af604-d90a-53b0-b7e2-b98ab02b5839
+		summarizeBy: sum
+		sourceColumn: volume_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Energy cost in the month, EUR.
+	column cost_eur
+		dataType: double
+		formatString: \€#,0
+		lineageTag: 3b3db80f-3772-5193-8897-f6f4384031b5
+		summarizeBy: sum
+		sourceColumn: cost_eur
+
+		annotation SummarizationSetBy = User
+
+	/// cost_eur / volume_mwh, EUR/MWh.
+	column unit_cost_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 018c6bb4-95c4-5d2f-8a1d-67bab5fd5158
+		summarizeBy: none
+		sourceColumn: unit_cost_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// First day of the month; joins DimMonth[Date].
+	column MonthStart
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm
+		lineageTag: ea7e985c-0305-5556-81b7-85a3ab63b201
+		summarizeBy: none
+		sourceColumn: MonthStart
+
+		annotation SummarizationSetBy = User
+
+	partition procurement_cost_monthly = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("procurement_cost_monthly.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"year_local", Int64.Type}, {"month_local", Int64.Type}, {"strategy_id", type text}, {"volume_mwh", type number}, {"cost_eur", type number}, {"unit_cost_eur_mwh", type number}}, "en-US"),
+				    WithMonth = Table.AddColumn(Typed, "MonthStart", each #date([year_local], [month_local], 1), type date)
+				in
+				    WithMonth
+
+	annotation PBI_ResultType = Table

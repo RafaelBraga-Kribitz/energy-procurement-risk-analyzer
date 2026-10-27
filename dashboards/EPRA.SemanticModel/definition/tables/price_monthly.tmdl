@@ -1,0 +1,130 @@
+/// Monthly AT day-ahead base/peak/off-peak price and ÖSPI (VERIFIED; DM-070).
+table price_monthly
+	lineageTag: 98175e0f-b548-5016-b5e5-5b8da10e4113
+
+	/// Mean of the monthly base prices in context, EUR/MWh (VERIFIED). Per month it is that month's base price; over a year it is the unweighted mean of months, so it can differ slightly from the hour-weighted SSOT annual_mean_price_<year>.
+	measure 'Avg Base Price EUR per MWh' = AVERAGE ( price_monthly[price_base_eur_mwh] )
+		formatString: #,0.0
+		displayFolder: Market
+		lineageTag: 88cf2646-f77b-5c45-81c6-1dfea7ac3ee7
+
+	/// Mean of the monthly peak prices in context, EUR/MWh (VERIFIED).
+	measure 'Avg Peak Price EUR per MWh' = AVERAGE ( price_monthly[price_peak_eur_mwh] )
+		formatString: #,0.0
+		displayFolder: Market
+		lineageTag: a30d0f7a-44b0-5dfc-ab56-f0fcb1962b3a
+
+	/// Mean of the monthly off-peak prices in context, EUR/MWh (VERIFIED).
+	measure 'Avg Offpeak Price EUR per MWh' = AVERAGE ( price_monthly[price_offpeak_eur_mwh] )
+		formatString: #,0.0
+		displayFolder: Market
+		lineageTag: eac41f2d-b62a-597b-8627-1ea84b70f065
+
+	/// Hours with a negative AT day-ahead price (VERIFIED). Per year it equals SSOT neg_hours_<year>.
+	measure 'Negative Price Hours' = SUM ( price_monthly[n_negative_hours] )
+		formatString: #,0
+		displayFolder: Market
+		lineageTag: a53c1ed8-df39-5977-866e-5e07b05fd4b3
+
+	/// Calendar year, Europe/Vienna.
+	column year_local
+		dataType: int64
+		formatString: 0
+		lineageTag: b9d24828-639f-56ac-ae9d-52a8452be10f
+		summarizeBy: none
+		sourceColumn: year_local
+
+		annotation SummarizationSetBy = User
+
+	/// Calendar month 1-12.
+	column month_local
+		dataType: int64
+		formatString: 0
+		lineageTag: 5884e508-ea5d-5ec6-ae7f-84cd7e3c92ae
+		summarizeBy: none
+		sourceColumn: month_local
+
+		annotation SummarizationSetBy = User
+
+	/// Mean of all hours, EUR/MWh.
+	column price_base_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 88709a65-2d6f-55d8-ad1e-2b003629413c
+		summarizeBy: none
+		sourceColumn: price_base_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Mean of peak hours, EUR/MWh.
+	column price_peak_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: f0c1103b-cff5-5a21-9253-317dfa757ecb
+		summarizeBy: none
+		sourceColumn: price_peak_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Mean of off-peak hours, EUR/MWh.
+	column price_offpeak_eur_mwh
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 75e8ac62-4c2c-5e0d-a978-23ba8a33bd2a
+		summarizeBy: none
+		sourceColumn: price_offpeak_eur_mwh
+
+		annotation SummarizationSetBy = User
+
+	/// Hours with a negative price.
+	column n_negative_hours
+		dataType: int64
+		formatString: 0
+		lineageTag: ad81e567-7005-50f0-a75c-fcc7dc64d70b
+		summarizeBy: sum
+		sourceColumn: n_negative_hours
+
+		annotation SummarizationSetBy = User
+
+	/// AEA ÖSPI base index.
+	column oespi_base
+		dataType: double
+		formatString: #,0.0
+		lineageTag: fd8fef07-f25b-5d17-bb56-ae2bda230bba
+		summarizeBy: none
+		sourceColumn: oespi_base
+
+		annotation SummarizationSetBy = User
+
+	/// AEA ÖSPI peak index.
+	column oespi_peak
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 93e857b1-4594-55e6-aa72-11525a08d727
+		summarizeBy: none
+		sourceColumn: oespi_peak
+
+		annotation SummarizationSetBy = User
+
+	/// First day of the month; joins DimMonth[Date].
+	column MonthStart
+		dataType: dateTime
+		isHidden
+		formatString: yyyy-mm
+		lineageTag: d5dfe2c8-f0d8-5607-9be4-31c5686d4b81
+		summarizeBy: none
+		sourceColumn: MonthStart
+
+		annotation SummarizationSetBy = User
+
+	partition price_monthly = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("price_monthly.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"year_local", Int64.Type}, {"month_local", Int64.Type}, {"price_base_eur_mwh", type number}, {"price_peak_eur_mwh", type number}, {"price_offpeak_eur_mwh", type number}, {"n_negative_hours", Int64.Type}, {"oespi_base", type number}, {"oespi_peak", type number}}, "en-US"),
+				    WithMonth = Table.AddColumn(Typed, "MonthStart", each #date([year_local], [month_local], 1), type date)
+				in
+				    WithMonth
+
+	annotation PBI_ResultType = Table

@@ -1,0 +1,72 @@
+/// One row: fixture flag, last data month, export date (ADR-018).
+table provenance
+	lineageTag: 94566749-12e8-5ebf-95af-43a8c6dbb0ec
+
+	/// TRUE when the exports were built on the synthetic CI fixture (ADR-018): every number is then a pipeline check, not a result.
+	measure 'Is Fixture Run' = NOT ISEMPTY ( FILTER ( provenance, provenance[is_fixture] ) )
+		displayFolder: Labels & notes
+		lineageTag: 4bc89143-9687-50cd-9979-fb2c5b2a6f5e
+
+	/// Top-right banner text: the fixture warning on a fixture run, else the data horizon and sources.
+	measure 'Data Banner' =
+			IF (
+			    [Is Fixture Run],
+			    "FIXTURE RUN — synthetic CI data, NOT results (ADR-018)",
+			    "Data through " & [Card Data Through] & " · ENTSO-E, AEA ÖSPI, GeoSphere"
+			)
+		displayFolder: Labels & notes
+		lineageTag: 1fcbdf0c-3477-58c0-becf-a4f21e7ef60d
+
+	/// Banner background as a hex colour: the design system's var-neg tint on a fixture run, its neutral surface-3 otherwise (used by field-value formatting).
+	measure 'Data Banner Fill' = IF ( [Is Fixture Run], "#F9C3AD", "#D4D6DA" )
+		displayFolder: Labels & notes
+		lineageTag: e09745f3-c776-5c5f-bbd1-c5cc8eb44992
+
+	/// Footer tag for pages with strategy costs (RP-702, E-1).
+	measure 'Epistemic Note Strategies' = "CALIBRATED · constructed load profile (SPEC-03) · contract prices via ÖSPI proxy"
+		displayFolder: Labels & notes
+		lineageTag: 4ca66ff6-eae3-5c42-93ab-63b9ffb7613e
+
+	/// Footer tag for the forward-risk page (RP-702, E-1).
+	measure 'Epistemic Note Risk' = "SIMULATED · seeded block bootstrap of historical months · not a forecast"
+		displayFolder: Labels & notes
+		lineageTag: ac44b92c-e5c3-5e8e-9128-23efd9bdea7a
+
+	/// True when the exports come from the synthetic CI fixture.
+	column is_fixture
+		dataType: boolean
+		lineageTag: 6228c096-7ffd-565b-b2e7-e9e669e7cbfe
+		summarizeBy: none
+		sourceColumn: is_fixture
+
+		annotation SummarizationSetBy = User
+
+	/// Last complete data month (YYYY-MM).
+	column data_last_month
+		dataType: string
+		lineageTag: 9619e097-5e1d-5d1e-89da-7504aff5ba1e
+		summarizeBy: none
+		sourceColumn: data_last_month
+
+		annotation SummarizationSetBy = User
+
+	/// Date the exports were written.
+	column generated_on
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: 6cf7fb63-52bc-5759-925a-04a6ba299c49
+		summarizeBy: none
+		sourceColumn: generated_on
+
+		annotation SummarizationSetBy = User
+
+	partition provenance = m
+		mode: import
+		source =
+				let
+				    Source = LoadExport("provenance.csv"),
+				    Typed = Table.TransformColumnTypes(Source, {{"is_fixture", type logical}, {"data_last_month", type text}, {"generated_on", type date}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
