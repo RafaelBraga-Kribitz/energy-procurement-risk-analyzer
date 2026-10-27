@@ -70,6 +70,7 @@ title bar → *Edit*), then start a **new** session and ask for the real-data ru
 
 ```bash
 git add reports/ README.md LIMITATIONS.md docs/BUILD_LOG.md
+git add -f dashboards/html/index.html   # HTML twin; ignored by default so a fixture build never lands (ADR-022)
 git status        # data/, exports/*.csv and *.duckdb stay untracked (gitignored)
 ```
 
@@ -78,11 +79,13 @@ change: they use closed-form inputs, not market data.
 
 ## 5. After the real run
 
-- Build the Power BI report from `exports/` (`dashboards/README.md`), save
-  `dashboards/epra.pbix` and the screenshots `docs/assets/dashboard_p1…p5.png`.
+- Open `dashboards/EPRA.pbip` in Power BI Desktop, set `ExportsPath`, refresh and
+  check the cards against the SSOT (`dashboards/README.md` §0), then take the
+  screenshots `docs/assets/dashboard_p1…p5.png` (ADR-022: the PBIP is the
+  committed form of `epra.pbix`).
 - Set the repo secret `ENTSOE_API_TOKEN` (GitHub → Settings → Secrets → Actions)
   so the monthly refresh (`.github/workflows/refresh.yml`) runs on its own.
 - In `braga-portfolio-docs`, move EPRA to `status: Complete` / `incomplete:
-  false` once the `.pbix` and screenshots are committed, and update the README
+  false` once the dashboard has been refreshed in Desktop and its screenshots are committed, and update the README
   status line to match.
 - Optional: Azure deployment (`docs/AZURE_DEPLOYMENT.md`).
