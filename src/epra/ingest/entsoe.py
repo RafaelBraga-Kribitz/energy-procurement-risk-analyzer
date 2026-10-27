@@ -252,12 +252,55 @@ def _period_rows(
     return rows, fill_count
 
 
+_CLASSIFICATION_POSITION_TAG = "classificationSequence_AttributeInstanceComponent.position"
+
+
+def _classification_position(ts_elem: ET.Element) -> int | None:
+    """``classificationSequence`` position of a price series, ``None`` if absent."""
+    text = _text(_child(ts_elem, _CLASSIFICATION_POSITION_TAG))
+    return int(text) if text is not None else None
+
+
+def _assert_unclassified_series_agree(
+    rows_by_series: list[list[dict[str, object]]],
+) -> None:
+    """ADR-023: position-less series that overlap must not disagree on price.
+
+    Raises ``ContractError`` when two different ``TimeSeries`` without a
+    classification position carry different prices for the same
+    ``(zone, ts_utc)``. We never guess which of them is the SDAC price (A-2).
+    """
+    seen: dict[tuple[object, object], tuple[int, float]] = {}
+    for series_idx, rows in enumerate(rows_by_series):
+        for row in rows:
+            key = (row["zone"], row["ts_utc"])
+            price = cast(float, row["price_eur_mwh"])
+            previous = seen.get(key)
+            if previous is None:
+                seen[key] = (series_idx, price)
+            elif previous[0] != series_idx and previous[1] != price:
+                raise ContractError(
+                    "entsoe_prices",
+                    expected="classificationSequence position (ADR-023) or non-conflicting "
+                    "overlapping TimeSeries",
+                    actual=f"{row['zone']} {row['ts_utc']}: {previous[1]} vs {price}",
+                )
+
+
 def parse_publication_xml(xml: str) -> pd.DataFrame:
     """Parse a ``Publication_MarketDocument`` (day-ahead prices, A44).
 
     Implements: ING-050 (currency/unit assertion), ING-060 (resolution
     persisted as declared in the XML), ING-063 (A03 forward-fill within a
-    period), ING-031/ING-005 (UTC conversion at the parse boundary).
+    period), ING-031/ING-005 (UTC conversion at the parse boundary),
+    ING-003/ING-004 (one source fact per row) via ADR-023.
+
+    ADR-023: AT and DE-LU responses carry two ``TimeSeries`` per period,
+    distinguished by ``classificationSequence_AttributeInstanceComponent.position``.
+    Only position 1 (the SDAC day-ahead price) is kept; other positions are
+    dropped (count logged at INFO). A series without the element is kept
+    as-is, but overlapping position-less series with different prices raise
+    ``ContractError`` instead of being guessed.
 
     Returns:
         DataFrame with columns ``ts_utc`` (UTC tz-aware), ``price_eur_mwh``,
@@ -283,8 +326,14 @@ def parse_publication_xml(xml: str) -> pd.DataFrame:
         )
 
     rows: list[dict[str, object]] = []
+    unclassified: list[list[dict[str, object]]] = []
     total_fills = 0
+    dropped_series = 0
     for ts_elem in _children(root, "TimeSeries"):
+        position = _classification_position(ts_elem)
+        if position is not None and position != 1:
+            dropped_series += 1
+            continue
         currency = _text(_child(ts_elem, "currency_Unit.name"))
         if currency != "EUR":
             raise ContractError(
@@ -300,11 +349,21 @@ def parse_publication_xml(xml: str) -> pd.DataFrame:
         curve_type = _text(_child(ts_elem, "curveType"))
         period_rows, fills = _period_rows(ts_elem, curve_type)
         total_fills += fills
-        rows.extend(
+        series_rows: list[dict[str, object]] = [
             {"ts_utc": ts_utc, "price_eur_mwh": value, "resolution": resolution, "zone": zone}
             for ts_utc, resolution, value in period_rows
-        )
+        ]
+        rows.extend(series_rows)
+        if position is None:
+            unclassified.append(series_rows)
 
+    _assert_unclassified_series_agree(unclassified)
+    if dropped_series:
+        logger.info(
+            "entsoe prices: dropped %d TimeSeries with classificationSequence position != 1 "
+            "(ADR-023)",
+            dropped_series,
+        )
     if total_fills:
         logger.warning("entsoe prices A03 forward-fill applied to %d point(s)", total_fills)
 

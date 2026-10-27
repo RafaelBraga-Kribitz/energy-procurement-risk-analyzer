@@ -61,12 +61,17 @@ def required_keys(years: Sequence[int], strategies: Sequence[str]) -> list[str]:
 
 
 def results_digest(root: Path = REPO_ROOT) -> str:
-    """sha256 over the committed results CSVs (sorted paths + bytes)."""
+    """sha256 over the committed results CSVs (sorted paths + bytes, LF line endings).
+
+    CRLF is normalised to LF first: a Windows checkout (core.autocrlf) holds the
+    CSVs with CRLF while git and CI hold LF, and the digest must not depend on
+    the platform that ran ``make ssot`` (A-4).
+    """
     digest = hashlib.sha256()
     for pattern in RESULT_GLOBS:
         for path in sorted(root.glob(pattern)):
             digest.update(path.relative_to(root).as_posix().encode())
-            digest.update(path.read_bytes())
+            digest.update(path.read_bytes().replace(b"\r\n", b"\n"))
     return digest.hexdigest()
 
 

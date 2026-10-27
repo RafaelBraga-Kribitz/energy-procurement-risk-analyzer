@@ -12,6 +12,10 @@ from {{ source('raw', 'entsoe_prices_at') }}
 -- ingested_at_utc is persisted as an ISO-8601 string (ING-004); cast it so
 -- "latest ingestion wins" orders chronologically, never lexicographically.
 -- A malformed value fails the cast loudly instead of mis-ordering silently.
+-- ADR-023: the parser keeps one series per ts_utc, so ties are not expected;
+-- resolution, price_eur_mwh break any remaining tie so the pick never depends
+-- on row order (A-4).
 qualify row_number() over (
-    partition by ts_utc order by cast(ingested_at_utc as timestamptz) desc
+    partition by ts_utc
+    order by cast(ingested_at_utc as timestamptz) desc, resolution, price_eur_mwh
 ) = 1

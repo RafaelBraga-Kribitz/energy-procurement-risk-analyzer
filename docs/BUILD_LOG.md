@@ -592,3 +592,59 @@ real-data run, set `ExportsPath`, refresh, check the cards against the SSOT, add
 small multiples to the Risk histogram (one drag), take the RP-406 screenshots,
 and commit the real HTML build with `git add -f` (`dashboards/README.md` §0, §6).
 The PBIR files are schema-valid but have not yet been loaded by Desktop.
+
+## 2026-10-28 — First real-data run (ADR-023, R-8)
+
+**What shipped:**
+- Real-data run on ENTSO-E 2019 to 2026-09 (AT, DE-LU, AT load, AT generation),
+  GeoSphere and the committed ÖSPI file. All committed results in `reports/` are
+  real-data results; the README answer and results blocks are rendered from
+  `reports/NUMERIC_SSOT.md`.
+- **Defect found and fixed (ADR-023).** ENTSO-E A44 responses for AT and DE-LU hold
+  two `TimeSeries` per period (`classificationSequence_AttributeInstanceComponent.position`
+  1 = SDAC day-ahead, 2 = second PT15M series with other prices). The parser kept both
+  (raw had two rows per `ts_utc`), the dbt dedup picked among ties at random (A-4) and
+  `predup_count_prices` warned in all 186 zone-months. Fix: parser keeps position 1 only
+  (`parse_publication_xml`, four unit tests); `stg_prices_{at,delu}_native` dedup
+  has the tie-breaker `resolution, price_eur_mwh`. Raw price parquet rebuilt from the
+  ING-009 cache (256 of 256 requests were cache hits, no network use).
+- Superseded first run (defective data): 2022 mean 264.0228, cost5yr S1/S2/S3 =
+  34,732,145 / 32,336,145 / 30,317,839 EUR, wrong-strategy total 27,344,806 EUR,
+  forward P95 S1/S2/S3 = 7,585,197 / 7,190,736 / 6,638,316 EUR. After the fix:
+  2022 mean 261.3973, cost5yr S1/S2/S3 = 34,608,935 / 32,176,612 / 30,174,416 EUR,
+  wrong-strategy total 27,043,731 EUR, forward P95 S1/S2/S3 = 7,555,430 / 7,155,137 /
+  6,607,054 EUR (all from `reports/NUMERIC_SSOT.md`). Best 5-year strategy: S3 (unchanged).
+
+**Gate evidence:**
+```
+raw prices: entsoe_prices_at 94199 rows, entsoe_prices_delu 94199 rows, 0 duplicate ts_utc each
+make validate-ingest: ING-080 .. ING-085, ING-094, ING-103, ING-111 passed=True
+  ING-082 annual means: 2019 40.06, 2020 33.14, 2021 106.85, 2022 261.40, 2023 102.14,
+  2024 81.54, 2025 98.94 (SSOT annual_mean_price_<year> equal to 0.01)
+make all -> dbt build (transform) Done. PASS=64 WARN=0 ERROR=0 (predup_count_prices PASS)
+          -> dbt build (cost mart)  Done. PASS=7 WARN=0 ERROR=0
+make warehouse: Done. PASS=71 WARN=0 ERROR=0 SKIP=0; ALL DBT TESTS PASSED; SANITY CHECKS OK
+analytics: AN-304 top-2 100.0%, calm-2019 98.6%  (PASS)
+simulator: retrospective: 6 strategies x 5 years; wrong-strategy total 27.04 M
+           ST-602 sanity relations (a)(b)(c): PASS
+           (a) 2022: cost_S1 13.84 M > cost_S3 3.08 M; (c) forward P95 S1 7.56 M >= S3 6.61 M
+make ssot twice -> byte-identical reports/NUMERIC_SSOT.md (determinism, A-4)
+check_ssot_consistency: checked 38 numbers in 2 docs; 0 unmatched
+make lint: linkcheck 69 files, 0 broken; ruff clean; mypy 96 files, no issues
+make test: 451 passed, 3 skipped, 1 deselected in 128.89s; coverage 96.77%
+```
+
+**Notes (see LIMITATIONS §6):** GARCH(1,1) alpha + beta = 1.0000 (IGARCH boundary); the
+dbt row-count test counts the calendar spine to 2028-03 (81,071 hours, 67,919 priced),
+not priced hours; GeoSphere 2026-10 rows 28..31 are NaN (future dates, null, not forecasts).
+
+**Open human steps:**
+1. Open `dashboards/EPRA.pbip` in Power BI Desktop, set `ExportsPath`, refresh, check the
+   cards against the SSOT, take screenshots `docs/assets/dashboard_p1..p5.png`
+   (`dashboards/README.md` §0, §6).
+2. Set the repo secret `ENTSOE_API_TOKEN` (monthly `refresh.yml`).
+3. Transcribe ÖSPI months after 2026-08 (`make oespi-reconcile`, ING-101); until then the
+   simulator carries the last value forward (ADR-019).
+4. Review `reports/EXEC_SUMMARY.md` §5; re-render the README hero image (its alt text and
+   picture still say "real-data results pending").
+5. Merge the PR for branch `data/first-real-data-run`.
