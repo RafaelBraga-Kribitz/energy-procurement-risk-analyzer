@@ -13,13 +13,14 @@ An energy buyer or controller at a manufacturer must choose how to buy electrici
 energy crisis, this choice is a board-level risk in Austria. This project answers two questions for a
 **50 GWh Styrian industrial consumer** on the **Austrian day-ahead market**. The market sets next-day
 hourly prices, and the prices come from the ENTSO-E Transparency Platform. What did the choice of
-strategy cost in 2021–2025? How much cost risk does each strategy carry for the next 12 months?
+strategy cost in 2021–2025? How much cost risk does each strategy carry for the next 12 months? The
+tool measures that risk as the 95th-percentile simulated annual cost (exceeded in about 1 year in 20).
 
 **Who decides:** the energy buyer or controller of a 50 GWh Styrian manufacturer. The
 [executive summary](reports/EXEC_SUMMARY.md) addresses the CFO or Head of Procurement. The consumer is a
 reference case, not a real company.
 
-**What they choose:** how to buy electricity for 2026-10 to 2027-09. The six options are in
+**What they choose:** how to buy electricity for the next 12 months. The six options are in
 [Question](#question).
 
 **The answer:**
@@ -28,10 +29,10 @@ reference case, not a real company.
 Buying electricity with the wrong strategy cost the 50 GWh reference consumer €27.04 M (CALIBRATED) over 2021-2025, the sum of each year's gap between the dearest and the cheapest of four strategies. Over the five years **Fixed annual** was the cheapest strategy at €30.17 M (CALIBRATED) in total. For the next 12 months Fixed annual has the lowest expected cost, €4.77 M (SIMULATED), and Hybrid 70% fixed the lowest P95 exposure: €6.44 M (SIMULATED) against €6.61 M (SIMULATED).
 <!-- epra:answer:end -->
 
-**The trade-off:** Choose Fixed annual for the lowest expected cost: €4.77 M (SIMULATED). Choose
-Hybrid 70% fixed to lower the worst realistic yearly cost (P95, 1 year in 20) from €6.61 M (SIMULATED) to
-€6.44 M (SIMULATED). That cut is €0.17 M (SIMULATED) and costs €0.18 M (SIMULATED) more in expected cost.
-The two choices are about even, so the decision depends on how much cost risk the buyer accepts.
+**The trade-off:** One choice gives the lowest expected cost. Another choice gives the lowest
+95th-percentile simulated annual cost, at a higher expected cost. The results table below and the
+[executive summary](reports/EXEC_SUMMARY.md) name both choices and price the difference in euros. The decision
+depends on how much cost risk the buyer accepts.
 
 **Main caveat:** The load profile of the plant is constructed, not metered (CALIBRATED). Contract prices
 come from the ÖSPI index, a proxy, not from supplier offers. The next-12-month figures resample past
@@ -40,8 +41,8 @@ prices (SIMULATED). They are not a price forecast.
 <!-- epra:chart:start -->
 ![What the wrong electricity procurement strategy cost a 50 GWh Styrian manufacturer](reports/executive_charts/01_wrong_strategy_cost.png)
 <!-- epra:chart:end -->
-*Chart: the gap between the dearest and the cheapest strategy in each year. The gap peaked at €10.76 M
-(CALIBRATED) in 2022 and fell to €1.17 M (CALIBRATED) in 2025. No single strategy was cheapest in every year.*
+*Chart: the gap between the dearest and the cheapest strategy in each year. The results table below
+and the executive summary hold the numbers.*
 
 ## What it does
 
@@ -52,13 +53,10 @@ simulated 12-month paths. Every number carries one of three tags:
 - **CALIBRATED:** a documented assumption anchored to real data.
 - **SIMULATED:** the output of a seeded random procedure.
 
-**Status in one line:** the real-data run is complete. The Power BI screenshots do not exist yet (see
-[Status](#status)).
-
 ## Question
 
 > **How much did the wrong buying strategy cost a 50 GWh Styrian manufacturer in 2021–2025?
-> What is the worst realistic cost for the next 12 months under each strategy?**
+> What is the 95th-percentile simulated annual cost for the next 12 months under each strategy?**
 
 The project compares four strategy types ([simulator specification](docs/SPEC-05_strategy_simulator.md)).
 One type, Hybrid, comes in three splits, so the results show six rows.
@@ -100,8 +98,8 @@ Skills this project demonstrates:
 The first table shows the cost of each strategy in each past year. The second table shows the simulated cost
 of the next 12 months. These terms appear in the second table:
 
-- **P95** is the worst realistic yearly cost. The simulation exceeds it in 1 path of 20.
-- **CVaR95** is the mean cost of the worst 1 path of 20.
+- **P95** is the 95th-percentile simulated annual cost. The simulation exceeds it in about 1 year in 20.
+- **CVaR95** is the mean cost of the simulated years above P95. It is higher than P95, so P95 is not a worst case.
 - **P5** and **P50** are the 5th percentile and the median.
 
 <!-- epra:results:start -->
@@ -132,25 +130,19 @@ A **cost-minimizing CFO** chooses Fixed annual: the lowest expected 12-month cos
 *Contract prices proxied via ÖSPI (futures-based index); premiums are calibrated assumptions — see LIMITATIONS. Reference load profile is constructed (CALIBRATED), not measured; construction rules in SPEC-03.*
 <!-- epra:results:end -->
 
-Four findings come from the tables:
+The [executive summary](reports/EXEC_SUMMARY.md) names both choices, the cheapest strategy in each year and
+the price of the risk reduction in euros. The results apply to the reference consumer, not to any real
+company.
 
-- Full spot has the highest expected cost and the highest P95 of the six strategies.
-- Hybrid 70% fixed has the lowest P95 and the lowest CVaR95.
-- Fixed annual has the lowest expected cost for the next 12 months.
-- No strategy was cheapest in every year. Fixed annual won 2021 and 2022, Full spot won 2023 and 2024, and ÖSPI-indexed won 2025.
+![Box plots of the simulated total energy cost for the next 12 months, one box per strategy, in EUR million. A diamond marks the 95th-percentile simulated annual cost of each strategy. Tag: SIMULATED.](reports/executive_charts/03_forward_risk.png)
 
-The executive summary gives both choices and their price in euros. They apply to the reference consumer,
-not to any real company.
+*Chart: the spread of next-12-month cost per strategy over the simulated paths. The diamond marks the
+95th-percentile simulated annual cost. A longer box and whisker means more cost risk.*
 
-![Box plots of the simulated total energy cost for the next 12 months, one box per strategy, in EUR million. Full spot has the widest spread and the highest P95, €7.56 M. Hybrid 70% fixed has the narrowest spread and the lowest P95, €6.44 M. Tag: SIMULATED.](reports/executive_charts/03_forward_risk.png)
+![Grouped bars of annual energy cost per strategy for each past year, in EUR million, one bar per strategy. Tag: CALIBRATED.](reports/executive_charts/02_annual_costs_by_strategy.png)
 
-*Chart: the spread of next-12-month cost per strategy (2,000 simulated paths). The diamond marks the
-P95. Take-away: Full spot carries the longest tail, and Hybrid 70% fixed carries the shortest.*
-
-![Grouped bars of annual energy cost per strategy for 2021 to 2025, in EUR million. Full spot peaks in 2022 at €13.84 M. ÖSPI-indexed peaks in 2023 at €12.50 M. Fixed annual is cheapest in 2021 and 2022 and dearest of the six in 2024 at €8.95 M. Tag: CALIBRATED.](reports/executive_charts/02_annual_costs_by_strategy.png)
-
-*Chart: annual cost of each strategy. Take-away: the cheapest strategy changes from year to year, so the
-budget question is how much year-to-year variation the company can absorb.*
+*Chart: the annual cost of each strategy in each past year. Compare the bars within one year to rank
+the strategies for that year.*
 
 Full tables: [strategy comparison](reports/strategies/strategy_annual_summary.md),
 [forward risk](reports/strategies/forward_risk_summary.md),
@@ -162,8 +154,8 @@ Full tables: [strategy comparison](reports/strategies/strategy_annual_summary.md
 [`LIMITATIONS.md`](LIMITATIONS.md) holds the full text. The first three limits matter most.
 
 - **The load profile is constructed, not metered** (CALIBRATED). A flat-baseload rerun bounds the effect of the load shape. A metered profile would change the cost levels, not the logic of the comparison.
-- **The next-12-month prices are simulated** (SIMULATED). The simulation resamples whole historical months. It cannot produce a crisis worse than 2022, so P95 understates such a tail.
-- **The forward view looks one year ahead.** It covers 2026-10 to 2027-09. The project does not simulate longer horizons.
+- **The next-12-month prices are simulated** (SIMULATED). The simulation resamples whole historical months. It cannot produce a crisis worse than the worst crisis in the historical data, so P95 and CVaR95 understate such a tail.
+- **The forward view looks one year ahead.** It covers the 12 months after the latest data month. The project does not simulate longer horizons.
 - **The ÖSPI index proxies supplier contract prices.** Real offers add margins and terms, and the direction of the bias is unknown. The fixed-price premium is an assumption, and the sensitivity matrix tests it at 0 and 10.
 - **The project covers energy only.** Grid fees, taxes and levies are out of scope.
 - **The project claims no forecast skill.** It backtests strategies on realized prices and stress-tests them by resampling history.
@@ -177,7 +169,7 @@ sensitivity matrix shows how far the premium and the load shape move it.
 
 **Status:** Functional
 
-The first real-data run is done (ENTSO-E prices 2019 to 2026-09). The run found and fixed one bug: ENTSO-E
+The first real-data run is done. The run found and fixed one bug: ENTSO-E
 sends two price series per period, and the parser now keeps the day-ahead series
 ([decision record](docs/ADR/ADR-023_entsoe-price-classification-position-1.md)). All eight build
 milestones are built, tested and green in CI. They cover ingestion, warehouse, load profile, market analytics,
@@ -189,7 +181,7 @@ Four human steps stay open:
 
 - Open the Power BI project in Desktop, refresh it and take the screenshots.
 - Set the repository secret for the monthly refresh.
-- Add the ÖSPI months after 2026-08.
+- Add the ÖSPI months that are newer than the last transcribed month.
 - Deploy to Azure (optional).
 
 The [real-data run guide](docs/REAL_DATA_RUN.md) lists the commands.
@@ -211,7 +203,7 @@ static charts in [`reports/executive_charts/`](reports/executive_charts/) are th
 
 Most Austrian mid-size manufacturers still pick a procurement strategy by gut feeling or by whatever the
 supplier offers. A euro figure on the gap between strategies turns that choice into a budget decision. A euro
-figure on what a lower worst case costs does the same. A CFO can defend both.
+figure on what a lower tail risk costs does the same. A CFO can defend both.
 
 ## How it works
 
@@ -324,14 +316,14 @@ make publish TARGET=azure     # optional, see docs/AZURE_DEPLOYMENT.md
 No token? Run the same pipeline offline on the synthetic fixture:
 `uv run python scripts/bootstrap_fixture_warehouse.py --force && make all`. The pipeline then stamps every
 output FIXTURE. Two runs on the same data give byte-identical results, because the HMM restarts and the
-bootstrap are seeded.
+bootstrap are seeded. On the fixture, the result blocks in this README hold a notice and no numbers.
 
 ## Kurzfassung auf Deutsch
 
 Dieses Projekt beantwortet eine Frage aus dem Energieeinkauf: Was hat die Wahl der
 Beschaffungsstrategie (Spot, ÖSPI-indexiert, Fixpreis, Mischung) einen steirischen
 Industriebetrieb mit 50 GWh Jahresverbrauch in den Jahren 2021–2025 gekostet, und wie
-hoch ist das Kostenrisiko (P95, in einem von 20 simulierten Jahren überschritten) für die nächsten 12 Monate? Grundlage sind reale
+hoch ist das Kostenrisiko (95. Perzentil der simulierten Jahreskosten, in etwa einem von 20 Jahren überschritten) für die nächsten 12 Monate? Grundlage sind reale
 Day-Ahead-Preise für Österreich (ENTSO-E), der Strompreisindex ÖSPI und Wetterdaten
 aus Graz. Das Lastprofil ist konstruiert, nicht gemessen. Alle Kennzahlen stehen mit
 Herkunftskennzeichnung in `reports/NUMERIC_SSOT.md`; Datenqualität und Reporting sind
