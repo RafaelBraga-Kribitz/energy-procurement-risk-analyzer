@@ -29,10 +29,10 @@ reference case, not a real company.
 Buying electricity with the wrong strategy cost the 50 GWh reference consumer €27.04 M (CALIBRATED) over 2021-2025, the sum of each year's gap between the dearest and the cheapest of four strategies. Over the five years **Fixed annual** was the cheapest strategy at €30.17 M (CALIBRATED) in total. For the next 12 months Fixed annual has the lowest expected cost, €4.77 M (SIMULATED), and Hybrid 70% fixed the lowest P95 exposure: €6.44 M (SIMULATED) against €6.61 M (SIMULATED).
 <!-- epra:answer:end -->
 
-**The trade-off:** One choice gives the lowest expected cost. Another choice gives the lowest
-95th-percentile simulated annual cost, at a higher expected cost. The results table below and the
-[executive summary](reports/EXEC_SUMMARY.md) name both choices and price the difference in euros. The decision
-depends on how much cost risk the buyer accepts.
+**The trade-off:** A buyer who minimises expected cost and a buyer who minimises the 95th-percentile
+simulated annual cost may choose differently. The results table below shows whether they do. The
+[executive summary](reports/EXEC_SUMMARY.md) states the choice for each buyer. The decision depends on how
+much cost risk the buyer accepts.
 
 **Main caveat:** The load profile of the plant is constructed, not metered (CALIBRATED). Contract prices
 come from the ÖSPI index, a proxy, not from supplier offers. The next-12-month figures resample past
@@ -130,8 +130,9 @@ A **cost-minimizing CFO** chooses Fixed annual: the lowest expected 12-month cos
 *Contract prices proxied via ÖSPI (futures-based index); premiums are calibrated assumptions — see LIMITATIONS. Reference load profile is constructed (CALIBRATED), not measured; construction rules in SPEC-03.*
 <!-- epra:results:end -->
 
-The [executive summary](reports/EXEC_SUMMARY.md) names both choices, the cheapest strategy in each year and
-the price of the risk reduction in euros. The results apply to the reference consumer, not to any real
+The [executive summary](reports/EXEC_SUMMARY.md) states the choice for a cost-minimizing buyer and for a
+risk-averse buyer. It also lists the cheapest strategy in each year. If the two choices differ, it gives the
+euro price of the risk reduction. The results apply to the reference consumer, not to any real
 company.
 
 ![Box plots of the simulated total energy cost for the next 12 months, one box per strategy, in EUR million. A diamond marks the 95th-percentile simulated annual cost of each strategy. Tag: SIMULATED.](reports/executive_charts/03_forward_risk.png)
@@ -156,7 +157,7 @@ Full tables: [strategy comparison](reports/strategies/strategy_annual_summary.md
 - **The load profile is constructed, not metered** (CALIBRATED). A flat-baseload rerun bounds the effect of the load shape. A metered profile would change the cost levels, not the logic of the comparison.
 - **The next-12-month prices are simulated** (SIMULATED). The simulation resamples whole historical months. It cannot produce a crisis worse than the worst crisis in the historical data, so P95 and CVaR95 understate such a tail.
 - **The forward view looks one year ahead.** It covers the 12 months after the latest data month. The project does not simulate longer horizons.
-- **The ÖSPI index proxies supplier contract prices.** Real offers add margins and terms, and the direction of the bias is unknown. The fixed-price premium is an assumption, and the sensitivity matrix tests it at 0 and 10.
+- **The ÖSPI index proxies supplier contract prices.** Real offers add margins and terms, and the direction of the bias is unknown. The fixed-price premium is an assumption, and the [sensitivity matrix](reports/strategies/sensitivity_matrix.md) tests it at 0 and 10 EUR/MWh.
 - **The project covers energy only.** Grid fees, taxes and levies are out of scope.
 - **The project claims no forecast skill.** It backtests strategies on realized prices and stress-tests them by resampling history.
 
