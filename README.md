@@ -58,7 +58,7 @@ simulated 12-month paths. Every number carries one of three tags:
 Since the 2021–2023 crisis, how a manufacturer buys electricity is a board-level risk, yet many still take
 the supplier's offer. This project was meant to show a CFO how much to lock at a fixed price, using the
 95th-percentile cost of each strategy. The pre-build evaluation expected €77k of decision value over three
-yearly decisions against a central cost of €4,418. That is 17.5×, so it passes the 4× financial hurdle.
+yearly decisions against a central cost of €6,373. That is 12×, so it passes the 4× financial hurdle.
 Observed result: Not yet measured; no buyer has used it yet. Details:
 [economic evaluation](docs/economic-evaluation.md).
 

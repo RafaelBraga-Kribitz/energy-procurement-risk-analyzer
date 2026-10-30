@@ -1,6 +1,6 @@
 # Economic evaluation: Energy Procurement Risk Analyzer
 
-Pre-build scenario exercise · evaluation date 2026-07-18 · method v2.0 · cost basis v1.1 ([COST_BASIS.md](https://github.com/RafaelBraga-Kribitz/braga-portfolio-docs/blob/main/docs/value-evaluation/COST_BASIS.md))
+Pre-build scenario exercise · evaluation date 2026-07-18 · method v2.0 · cost basis v1.2 ([COST_BASIS.md](https://github.com/RafaelBraga-Kribitz/braga-portfolio-docs/blob/main/docs/value-evaluation/COST_BASIS.md))
 
 ## Decision
 
@@ -32,23 +32,23 @@ Action: lock 50 % instead of 100 %. Value per year against the baseline.
 - With perfect information the CFO cuts the fixed share except in the adverse state: €0.0375M + €0.04375M = €81k a year. Expected value of perfect information (EVPI) = **€81k a year**; over 3 years at 5 % (factor 2.72), **€221k**.
 - Realistic fraction f = 0.35 [assumption, sensitivity parameter: the P95 per fixed share targets the adverse state; constructed load, the index standing in for real offers (charter risk R-5, "Certain") and non-use pull it down]. Expected gross value = 0.35 × €221k = **€77k**.
 
-Rate: €47 per active hour, the market cost of the role this work needs (data analytics · senior, advertised minimum, ADJMI snapshot 2026-10-18; ADJMI = Austria Data-Job Market Intelligence), €44 loaded plus €3 AI and equipment. Maintenance: 10 % of build hours a year, 3 years. Implementation: 16 h for metered load and real offers [assumption]. Hosting €0.
+Rate: €47 per active hour, the market cost of the role this work needs (data analytics · senior, advertised minimum, ADJMI snapshot 2026-10-18; ADJMI = Austria Data-Job Market Intelligence), €44 loaded plus €3 AI and equipment. Hours: the charter's effort budget, 11.5 days × 8 h = 92 h [sourced: `PROJECT_CHARTER.md` §7 at `c043933`; estimate]. Maintenance: 10 % of build hours a year, 3 years of use. Implementation: 16 h for metered load and real offers [assumption]. Hosting €0.
 
 | Case | Build | Maintenance | Implementation | Total cost | Multiple |
 |---|---|---|---|---|---|
-| Central, 60 h | €2,820 | €846 | €752 | €4,418 | 17.5× |
-| 0.5×, 30 h | €1,410 | €423 | €752 | €2,585 | 30× |
-| 1.5×, 90 h | €4,230 | €1,269 | €752 | €6,251 | 12× |
+| Central, 92 h | €4,324 | €1,297 | €752 | €6,373 | 12.2× |
+| 0.5×, 46 h | €2,162 | €649 | €752 | €3,563 | 22× |
+| 1.5×, 138 h | €6,486 | €1,946 | €752 | €9,184 | 8.4× |
 
 ## Verdict
 
-**Passes financial hurdle**: 17.5× central; 13.7× at a rate 30 % higher (€60.2 all-in; the inputs are floors). Maximum affordable cost: €77k ÷ 4 = **€19k**.
+**Passes financial hurdle**: 12.2× central; 9.5× at a rate 30 % higher (€60.2 all-in; the inputs are floors). Maximum affordable cost: €77k ÷ 4 = **€19k**.
 
-Break-even driver: the fraction f. 1× at f = 0.020; 4× at f = 0.080.
+Break-even driver: the fraction f. 1× at f = 0.029; 4× at f = 0.115.
 
 Reversing assumptions:
 
-1. Real offers carry almost no premium. EVPI is €16,250 a year per €1/MWh of default premium; 4× needs a premium of about €1.1/MWh instead of €5.
+1. Real offers carry almost no premium. EVPI is €16,250 a year per €1/MWh of default premium; 4× needs a premium of about €1.7/MWh instead of €5.
 2. A written hedging policy already settles whether the cap binds.
 
 ## Recommendation

@@ -6,8 +6,8 @@ Evaluation: [economic-evaluation.md](economic-evaluation.md).
 
 | Item | Expected (evaluation) | Actual | Evidence |
 |---|---|---|---|
-| Effort | 60 h central (30 to 90 h); charter budget 11.5 days | 60 h by the commit-day convention; session-span check 32 h; no time log | cost basis v1.1, hours table; `PROJECT_CHARTER.md` §7 |
-| Total cost | €4,418 central, with 3 years of maintenance and 16 h implementation | €2,820 build to date; maintenance and implementation not yet incurred | same |
+| Effort | 92 h central (46 to 138 h), the charter's 11.5-day budget | Unmeasured: no time log. Commit days × 4 h gives 60 h; the session-span check gives 32 h | cost basis v1.2, hours table; `PROJECT_CHARTER.md` §7 |
+| Total cost | €6,373 central, with 3 years of maintenance and 16 h implementation | Unmeasured; maintenance and implementation not yet incurred | same |
 | Technical performance | A P95 per fixed share that separates the adverse state | First real-data run on 2026-10-28. Next 12 months: Fixed annual has the lowest mean, €4.77M; Hybrid 70 % fixed the lowest P95, €6.44M against €6.61M (SIMULATED) | `reports/NUMERIC_SSOT.md`; merge of `data/first-real-data-run` |
 | Adoption | Inside f = 0.35 | Unmeasured: the consumer is a reference case; no buyer on record | `README.md` |
 | Operational outcome | A fixed share chosen against a stated cap | Unmeasured | none |

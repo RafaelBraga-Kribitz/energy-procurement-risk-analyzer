@@ -4,4 +4,4 @@
 re:Hybrid \d+% fixed  # strategy names (dim_strategy labels S4_30/50/70), not results
 80 %  # test-coverage gate threshold (EN-071), not a result
 €77  # README "Why this project exists": expected gross value from docs/economic-evaluation.md, a pre-build estimate, not a result
-€4,418  # README "Why this project exists": central total cost from docs/economic-evaluation.md, not a result
+€6,373  # README "Why this project exists": central total cost from docs/economic-evaluation.md, not a result
