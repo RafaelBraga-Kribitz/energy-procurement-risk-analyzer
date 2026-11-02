@@ -1,3 +1,5 @@
+[🇧🇷 PT-BR](README.pt-BR.md) · [🇬🇧 EN-UK](README.md) · [🇦🇹 DE-AT](README.de-AT.md)
+
 # Energy Procurement Risk Analyzer (EPRA)
 
 ![Energy Procurement Risk Analyzer: Procurement-strategy risk on the Austrian day-ahead market for a 50 GWh Styrian consumer, backtested on real ENTSO-E prices 2019–2026.](docs/assets/hero.png)
