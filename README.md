@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml/badge.svg)](https://github.com/RafaelBraga-Kribitz/energy-procurement-risk-analyzer/actions/workflows/ci.yml)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-5A5C61?labelColor=26282C)](https://www.python.org/downloads/release/python-3120/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-5A5C61?labelColor=26282C)](LICENSE)
+[![Licence: MIT](https://img.shields.io/badge/license-MIT-5A5C61?labelColor=26282C)](LICENSE)
 [![Status: real-data run complete, dashboard refresh pending](https://img.shields.io/badge/status-real%20data%20run%20complete%20%C2%B7%20dashboard%20refresh%20pending-5A5C61?labelColor=26282C)](#status)
 
 **Status:** Functional · pipeline complete and tested; first real-data run done; Power BI refresh in Desktop pending
@@ -348,7 +348,7 @@ Outside the project charter by design, one line each:
 - Measured interval-metered (RLM) load data from a real plant instead of the constructed profile.
 - Grid fees, taxes and levies for a full electricity-bill view.
 
-## License
+## Licence
 
 MIT. See [LICENSE](LICENSE).
 
